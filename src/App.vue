@@ -37,7 +37,7 @@ onMounted(async () => {
 
 <template>
   <div id="cesiumContainer"></div>
-  <h1>这里是Vue布局测试分支</h1>
+  <h1>这里是Vue script测试分支</h1>
 </template>
 
 <style scoped>
