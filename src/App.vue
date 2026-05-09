@@ -39,8 +39,9 @@ onMounted(async () => {
   <div id="cesiumContainer"></div>
   <h1>这里是Vue script测试分支</h1>
   <h1>这里是Vue布局测试分支</h1>
-<el-button >点击测试</el-button>
-  <h1>这里是cesium分支测试</h1>
+  <input type="text" placeholder="请输入内容" />
+  <h1>ddd</h1>
+  <h1>ddd</h1>
 </template>
 
 <style scoped>
