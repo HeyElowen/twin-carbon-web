@@ -42,6 +42,7 @@ onMounted(async () => {
   <input type="text" placeholder="请输入内容" />
   <h1>ddd</h1>
   <h1>ddd</h1>
+  <h1>ddd</h1>
 </template>
 
 <style scoped>
