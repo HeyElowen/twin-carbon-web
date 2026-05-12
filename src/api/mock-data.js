@@ -1,9 +1,13 @@
 /**
  * Mock 数据文件
  * 前端开发时，将此文件复制到 src/api/ 目录下使用
+ *
+ * 接口状态说明：
+ *   ✅ 已实现 — 后端代码已存在，Mock 路径已对准真实接口
+ *   🚧 待实现 — 后端代码尚未开发，仅做预留
  */
 
-// ==================== 1. 登录 ====================
+// ==================== 1. 登录 ✅ ====================
 export const mockLogin = {
   code: 200,
   message: "success",
@@ -16,7 +20,7 @@ export const mockLogin = {
   }
 }
 
-// ==================== 2. 主数据地图点 ====================
+// ==================== 2. 主数据地图点 ✅ ====================
 export const mockPoints = {
   code: 200,
   message: "success",
@@ -94,7 +98,7 @@ export const mockPoints = {
   ]
 }
 
-// ==================== 3. 自定义地图点 ====================
+// ==================== 3. 自定义地图点 ✅ ====================
 export const mockCustomPoints = {
   code: 200,
   message: "success",
@@ -104,6 +108,8 @@ export const mockCustomPoints = {
       name: "用户上传-工业区M01",
       category: "工业区",
       emission: 5200.5,
+      year: 2025,
+      quarter: "Q3",
       geom: "POINT(116.355 39.895)",
       lon: 116.355,
       lat: 39.895,
@@ -114,6 +120,8 @@ export const mockCustomPoints = {
       name: "用户上传-农业区M02",
       category: "农业区",
       emission: 950.2,
+      year: 2025,
+      quarter: "Q3",
       geom: "POINT(116.438 39.945)",
       lon: 116.438,
       lat: 39.945,
@@ -122,66 +130,88 @@ export const mockCustomPoints = {
   ]
 }
 
-// ==================== 4. 饼图统计 ====================
+// ==================== 4. 饼图统计 — 主数据 ✅ ====================
 export const mockCategoryRatio = {
   code: 200,
   message: "success",
   data: [
-    { category: "工业区", totalEmission: 45200.8 },
-    { category: "商业区", totalEmission: 38500.5 },
-    { category: "住宅区", totalEmission: 26800.2 },
-    { category: "农业区", totalEmission: 8900.6 },
-    { category: "教育区", totalEmission: 5600.4 }
+    { name: "工业区", value: 45200.8 },
+    { name: "商业区", value: 38500.5 },
+    { name: "住宅区", value: 26800.2 },
+    { name: "农业区", value: 8900.6 },
+    { name: "教育区", value: 5600.4 }
   ]
 }
 
-// ==================== 5. 趋势折线图（全部类型） ====================
+// ==================== 5. 饼图统计 — 自定义数据 ✅ ====================
+export const mockCustomCategoryRatio = {
+  code: 200,
+  message: "success",
+  data: [
+    { name: "工业区", value: 8200.5 },
+    { name: "农业区", value: 1950.2 }
+  ]
+}
+
+// ==================== 6. 趋势折线图 — 主数据（全部类型）✅ ====================
 export const mockTrendAll = {
   code: 200,
   message: "success",
   data: [
-    { period: "2022-Q1", totalEmission: 98500.2 },
-    { period: "2022-Q2", totalEmission: 102300.5 },
-    { period: "2022-Q3", totalEmission: 108600.8 },
-    { period: "2022-Q4", totalEmission: 115200.3 },
-    { period: "2023-Q1", totalEmission: 112500.6 },
-    { period: "2023-Q2", totalEmission: 118900.4 },
-    { period: "2023-Q3", totalEmission: 125000.2 },
-    { period: "2023-Q4", totalEmission: 132400.8 },
-    { period: "2024-Q1", totalEmission: 128600.5 },
-    { period: "2024-Q2", totalEmission: 135200.3 },
-    { period: "2024-Q3", totalEmission: 141800.6 },
-    { period: "2024-Q4", totalEmission: 148500.2 },
-    { period: "2025-Q1", totalEmission: 144200.8 },
-    { period: "2025-Q2", totalEmission: 150800.5 },
-    { period: "2025-Q3", totalEmission: 157300.2 }
+    { name: "2022-Q1", value: 98500.2 },
+    { name: "2022-Q2", value: 102300.5 },
+    { name: "2022-Q3", value: 108600.8 },
+    { name: "2022-Q4", value: 115200.3 },
+    { name: "2023-Q1", value: 112500.6 },
+    { name: "2023-Q2", value: 118900.4 },
+    { name: "2023-Q3", value: 125000.2 },
+    { name: "2023-Q4", value: 132400.8 },
+    { name: "2024-Q1", value: 128600.5 },
+    { name: "2024-Q2", value: 135200.3 },
+    { name: "2024-Q3", value: 141800.6 },
+    { name: "2024-Q4", value: 148500.2 },
+    { name: "2025-Q1", value: 144200.8 },
+    { name: "2025-Q2", value: 150800.5 },
+    { name: "2025-Q3", value: 157300.2 }
   ]
 }
 
-// ==================== 5. 趋势折线图（按类型筛选） ====================
+// ==================== 6. 趋势折线图 — 主数据（按类型筛选）✅ ====================
 export const mockTrendIndustry = {
   code: 200,
   message: "success",
   data: [
-    { period: "2022-Q1", totalEmission: 12500.5 },
-    { period: "2022-Q2", totalEmission: 13200.8 },
-    { period: "2022-Q3", totalEmission: 14100.2 },
-    { period: "2022-Q4", totalEmission: 15800.6 },
-    { period: "2023-Q1", totalEmission: 15200.3 },
-    { period: "2023-Q2", totalEmission: 16800.5 },
-    { period: "2023-Q3", totalEmission: 17500.8 },
-    { period: "2023-Q4", totalEmission: 18200.2 },
-    { period: "2024-Q1", totalEmission: 17800.6 },
-    { period: "2024-Q2", totalEmission: 18500.3 },
-    { period: "2024-Q3", totalEmission: 19200.8 },
-    { period: "2024-Q4", totalEmission: 20100.5 },
-    { period: "2025-Q1", totalEmission: 19500.2 },
-    { period: "2025-Q2", totalEmission: 20800.6 },
-    { period: "2025-Q3", totalEmission: 21500.3 }
+    { name: "2022-Q1", value: 12500.5 },
+    { name: "2022-Q2", value: 13200.8 },
+    { name: "2022-Q3", value: 14100.2 },
+    { name: "2022-Q4", value: 15800.6 },
+    { name: "2023-Q1", value: 15200.3 },
+    { name: "2023-Q2", value: 16800.5 },
+    { name: "2023-Q3", value: 17500.8 },
+    { name: "2023-Q4", value: 18200.2 },
+    { name: "2024-Q1", value: 17800.6 },
+    { name: "2024-Q2", value: 18500.3 },
+    { name: "2024-Q3", value: 19200.8 },
+    { name: "2024-Q4", value: 20100.5 },
+    { name: "2025-Q1", value: 19500.2 },
+    { name: "2025-Q2", value: 20800.6 },
+    { name: "2025-Q3", value: 21500.3 }
   ]
 }
 
-// ==================== 6. 对象查询 ====================
+// ==================== 7. 趋势折线图 — 自定义数据 ✅ ====================
+export const mockCustomTrend = {
+  code: 200,
+  message: "success",
+  data: [
+    { name: "2022-Q1", value: 3200.5 },
+    { name: "2022-Q2", value: 3500.8 },
+    { name: "2022-Q3", value: 3800.2 },
+    { name: "2022-Q4", value: 4100.6 }
+  ]
+}
+
+// ==================== 8. 对象查询 ✅ ====================
 export const mockQuery = {
   code: 200,
   message: "success",
@@ -217,7 +247,7 @@ export const mockQuery = {
   ]
 }
 
-// ==================== 7. Excel 上传预览（成功） ====================
+// ==================== 9. Excel 上传预览 — 成功 ✅====================
 export const mockImportSuccess = {
   code: 200,
   message: "success",
@@ -253,7 +283,7 @@ export const mockImportSuccess = {
   }
 }
 
-// ==================== 7. Excel 上传预览（有错误） ====================
+// ==================== 9. Excel 上传预览 — 有错误 ✅====================
 export const mockImportError = {
   code: 200,
   message: "success",
@@ -279,35 +309,43 @@ export const mockImportError = {
   }
 }
 
-// ==================== 8. 确认入库 ====================
+// ==================== 10. 确认入库 ✅====================
 export const mockConfirm = {
   code: 200,
   message: "success",
   data: null
 }
 
-// ==================== 9. 401 未登录 ====================
+// ==================== 401 未登录 ====================
 export const mock401 = {
   code: 401,
   message: "未登录或登录已过期",
   data: null
 }
 
-// ==================== 10. 500 业务错误 ====================
+// ==================== 500 业务错误 ====================
 export const mock500 = {
   code: 500,
   message: "用户名或密码错误",
   data: null
 }
 
-// ==================== 汇总对象（用于 Axios 拦截器方案） ====================
+// ==================== 汇总对象（用于 Axios 拦截器方案）====================
+// 注意：只有 ✅ 标记的接口路径与真实后端一致，🚧 标记的接口待后端实现
 export const mockData = {
+  // ✅ 已实现接口（路径与真实后端一致）
   'post:/login': mockLogin,
-  'get:/monitoring/points': mockPoints,
-  'get:/monitoring/custom/points': mockCustomPoints,
+  'get:/monitoring/observation-point': mockPoints,
+  'get:/monitoring/custom-observation-point': mockCustomPoints,
   'get:/monitoring/statistics/category-ratio': mockCategoryRatio,
+  'get:/monitoring/statistics/custom-category-ratio': mockCustomCategoryRatio,
   'get:/monitoring/statistics/trend': mockTrendAll,
+  'get:/monitoring/statistics/custom-trend': mockCustomTrend,
   'get:/monitoring/query': mockQuery,
+
+  // 🚧 待实现接口（路径为规划中的接口，后端尚未开发）
+  // 模板下载返回二进制文件，Mock 模式下建议前端直接本地预览或使用静态文件
+  // 'get:/monitoring/template/download': null,
   'post:/monitoring/import': mockImportSuccess,
   'post:/monitoring/import/confirm': mockConfirm
 }
