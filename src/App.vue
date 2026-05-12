@@ -1,6 +1,7 @@
 <script setup>
 import { el } from 'element-plus/es/locale/index.mjs';
 import { onMounted } from 'vue';
+import home from './views/home.vue';
 let viewer = null;
 const printfms=()=>{
 console.log("点击事件");
@@ -36,13 +37,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div id="cesiumContainer"></div>
-  <h1>这里是Vue script测试分支</h1>
-  <h1>这里是Vue布局测试分支</h1>
-  <input type="text" placeholder="请输入内容" />
-  <h1>ddd</h1>
-  <h1>ddd</h1>
-  <h1>ddd</h1>
+  <home></home>
 </template>
 
 <style scoped>
