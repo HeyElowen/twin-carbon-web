@@ -21,6 +21,7 @@
         v-model:filter-year="filterYear"
         v-model:filter-quarter="filterQuarter"
         v-model:active-tab="activeTab"
+        v-model:file-list="uploadFileList"
         :years="years"
         :quarters="quarters"
         :chartModes="chartModes"
@@ -61,6 +62,7 @@
           v-model:filter-year="filterYear"
           v-model:filter-quarter="filterQuarter"
           v-model:active-tab="activeTab"
+          v-model:file-list="uploadFileList"
           :years="years"
           :quarters="quarters"
           :chartModes="chartModes"
@@ -89,6 +91,7 @@
           v-model:filter-year="filterYear"
           v-model:filter-quarter="filterQuarter"
           v-model:active-tab="activeTab"
+          v-model:file-list="uploadFileList"
           :years="years"
           :quarters="quarters"
           :chartModes="chartModes"
@@ -154,6 +157,9 @@ const dockHintSide = ref(null)
 function onDockHint(side) {
   dockHintSide.value = side
 }
+
+// 上传文件列表 — 父组件持有，避免悬挂/悬浮切换时丢失
+const uploadFileList = ref([])
 
 // 组件引用 — 用于手动触发图表 resize
 const floatingRightRef = ref(null)

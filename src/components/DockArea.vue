@@ -194,6 +194,12 @@ function onHeaderPointerDown(e, panel) {
   flex-shrink: 0;
 }
 
+/* 展开时撑满挂起区域高度 */
+.dock-item.is-expanded {
+  flex: 1;
+  min-height: 0;
+}
+
 /* ── Header ── */
 .dock-item-header {
   display: flex;
@@ -278,7 +284,6 @@ function onHeaderPointerDown(e, panel) {
   padding: 12px;
   overflow-y: auto;
   flex: 1;
-  max-height: 400px;
 }
 
 .dock-item-body::-webkit-scrollbar {
