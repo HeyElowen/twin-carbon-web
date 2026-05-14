@@ -27,7 +27,9 @@
       </div>
     </div>
 
-    <el-upload
+
+
+     <el-upload
       ref="uploadRef"
       v-model:file-list="fileList"
       action="#"
@@ -69,13 +71,6 @@
 import { ref } from 'vue'
 import { Plus, Close } from '@element-plus/icons-vue'
 
-const uploadRef = ref(null)
-const fileList = defineModel('fileList', { default: () => [] })
-
-function clearFile() {
-  fileList.value = []
-}
-
 defineProps({
   years: { type: Array, default: () => [] },
   quarters: { type: Array, default: () => [] },
@@ -86,6 +81,13 @@ defineProps({
 const filterYear = defineModel('filterYear', { default: '2025' })
 const filterQuarter = defineModel('filterQuarter', { default: '第二季度' })
 const activeTab = defineModel('activeTab', { default: 'bar' })
+const fileList = defineModel('fileList', { default: () => [] })
+
+const uploadRef = ref(null)
+
+function clearFile() {
+  fileList.value = []
+}
 
 defineEmits(['confirm', 'add-data', 'preview', 'save'])
 </script>
@@ -228,5 +230,4 @@ defineEmits(['confirm', 'add-data', 'preview', 'save'])
 .data-upload.has-file :deep(.el-upload--picture-card) {
   display: none;
 }
-
 </style>
