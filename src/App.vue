@@ -48,4 +48,18 @@ onMounted(async () => {
   padding: 0;
   overflow: hidden;
 }
+
+nav {
+  padding: 10px;
+  background: #f0f0f0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+}
+#app {
+  margin-top: 40px; /* 避免导航栏遮挡内容 */
+}
+
 </style>

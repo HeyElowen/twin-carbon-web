@@ -62,7 +62,7 @@
 
       <!-- 中间可视化区域 -->
       <main class="center-area">
-        <div class="area-label">地图显示区域(SuperMap iClient3D for cesium)</div>
+        <div class="area-label"></div>
 
         <!-- 指北针 -->
         <div class="compass">
