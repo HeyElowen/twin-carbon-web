@@ -66,21 +66,21 @@ const trendTab = defineModel('trendTab', { default: '全部' })
 defineEmits(['search'])
 
 const CHART_COLORS = {
-  agriculture: '#27AE60',
-  commercial: '#9B59B6',
+  agriculture: '#2ECC71',
+  commercial: '#E67E22',
   school: '#E74C3C',
-  industry: '#F39C12',
-  residential: '#5BA3D9'
+  industry: '#9B59B6',
+  residential: '#3498DB'
 }
 
 function createPieOption() {
   return {
-    tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
+    tooltip: { show: false },
     legend: {
       bottom: 0,
       itemWidth: 8,
       itemHeight: 8,
-      textStyle: { fontSize: 11, color: '#666' }
+      textStyle: { fontSize: 11, color: '#6D88A3' }
     },
     series: [{
       type: 'pie',
@@ -88,7 +88,20 @@ function createPieOption() {
       center: ['50%', '40%'],
       avoidLabelOverlap: false,
       label: { show: false },
-      emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: 11,
+          fontWeight: 'bold',
+          color: '#fff',
+          formatter: '{b}: {c}%',
+          lineHeight: 14
+        },
+        itemStyle: {
+          shadowBlur: 12,
+          shadowColor: 'rgba(114,198,195,0.5)'
+        }
+      },
       data: [
         { name: '农业', value: 25, itemStyle: { color: CHART_COLORS.agriculture } },
         { name: '商业', value: 20, itemStyle: { color: CHART_COLORS.commercial } },
@@ -107,16 +120,16 @@ function createLineOption() {
     xAxis: {
       type: 'category',
       data: ['22Q1', '22Q3', '23Q1', '23Q3', '24Q1', '24Q3'],
-      axisLine: { lineStyle: { color: '#D0D5DC' } },
+      axisLine: { lineStyle: { color: '#495D68' } },
       axisTick: { show: false },
-      axisLabel: { fontSize: 9, color: '#888' }
+      axisLabel: { fontSize: 9, color: '#6D88A3' }
     },
     yAxis: {
       type: 'value', min: 0, max: 700,
-      splitLine: { lineStyle: { type: 'dashed', color: '#E8ECF0' } },
-      axisLabel: { fontSize: 9, color: '#888' },
+      splitLine: { lineStyle: { type: 'dashed', color: 'rgba(73,93,104,0.4)' } },
+      axisLabel: { fontSize: 9, color: '#6D88A3' },
       name: 'CO₂(t)',
-      nameTextStyle: { fontSize: 9, color: '#888' }
+      nameTextStyle: { fontSize: 9, color: '#6D88A3' }
     },
     series: [{
       type: 'line',
@@ -124,14 +137,14 @@ function createLineOption() {
       smooth: false,
       symbol: 'circle',
       symbolSize: 6,
-      lineStyle: { color: '#333', width: 2 },
-      itemStyle: { color: '#333' },
+      lineStyle: { color: '#72C6C3', width: 2 },
+      itemStyle: { color: '#72C6C3' },
       areaStyle: {
         color: {
           type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
           colorStops: [
-            { offset: 0, color: 'rgba(0,0,0,0.08)' },
-            { offset: 1, color: 'rgba(0,0,0,0.01)' }
+            { offset: 0, color: 'rgba(114,198,195,0.18)' },
+            { offset: 1, color: 'rgba(114,198,195,0.02)' }
           ]
         }
       }
@@ -190,11 +203,23 @@ onUnmounted(() => {
 
 <style scoped>
 .section-title {
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
   font-weight: 600;
-  color: #333;
-  text-align: center;
-  margin-bottom: 6px;
+  color: #e2e8f0;
+  text-align: left;
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.section-title::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  background: linear-gradient(180deg, #72C6C3, rgba(114,198,195,0.4));
+  border-radius: 2px;
 }
 
 .chart-container {
@@ -213,28 +238,28 @@ onUnmounted(() => {
 
 .result-card {
   margin-bottom: 12px;
-  border: 1px solid #ebeef5;
+  border: 1px solid rgba(73, 93, 104, 0.3);
 }
 
 .result-card .result-title {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  color: #409EFF;
+  color: #72C6C3;
   margin-bottom: 6px;
 }
 
 .result-row {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 15px;
   margin-bottom: 3px;
 }
 
-.result-label { color: #666; }
-.result-val { color: #333; font-weight: 500; }
-.result-val.red { color: #e74c3c; font-weight: 600; }
-.result-val.green { color: #27ae60; font-weight: 500; }
-.result-val.purple { color: #9b59b6; font-weight: 500; }
+.result-label { color: #6D88A3; }
+.result-val { color: #e2e8f0; font-weight: 500; }
+.result-val.red { color: #E74C3C; font-weight: 600; }
+.result-val.green { color: #2ECC71; font-weight: 500; }
+.result-val.purple { color: #9B59B6; font-weight: 500; }
 
 .trend-tabs {
   display: flex;

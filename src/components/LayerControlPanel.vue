@@ -112,9 +112,9 @@ defineEmits(['confirm', 'add-data', 'preview', 'save'])
 }
 
 .legend-title {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: #cbd5e1;
   text-align: center;
   margin-bottom: 8px;
 }
@@ -138,8 +138,8 @@ defineEmits(['confirm', 'add-data', 'preview', 'save'])
 }
 
 .legend-label {
-  font-size: 13px;
-  color: #333;
+  font-size: 15px;
+  color: #6D88A3;
 }
 
 .btn-group {
@@ -175,8 +175,8 @@ defineEmits(['confirm', 'add-data', 'preview', 'save'])
 }
 
 .upload-tip {
-  font-size: 11px;
-  color: #888;
+  font-size: 13px;
+  color: #6D88A3;
 }
 
 .excel-card {
@@ -184,8 +184,8 @@ defineEmits(['confirm', 'add-data', 'preview', 'save'])
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(33, 115, 70, 0.08);
-  border: 1px solid rgba(33, 115, 70, 0.2);
+  background: rgba(114, 198, 195, 0.08);
+  border: 1px solid rgba(114, 198, 195, 0.2);
   border-radius: 6px;
   min-width: 0;
 }
@@ -197,8 +197,8 @@ defineEmits(['confirm', 'add-data', 'preview', 'save'])
 }
 
 .excel-card-name {
-  font-size: 12px;
-  color: #333;
+  font-size: 14px;
+  color: #cbd5e1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -215,15 +215,15 @@ defineEmits(['confirm', 'add-data', 'preview', 'save'])
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: #999;
+  color: #6D88A3;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
   transition: background 0.15s, color 0.15s;
 }
 
 .excel-card-remove:hover {
-  background: rgba(231, 76, 60, 0.1);
-  color: #e74c3c;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
 }
 
 /* 有文件时隐藏上传触发区 */

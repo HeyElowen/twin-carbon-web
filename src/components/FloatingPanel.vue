@@ -11,6 +11,11 @@
     ref="panelRef"
     @pointerdown.prevent="onPointerDown"
   >
+    <!-- 四角装饰 -->
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
     <!-- 标题栏（拖拽手柄） -->
     <div class="panel-header" @pointerdown.stop="onHeaderPointerDown">
       <span class="panel-title">{{ title }}</span>
@@ -252,12 +257,12 @@ onUnmounted(() => {
 <style scoped>
 .floating-panel {
   font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
-  background: rgba(245, 247, 250, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(208, 213, 220, 0.8);
+  background: rgba(32, 51, 71, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(73, 93, 104, 0.6);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -267,7 +272,7 @@ onUnmounted(() => {
 }
 
 .floating-panel.is-dragging {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
   cursor: grabbing;
 }
 
@@ -275,15 +280,48 @@ onUnmounted(() => {
   cursor: nwse-resize;
 }
 
+/* ── 四角装饰 ── */
+.corner {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 2;
+}
+.corner-tl {
+  top: 0; left: 0;
+  border-top: 2px solid rgba(114,198,195,0.5);
+  border-left: 2px solid rgba(114,198,195,0.5);
+  border-radius: 2px 0 0 0;
+}
+.corner-tr {
+  top: 0; right: 0;
+  border-top: 2px solid rgba(114,198,195,0.5);
+  border-right: 2px solid rgba(114,198,195,0.5);
+  border-radius: 0 2px 0 0;
+}
+.corner-bl {
+  bottom: 0; left: 0;
+  border-bottom: 2px solid rgba(114,198,195,0.5);
+  border-left: 2px solid rgba(114,198,195,0.5);
+  border-radius: 0 0 0 2px;
+}
+.corner-br {
+  bottom: 0; right: 0;
+  border-bottom: 2px solid rgba(114,198,195,0.5);
+  border-right: 2px solid rgba(114,198,195,0.5);
+  border-radius: 0 0 2px 0;
+}
+
 /* ── 边缘吸附提示 ── */
 .floating-panel.will-dock-left {
-  border-left: 3px solid #409EFF;
-  box-shadow: -4px 0 16px rgba(64, 158, 255, 0.25);
+  border-left: 3px solid #72C6C3;
+  box-shadow: -4px 0 20px rgba(114, 198, 195, 0.3);
 }
 
 .floating-panel.will-dock-right {
-  border-right: 3px solid #409EFF;
-  box-shadow: 4px 0 16px rgba(64, 158, 255, 0.25);
+  border-right: 3px solid #72C6C3;
+  box-shadow: 4px 0 20px rgba(114, 198, 195, 0.3);
 }
 
 /* 标题栏 */
@@ -292,11 +330,22 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  background: rgba(58, 69, 86, 0.9);
+  background: rgba(36, 53, 73, 0.75);
   border-radius: 8px 8px 0 0;
   cursor: grab;
   flex-shrink: 0;
   min-height: 40px;
+  position: relative;
+}
+
+.panel-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(114,198,195,0.35), transparent);
 }
 
 .floating-panel.is-dragging .panel-header {
@@ -304,9 +353,9 @@ onUnmounted(() => {
 }
 
 .panel-title {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: #e2e8f0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -329,14 +378,14 @@ onUnmounted(() => {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(109, 136, 163, 0.7);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
 .action-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: rgba(114, 198, 195, 0.15);
+  color: #72C6C3;
 }
 
 .dock-btn svg {
@@ -367,12 +416,12 @@ onUnmounted(() => {
 }
 
 .panel-body::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(148, 163, 184, 0.2);
   border-radius: 2px;
 }
 
 .panel-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(148, 163, 184, 0.35);
 }
 
 /* ── 缩放手柄 ── */
@@ -387,12 +436,12 @@ onUnmounted(() => {
   align-items: flex-end;
   justify-content: flex-end;
   padding: 3px;
-  color: rgba(0, 0, 0, 0.2);
+  color: rgba(148, 163, 184, 0.2);
   transition: color 0.15s;
   z-index: 1;
 }
 
 .resize-handle:hover {
-  color: rgba(0, 0, 0, 0.4);
+  color: rgba(148, 163, 184, 0.5);
 }
 </style>

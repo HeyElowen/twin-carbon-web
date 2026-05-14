@@ -10,6 +10,12 @@ export function useDockStore() {
     panelRegistry[id] = { id, title }
   }
 
+  function updatePanelTitle(id, title) {
+    if (panelRegistry[id]) {
+      panelRegistry[id].title = title
+    }
+  }
+
   function unregisterPanel(id) {
     delete panelRegistry[id]
   }
@@ -61,6 +67,7 @@ export function useDockStore() {
     panelRegistry,
     registerPanel,
     unregisterPanel,
+    updatePanelTitle,
     dockPanel,
     undockPanel,
     toggleExpand,

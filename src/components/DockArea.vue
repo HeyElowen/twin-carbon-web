@@ -51,6 +51,12 @@
     <div v-else class="dock-empty">
       <span>暂无挂起面板</span>
     </div>
+
+    <!-- 四角装饰 -->
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
   </div>
 </template>
 
@@ -130,7 +136,7 @@ function onHeaderPointerDown(e, panel) {
 .dock-area {
   position: fixed;
   top: 72px;
-  bottom: 40px;
+  bottom: 36px;
   z-index: 60;
   display: flex;
   flex-direction: column;
@@ -154,7 +160,7 @@ function onHeaderPointerDown(e, panel) {
 
 /* ── 边缘吸附提示高亮 ── */
 .dock-area.hint-active {
-  box-shadow: inset 0 0 24px rgba(64, 158, 255, 0.35);
+  box-shadow: inset 0 0 28px rgba(114, 198, 195, 0.4);
   z-index: 65;
 }
 
@@ -165,7 +171,7 @@ function onHeaderPointerDown(e, panel) {
   gap: 2px;
   height: 100%;
   overflow-y: auto;
-  background: rgba(245, 247, 250, 0.5);
+  background: rgba(27, 46, 70, 0.4);
 }
 
 .dock-items::-webkit-scrollbar {
@@ -177,7 +183,7 @@ function onHeaderPointerDown(e, panel) {
 }
 
 .dock-items::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(148, 163, 184, 0.18);
   border-radius: 2px;
 }
 
@@ -185,10 +191,10 @@ function onHeaderPointerDown(e, panel) {
 .dock-item {
   display: flex;
   flex-direction: column;
-  background: rgba(245, 247, 250, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(208, 213, 220, 0.6);
+  background: rgba(32, 51, 71, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(73, 93, 104, 0.6);
   border-radius: 4px;
   overflow: hidden;
   flex-shrink: 0;
@@ -207,16 +213,27 @@ function onHeaderPointerDown(e, panel) {
   justify-content: space-between;
   padding: 0 10px;
   min-height: 40px;
-  background: rgba(58, 69, 86, 0.85);
+  background: rgba(36, 53, 73, 0.75);
   flex-shrink: 0;
   cursor: grab;
   transition: background 0.15s;
+  position: relative;
+}
+
+.dock-item-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(114,198,195,0.3), transparent);
 }
 
 .dock-item-title {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: #cbd5e1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -229,7 +246,7 @@ function onHeaderPointerDown(e, panel) {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   padding: 8px 0;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 2px;
 }
 
@@ -250,15 +267,15 @@ function onHeaderPointerDown(e, panel) {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(148, 163, 184, 0.6);
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
 }
 
 .dock-item-action:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: rgba(114, 198, 195, 0.15);
+  color: #72C6C3;
 }
 
 /* Collapsed: header stacks vertically, expand button stays visible */
@@ -295,12 +312,41 @@ function onHeaderPointerDown(e, panel) {
 }
 
 .dock-item-body::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(148, 163, 184, 0.2);
   border-radius: 2px;
 }
 
 .dock-item-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(148, 163, 184, 0.35);
+}
+
+/* ── 四角装饰 ── */
+.corner {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  z-index: 2;
+}
+.corner-tl {
+  top: 0; left: 0;
+  border-top: 2px solid rgba(114,198,195,0.4);
+  border-left: 2px solid rgba(114,198,195,0.4);
+}
+.corner-tr {
+  top: 0; right: 0;
+  border-top: 2px solid rgba(114,198,195,0.4);
+  border-right: 2px solid rgba(114,198,195,0.4);
+}
+.corner-bl {
+  bottom: 0; left: 0;
+  border-bottom: 2px solid rgba(114,198,195,0.4);
+  border-left: 2px solid rgba(114,198,195,0.4);
+}
+.corner-br {
+  bottom: 0; right: 0;
+  border-bottom: 2px solid rgba(114,198,195,0.4);
+  border-right: 2px solid rgba(114,198,195,0.4);
 }
 
 /* ── Empty state ── */
@@ -309,7 +355,7 @@ function onHeaderPointerDown(e, panel) {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: rgba(0, 0, 0, 0.25);
+  color: rgba(148, 163, 184, 0.2);
   font-size: 11px;
   writing-mode: vertical-rl;
   padding: 12px 0;
