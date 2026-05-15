@@ -1,5 +1,4 @@
 <script setup>
-import { el } from 'element-plus/es/locale/index.mjs';
 import { onMounted } from 'vue';
 import home from './views/home.vue';
 let viewer = null;
@@ -8,10 +7,9 @@ console.log("点击事件");
 }
 onMounted(async () => {
   viewer = new Cesium.Viewer('cesiumContainer', {
-
-    navigation:false,
-
+    navigation: false
   });
+  window.cesiumViewer = viewer;
   viewer.pickEvent.addEventListener(printfms);
   const scene = viewer.scene;
 

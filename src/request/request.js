@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { mockData } from '@/api/mock-data.js'
+import { getMockResponse } from '@/api/mock-data.js'
 
 // ========== Mock 开关 ==========
 const USE_MOCK = true  // true = 使用 mock，false = 连真实后端
@@ -11,15 +11,20 @@ const request = axios.create({
 })
 
 request.interceptors.request.use(config => {
-  // Mock 模式：直接返回假数据，不发请求
+  // Mock 模式：替换 adapter 直接返回假数据，不发真实请求
   if (USE_MOCK) {
-    const key = `${config.method.toLowerCase()}:${config.url}`
-    const mock = mockData[key]
+    const mock = getMockResponse(config)
     if (mock) {
-      return Promise.resolve({ data: mock, status: 200, config })
+      config.adapter = () => Promise.resolve({
+        data: mock,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config
+      })
     }
   }
-  
+
   // 真实请求：带上 token
   const token = localStorage.getItem('token')
   if (token) {

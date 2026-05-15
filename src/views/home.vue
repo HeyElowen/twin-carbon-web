@@ -49,12 +49,12 @@
       :initialY="leftPanelPos.y"
       :width="270"
       panelId="left-panel"
-      :title="leftPanelTitle"
+      title="图层控制"
       @dock="onDockPanel"
       @drag-end="(pos) => onDragEnd('left-panel', pos)"
       @dock-hint="onDockHint"
     >
-      <LayerControlPanel
+      <LeftPanelContent
         v-model:filter-year="filterYear"
         v-model:filter-quarter="filterQuarter"
         v-model:active-tab="activeTab"
@@ -77,13 +77,13 @@
       :initialY="rightPanelPos.y"
       :width="320"
       panelId="right-panel"
-      title=""
+      title="数据统计"
       @dock="onDockPanel"
       @drag-end="(pos) => onDragEnd('right-panel', pos)"
       @collapse-change="onRightFloatingCollapseChange"
       @dock-hint="onDockHint"
     >
-      <DataStatsPanel
+      <RightPanelContent
         ref="floatingRightRef"
         v-model:search-text="searchText"
         v-model:trend-tab="trendTab"
@@ -95,7 +95,7 @@
     <!-- 左侧挂起区域 — 支持任意面板挂起到左侧 -->
     <DockArea side="left" :hint-active="dockHintSide === 'left'" @undock-drag="onUndockDrag">
       <template #left-panel>
-        <LayerControlPanel
+        <LeftPanelContent
           v-model:filter-year="filterYear"
           v-model:filter-quarter="filterQuarter"
           v-model:active-tab="activeTab"
@@ -111,7 +111,7 @@
         />
       </template>
       <template #right-panel>
-        <DataStatsPanel
+        <RightPanelContent
           ref="dockRightRef"
           v-model:search-text="searchText"
           v-model:trend-tab="trendTab"
@@ -124,7 +124,7 @@
     <!-- 右侧挂起区域 — 支持任意面板挂起到右侧 -->
     <DockArea side="right" :hint-active="dockHintSide === 'right'" @undock-drag="onUndockDrag">
       <template #left-panel>
-        <LayerControlPanel
+        <LeftPanelContent
           v-model:filter-year="filterYear"
           v-model:filter-quarter="filterQuarter"
           v-model:active-tab="activeTab"
@@ -140,7 +140,7 @@
         />
       </template>
       <template #right-panel>
-        <DataStatsPanel
+        <RightPanelContent
           ref="dockRightRef2"
           v-model:search-text="searchText"
           v-model:trend-tab="trendTab"
@@ -171,17 +171,29 @@
 </template>
 
 <script setup>
-import { ref, nextTick, watch, computed } from 'vue'
+import { ref, nextTick, watch } from 'vue'
 import FloatingPanel from '../components/FloatingPanel.vue'
 import DockArea from '../components/DockArea.vue'
-import LayerControlPanel from '../components/LayerControlPanel.vue'
-import DataStatsPanel from '../components/DataStatsPanel.vue'
+import LeftPanelContent from '../components/LeftPanelContent.vue'
+import RightPanelContent from '../components/RightPanelContent.vue'
 import { useDockStore } from '../composables/useDockStore'
+import { ElMessage } from 'element-plus'
+import {
+  getObservationPoints,
+  getCustomObservationPoints,
+  getCategoryRatio,
+  getCustomCategoryRatio,
+  getTrend,
+  getCustomTrend,
+  queryObjects,
+  previewImport,
+  confirmImport
+} from '@/api/index.js'
 
 const dockStore = useDockStore()
 
 // 注册面板到挂起系统
-dockStore.registerPanel('left-panel', '碳排放柱状图')
+dockStore.registerPanel('left-panel', '图层控制')
 dockStore.registerPanel('right-panel', '数据统计')
 
 // 面板位置记忆（用于取消挂起后恢复位置）
@@ -214,28 +226,31 @@ function getDockRightRef() {
 // 筛选数据
 const years = ['2025', '2024', '2023', '2022']
 const quarters = ['第一季度', '第二季度', '第三季度', '第四季度']
+const quarterMap = { '第一季度': 'Q1', '第二季度': 'Q2', '第三季度': 'Q3', '第四季度': 'Q4' }
 const filterYear = ref('2025')
 const filterQuarter = ref('第二季度')
 const searchText = ref('')
 
 // 标签页
 const activeTab = ref('bar')
-const leftPanelTitle = computed(() =>
-  activeTab.value === 'heat' ? '碳排放热力图' : '碳排放柱状图'
-)
+
 const chartModes = [
   { label: '热力图', value: 'heat' },
   { label: '柱状图', value: 'bar' }
 ]
 
-// 标题同步到挂起系统
-watch(activeTab, (val) => {
-  dockStore.updatePanelTitle('left-panel', val === 'heat' ? '碳排放热力图' : '碳排放柱状图')
-})
+
 const trendTab = ref('全部')
 const trendTabs = ['全部', '商业', '工业', '农业', '住宅']
 
 // 图例
+const mapPoints = ref([])
+const customPoints = ref([])
+const pieData = ref([])
+const trendData = ref([])
+const queryResult = ref(null)
+const previewData = ref(null)
+
 const legendList = ref([
   { color: '#E74C3C', label: 'school' },
   { color: '#2ECC71', label: '农业' },
@@ -265,6 +280,29 @@ function onUndockDrag({ panelId, x, y }) {
 }
 
 // ── 右侧面板折叠展开 ──
+async function loadCharts(params = {}) {
+  try {
+    const pieRes = await getCategoryRatio(params)
+    pieData.value = pieRes.data || []
+    const trendParams = { ...params }
+    if (trendTab.value !== '全部') {
+      trendParams.category = trendTab.value
+    }
+    const trendRes = await getTrend(trendParams)
+    trendData.value = trendRes.data || []
+    nextTick(() => {
+      floatingRightRef.value?.updateCharts?.(pieData.value, trendData.value)
+      getDockRightRef()?.value?.updateCharts?.(pieData.value, trendData.value)
+    })
+  } catch (err) {
+    console.error('chart load failed', err)
+  }
+}
+
+watch(trendTab, () => {
+  loadCharts({ year: filterYear.value, quarter: quarterMap[filterQuarter.value] })
+})
+
 function onRightFloatingCollapseChange(expanded) {
   if (expanded) {
     nextTick(() => floatingRightRef.value?.resize())
@@ -282,24 +320,101 @@ watch(
 )
 
 // ── 事件 ──
-const onConfirm = () => {
-  console.log('筛选确认', filterYear.value, filterQuarter.value)
+const onConfirm = async () => {
+  const params = {
+    year: filterYear.value,
+    quarter: quarterMap[filterQuarter.value]
+  }
+  try {
+    const [mainRes, customRes] = await Promise.all([
+      getObservationPoints(params),
+      getCustomObservationPoints(params)
+    ])
+    mapPoints.value = mainRes.data || []
+    customPoints.value = customRes.data || []
+    console.log('【主数据地图点】', mapPoints.value)
+    console.log('【自定义地图点】', customPoints.value)
+    ElMessage.success('已加载 ' + mapPoints.value.length + ' 条主数据，' + customPoints.value.length + ' 条自定义数据')
+    await loadCharts(params)
+  } catch (err) {
+    ElMessage.error('数据加载失败')
+  }
 }
 
 const onAddData = () => {
-  console.log('添加数据')
+  activeTab.value = 'bar'
+  ElMessage.info('请上传 Excel 文件并点击保存')
 }
 
-const onPreview = () => {
-  console.log('预览')
+const onPreview = async () => {
+  const file = uploadFileList.value[0]
+  if (!file) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  const formData = new FormData()
+  formData.append('file', file.raw || file)
+  try {
+    const res = await previewImport(formData)
+    if (res.code === 200) {
+      previewData.value = res.data
+      console.log('【预览数据】', previewData.value)
+      const totalCount = res.data.totalCount || 0
+      const validCount = res.data.validCount || 0
+      const invalidCount = res.data.invalidCount || 0
+      
+      ElMessage.success('预览成功')
+    } else {
+      previewData.value = null
+      ElMessage.warning(res.message || '预览未返回有效数据')
+    }
+  } catch (err) {
+    previewData.value = null
+    ElMessage.error('预览失败')
+  }
 }
 
-const onSave = () => {
-  console.log('保存')
+const onSave = async () => {
+  const file = uploadFileList.value[0]
+  if (!file) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  try {
+    const formData = new FormData()
+    formData.append('file', file.raw || file)
+    const res = await previewImport(formData)
+    if (res.code === 200 && res.data?.batchId) {
+      await confirmImport({ batchId: res.data.batchId })
+      ElMessage.success('保存成功')
+      uploadFileList.value = []
+      previewData.value = null
+      onConfirm()
+    } else {
+      ElMessage.warning(res.message || '预览未返回有效批次号，无法保存')
+    }
+  } catch (err) {
+    ElMessage.error('保存失败')
+  }
 }
 
-const onSearch = () => {
-  console.log('搜索', searchText.value)
+const onSearch = async () => {
+  if (!searchText.value.trim()) {
+    ElMessage.warning('请输入搜索内容')
+    return
+  }
+  try {
+    const res = await queryObjects({ keyword: searchText.value.trim() })
+    queryResult.value = res.data || []
+    console.log('query result', queryResult.value)
+    nextTick(() => {
+      floatingRightRef.value?.setQueryResult?.(queryResult.value)
+      getDockRightRef()?.value?.setQueryResult?.(queryResult.value)
+    })
+    ElMessage.success('查询到 ' + queryResult.value.length + ' 条结果')
+  } catch (err) {
+    ElMessage.error('查询失败')
+  }
 }
 </script>
 

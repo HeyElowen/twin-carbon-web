@@ -9,7 +9,7 @@
     }"
     :style="panelStyle"
     ref="panelRef"
-    @pointerdown.prevent="onPointerDown"
+    @pointerdown="onPointerDown"
   >
     <!-- 四角装饰 -->
     <div class="corner corner-tl"></div>

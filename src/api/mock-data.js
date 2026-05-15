@@ -349,3 +349,83 @@ export const mockData = {
   'post:/monitoring/import': mockImportSuccess,
   'post:/monitoring/import/confirm': mockConfirm
 }
+
+// ==================== 新增：各类别趋势数据 ====================
+function generateTrendFromAll(source, ratio) {
+  return {
+    code: 200,
+    message: "success",
+    data: source.data.map(d => ({
+      name: d.name,
+      value: Math.round(d.value * ratio * 100) / 100
+    }))
+  }
+}
+
+export const mockTrendCommercial = generateTrendFromAll(mockTrendAll, 0.25)
+export const mockTrendAgriculture = generateTrendFromAll(mockTrendAll, 0.08)
+export const mockTrendResidential = generateTrendFromAll(mockTrendAll, 0.18)
+
+// ==================== 参数化 Mock 响应 ====================
+function filterPointsByTime(mockObj, year, quarter) {
+  const yearFactor = 1 + (parseInt(year) - 2025) * 0.05
+  const qf = { 'Q1': 0.9, 'Q2': 0.95, 'Q3': 1.0, 'Q4': 1.05 }
+  const quarterFactor = qf[quarter] || 1.0
+  return {
+    code: 200,
+    message: "success",
+    data: mockObj.data.map(p => ({
+      ...p,
+      year: parseInt(year),
+      quarter: quarter,
+      emission: Math.round(p.emission * yearFactor * quarterFactor * 100) / 100
+    }))
+  }
+}
+
+function filterQueryByKeyword(mockObj, keyword) {
+  if (!keyword) return mockObj
+  const lowerKw = keyword.toLowerCase()
+  const filtered = mockObj.data.filter(item =>
+    item.name.toLowerCase().includes(lowerKw) ||
+    item.category.toLowerCase().includes(lowerKw)
+  )
+  return { ...mockObj, data: filtered }
+}
+
+export function getMockResponse(config) {
+  const { method, url, params, data } = config
+  const key = `${method.toLowerCase()}:${url}`
+
+  // 对特定接口按参数返回不同数据
+  if (key === 'get:/monitoring/statistics/trend') {
+    const category = params?.category
+    if (!category || category === '全部') return mockTrendAll
+    if (category === '工业') return mockTrendIndustry
+    if (category === '商业') return mockTrendCommercial
+    if (category === '农业') return mockTrendAgriculture
+    if (category === '住宅') return mockTrendResidential
+    return mockTrendAll
+  }
+
+  if (key === 'get:/monitoring/observation-point') {
+    const year = params?.year || '2025'
+    const quarter = params?.quarter || 'Q3'
+    return filterPointsByTime(mockPoints, year, quarter)
+  }
+
+  if (key === 'get:/monitoring/custom-observation-point') {
+    const year = params?.year || '2025'
+    const quarter = params?.quarter || 'Q3'
+    return filterPointsByTime(mockCustomPoints, year, quarter)
+  }
+
+  if (key === 'get:/monitoring/query') {
+    const keyword = params?.keyword
+    if (keyword) return filterQueryByKeyword(mockQuery, keyword)
+    return mockQuery
+  }
+
+  // 兜底：基础 key 匹配
+  return mockData[key] || null
+}
