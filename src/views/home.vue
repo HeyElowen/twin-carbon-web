@@ -1,151 +1,137 @@
 <template>
   <div class="carbon-emission-app">
     <!-- 浮动顶栏 -->
-   <header class="header-float">
-    <svg class="header-bg" viewBox="0 0 1920 72" preserveAspectRatio="none">
+    <header class="header-float">
+      <svg class="header-bg" viewBox="0 0 1920 72" preserveAspectRatio="none">
         <defs>
-            <linearGradient id="hdrGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#1b2e46" stop-opacity="0.97" />
-                <stop offset="55%" stop-color="#203347" stop-opacity="0.92" />
-                <stop offset="100%" stop-color="#243549" stop-opacity="0.78" />
-            </linearGradient>
-            <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="rgba(114,198,195,0)" />
-                <stop offset="25%" stop-color="rgba(114,198,195,0.7)" />
-                <stop offset="75%" stop-color="rgba(114,198,195,0.7)" />
-                <stop offset="100%" stop-color="rgba(114,198,195,0)" />
-            </linearGradient>
-            <filter id="glow" x="-20%" y="-50%" width="140%" height="200%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                </feMerge>
-            </filter>
+          <linearGradient id="hdrGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#1b2e46" stop-opacity="0.97" />
+            <stop offset="55%" stop-color="#203347" stop-opacity="0.92" />
+            <stop offset="100%" stop-color="#243549" stop-opacity="0.78" />
+          </linearGradient>
+          <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="rgba(114,198,195,0)" />
+            <stop offset="25%" stop-color="rgba(114,198,195,0.7)" />
+            <stop offset="75%" stop-color="rgba(114,198,195,0.7)" />
+            <stop offset="100%" stop-color="rgba(114,198,195,0)" />
+          </linearGradient>
+          <filter id="glow" x="-20%" y="-50%" width="140%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
-        <!-- ✅ 已修复：主体形状上边界改为完整直线，彻底消除顶部空白 -->
         <path d="M0,0 L1920,0 L1920,26 L1540,26 Q1505,26 1470,44 Q1435,60 1370,60 L550,60 Q485,60 450,44 Q415,26 380,26 L0,26 Z"
-            fill="url(#hdrGrad)" />
-
-        <!-- 底部流向发光条（位置不变） -->
+          fill="url(#hdrGrad)" />
         <path d="M450,60 L550,60 L1370,60 L1470,60" stroke="url(#glowGrad)" stroke-width="1.5" fill="none"
-            filter="url(#glow)" />
-
-        <!-- ✅ 已调整：两侧装饰细线下移至形状外部，避免被主体遮挡 -->
+          filter="url(#glow)" />
         <path d="M200,64 Q350,64 460,68" stroke="rgba(114,198,195,0.25)" stroke-width="0.8" fill="none" />
         <path d="M1720,64 Q1570,64 1460,68" stroke="rgba(114,198,195,0.25)" stroke-width="0.8" fill="none" />
-
-        <!-- 顶部贯穿细线（现贴合形状上边缘） -->
         <line x1="0" y1="0.5" x2="1920" y2="0.5" stroke="rgba(114,198,195,0.4)" stroke-width="1" />
-    </svg>
-    <h1>城市碳排放三维可视化系统</h1>
-</header>
+      </svg>
 
-    <!-- 浮动左侧工具栏 -->
-    <FloatingPanel
-      v-if="!dockStore.isPanelDocked('left-panel')"
-      :initialX="leftPanelPos.x"
-      :initialY="leftPanelPos.y"
-      :width="270"
-      panelId="left-panel"
-      title="图层控制"
-      @dock="onDockPanel"
-      @drag-end="(pos) => onDragEnd('left-panel', pos)"
-      @dock-hint="onDockHint"
-    >
-      <LeftPanelContent
-        v-model:filter-year="filterYear"
-        v-model:filter-quarter="filterQuarter"
-        v-model:active-tab="activeTab"
-        v-model:file-list="uploadFileList"
-        :years="years"
-        :quarters="quarters"
-        :chartModes="chartModes"
-        :legendList="legendList"
-        @confirm="onConfirm"
-        @add-data="onAddData"
-        @preview="onPreview"
-        @save="onSave"
-      />
-    </FloatingPanel>
+      <!-- 左侧面板切换按钮 -->
+      <div class="header-left">
+        <div class="panel-toggles">
+          <button
+            v-for="panel in panelConfigs"
+            :key="panel.id"
+            :class="{ active: isPanelActive(panel.id) }"
+            @click="togglePanel(panel.id)"
+          >
+            {{ panel.title }}
+          </button>
+        </div>
+      </div>
 
-    <!-- 浮动右侧工具栏 -->
-    <FloatingPanel
-      v-if="!dockStore.isPanelDocked('right-panel')"
-      :initialX="rightPanelPos.x"
-      :initialY="rightPanelPos.y"
-      :width="320"
-      panelId="right-panel"
-      title="数据统计"
-      @dock="onDockPanel"
-      @drag-end="(pos) => onDragEnd('right-panel', pos)"
-      @collapse-change="onRightFloatingCollapseChange"
-      @dock-hint="onDockHint"
-    >
-      <RightPanelContent
-        ref="floatingRightRef"
-        v-model:search-text="searchText"
-        v-model:trend-tab="trendTab"
-        :trendTabs="trendTabs"
-        @search="onSearch"
-      />
-    </FloatingPanel>
+      <h1>城市碳排放三维可视化系统</h1>
 
-    <!-- 左侧挂起区域 — 支持任意面板挂起到左侧 -->
+      <!-- 右侧全局筛选 -->
+      <div class="header-right">
+        <div class="global-filter">
+          <el-select v-model="filterStore.filterYear" size="small" style="width: 80px">
+            <el-option v-for="y in filterStore.years" :key="y" :label="y" :value="y" />
+          </el-select>
+          <el-select v-model="filterStore.filterQuarter" size="small" style="width: 110px">
+            <el-option v-for="q in filterStore.quarters" :key="q" :label="q" :value="q" />
+          </el-select>
+          <el-button type="primary" size="small" @click="onGlobalConfirm">确认</el-button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 浮动面板（配置驱动） -->
+    <template v-for="panel in panelConfigs" :key="panel.id">
+      <FloatingPanel
+        v-if="dockStore.isPanelVisible(panel.id) && !dockStore.isPanelDocked(panel.id)"
+        :initialX="panelPositions[panel.id].x"
+        :initialY="panelPositions[panel.id].y"
+        :width="panel.width"
+        :panelId="panel.id"
+        :title="panel.title"
+        @dock="onDockPanel"
+        @drag-end="(pos) => onDragEnd(panel.id, pos)"
+        @dock-hint="onDockHint"
+      >
+        <template v-if="panel.id === 'layer-control'">
+          <LayerControlPanel
+            v-model:active-tab="activeTab"
+            v-model:file-list="uploadFileList"
+            :chartModes="chartModes"
+            :legendList="legendList"
+          />
+        </template>
+        <template v-else-if="panel.id === 'data-stats'">
+          <DataStatsPanel
+            v-model:search-text="searchText"
+            v-model:trend-tab="trendTab"
+            :trendTabs="trendTabs"
+          />
+        </template>
+      </FloatingPanel>
+    </template>
+
+    <!-- 左侧挂起区域 -->
     <DockArea side="left" :hint-active="dockHintSide === 'left'" @undock-drag="onUndockDrag">
-      <template #left-panel>
-        <LeftPanelContent
-          v-model:filter-year="filterYear"
-          v-model:filter-quarter="filterQuarter"
+      <template #layer-control>
+        <LayerControlPanel
+          v-if="dockStore.isPanelDocked('layer-control') && dockStore.getPanelSide('layer-control') === 'left'"
           v-model:active-tab="activeTab"
           v-model:file-list="uploadFileList"
-          :years="years"
-          :quarters="quarters"
           :chartModes="chartModes"
           :legendList="legendList"
-          @confirm="onConfirm"
-          @add-data="onAddData"
-          @preview="onPreview"
-          @save="onSave"
         />
       </template>
-      <template #right-panel>
-        <RightPanelContent
-          ref="dockRightRef"
+      <template #data-stats>
+        <DataStatsPanel
+          v-if="dockStore.isPanelDocked('data-stats') && dockStore.getPanelSide('data-stats') === 'left'"
           v-model:search-text="searchText"
           v-model:trend-tab="trendTab"
           :trendTabs="trendTabs"
-          @search="onSearch"
         />
       </template>
     </DockArea>
 
-    <!-- 右侧挂起区域 — 支持任意面板挂起到右侧 -->
+    <!-- 右侧挂起区域 -->
     <DockArea side="right" :hint-active="dockHintSide === 'right'" @undock-drag="onUndockDrag">
-      <template #left-panel>
-        <LeftPanelContent
-          v-model:filter-year="filterYear"
-          v-model:filter-quarter="filterQuarter"
+      <template #layer-control>
+        <LayerControlPanel
+          v-if="dockStore.isPanelDocked('layer-control') && dockStore.getPanelSide('layer-control') === 'right'"
           v-model:active-tab="activeTab"
           v-model:file-list="uploadFileList"
-          :years="years"
-          :quarters="quarters"
           :chartModes="chartModes"
           :legendList="legendList"
-          @confirm="onConfirm"
-          @add-data="onAddData"
-          @preview="onPreview"
-          @save="onSave"
         />
       </template>
-      <template #right-panel>
-        <RightPanelContent
-          ref="dockRightRef2"
+      <template #data-stats>
+        <DataStatsPanel
+          v-if="dockStore.isPanelDocked('data-stats') && dockStore.getPanelSide('data-stats') === 'right'"
           v-model:search-text="searchText"
           v-model:trend-tab="trendTab"
           :trendTabs="trendTabs"
-          @search="onSearch"
         />
       </template>
     </DockArea>
@@ -171,34 +157,50 @@
 </template>
 
 <script setup>
-import { ref, nextTick, watch } from 'vue'
+import { ref, markRaw } from 'vue'
 import FloatingPanel from '../components/FloatingPanel.vue'
 import DockArea from '../components/DockArea.vue'
-import LeftPanelContent from '../components/LeftPanelContent.vue'
-import RightPanelContent from '../components/RightPanelContent.vue'
+import LayerControlPanel from '../components/LayerControlPanel.vue'
+import DataStatsPanel from '../components/DataStatsPanel.vue'
 import { useDockStore } from '../composables/useDockStore'
-import { ElMessage } from 'element-plus'
-import {
-  getObservationPoints,
-  getCustomObservationPoints,
-  getCategoryRatio,
-  getCustomCategoryRatio,
-  getTrend,
-  getCustomTrend,
-  queryObjects,
-  previewImport,
-  confirmImport
-} from '@/api/index.js'
+import { usePanelFilterStore } from '../stores/panelFilter'
+import { useMapDataStore } from '../stores/mapData'
+import { useChartDataStore } from '../stores/chartData'
 
 const dockStore = useDockStore()
+const filterStore = usePanelFilterStore()
+const mapStore = useMapDataStore()
+const chartStore = useChartDataStore()
 
-// 注册面板到挂起系统
-dockStore.registerPanel('left-panel', '图层控制')
-dockStore.registerPanel('right-panel', '数据统计')
+// ── 面板配置表 ──
+const panelConfigs = [
+  {
+    id: 'layer-control',
+    title: '图层控制',
+    width: 270,
+    defaultPos: { x: 16, y: 72 },
+    component: markRaw(LayerControlPanel)
+  },
+  {
+    id: 'data-stats',
+    title: '数据统计',
+    width: 320,
+    defaultPos: { x: window.innerWidth - 336, y: 72 },
+    component: markRaw(DataStatsPanel)
+  }
+]
 
-// 面板位置记忆（用于取消挂起后恢复位置）
-const leftPanelPos = ref({ x: 16, y: 72 })
-const rightPanelPos = ref({ x: window.innerWidth - 336, y: 72 })
+// 注册面板
+panelConfigs.forEach(p => dockStore.registerPanel(p.id, p.title))
+
+// 默认显示现有面板（后续新面板可默认隐藏）
+dockStore.showPanel('layer-control')
+dockStore.showPanel('data-stats')
+
+// 面板位置记忆
+const panelPositions = ref(
+  Object.fromEntries(panelConfigs.map(p => [p.id, { ...p.defaultPos }]))
+)
 
 // 边缘吸附提示
 const dockHintSide = ref(null)
@@ -207,52 +209,21 @@ function onDockHint(side) {
   dockHintSide.value = side
 }
 
-// 上传文件列表 — 父组件持有，避免悬挂/悬浮切换时丢失
+// 跨实例共享状态
 const uploadFileList = ref([])
-
-// 组件引用 — 用于手动触发图表 resize
-const floatingRightRef = ref(null)
-const dockRightRef = ref(null)
-const dockRightRef2 = ref(null)
-
-// 获取当前活跃的挂起右侧图表组件引用
-function getDockRightRef() {
-  const side = dockStore.getPanelSide('right-panel')
-  if (side === 'left') return dockRightRef
-  if (side === 'right') return dockRightRef2
-  return null
-}
-
-// 筛选数据
-const years = ['2025', '2024', '2023', '2022']
-const quarters = ['第一季度', '第二季度', '第三季度', '第四季度']
-const quarterMap = { '第一季度': 'Q1', '第二季度': 'Q2', '第三季度': 'Q3', '第四季度': 'Q4' }
-const filterYear = ref('2025')
-const filterQuarter = ref('第二季度')
-const searchText = ref('')
-
-// 标签页
 const activeTab = ref('bar')
+const searchText = ref('')
+const trendTab = ref('全部')
 
 const chartModes = [
   { label: '热力图', value: 'heat' },
   { label: '柱状图', value: 'bar' }
 ]
 
-
-const trendTab = ref('全部')
-const trendTabs = ['全部', '商业', '工业', '农业', '住宅']
-
-// 图例
-const mapPoints = ref([])
-const customPoints = ref([])
-const pieData = ref([])
-const trendData = ref([])
-const queryResult = ref(null)
-const previewData = ref(null)
+const trendTabs = ['全部', '商业', '工业', '农业', '住宅', '教育']
 
 const legendList = ref([
-  { color: '#E74C3C', label: 'school' },
+  { color: '#E74C3C', label: '教育区' },
   { color: '#2ECC71', label: '农业' },
   { color: '#9B59B6', label: '工业' },
   { color: '#E67E22', label: '商业' },
@@ -265,156 +236,37 @@ function onDockPanel({ panelId, side }) {
 }
 
 function onDragEnd(panelId, pos) {
-  if (panelId === 'left-panel') leftPanelPos.value = pos
-  else if (panelId === 'right-panel') rightPanelPos.value = pos
+  panelPositions.value[panelId] = pos
 }
 
-// 从挂起区域拖出 → 解除挂起并定位到鼠标位置
 function onUndockDrag({ panelId, x, y }) {
-  const offsetX = panelId === 'left-panel' ? 135 : 160
-  if (panelId === 'left-panel') {
-    leftPanelPos.value = { x: Math.max(0, x - offsetX), y: Math.max(0, y - 20) }
-  } else if (panelId === 'right-panel') {
-    rightPanelPos.value = { x: Math.max(0, x - offsetX), y: Math.max(0, y - 20) }
+  const offsetX = panelId === 'layer-control' ? 135 : 160
+  panelPositions.value[panelId] = {
+    x: Math.max(0, x - offsetX),
+    y: Math.max(0, y - 20)
   }
 }
 
-// ── 右侧面板折叠展开 ──
-async function loadCharts(params = {}) {
-  try {
-    const pieRes = await getCategoryRatio(params)
-    pieData.value = pieRes.data || []
-    const trendParams = { ...params }
-    if (trendTab.value !== '全部') {
-      trendParams.category = trendTab.value
-    }
-    const trendRes = await getTrend(trendParams)
-    trendData.value = trendRes.data || []
-    nextTick(() => {
-      floatingRightRef.value?.updateCharts?.(pieData.value, trendData.value)
-      getDockRightRef()?.value?.updateCharts?.(pieData.value, trendData.value)
-    })
-  } catch (err) {
-    console.error('chart load failed', err)
+async function onGlobalConfirm() {
+  filterStore.confirm()
+  const params = filterStore.getParams()
+
+  const tasks = []
+  if (isPanelActive('layer-control')) {
+    tasks.push(mapStore.load(params))
   }
+  if (isPanelActive('data-stats')) {
+    tasks.push(chartStore.load(params))
+  }
+  await Promise.all(tasks)
 }
 
-watch(trendTab, () => {
-  loadCharts({ year: filterYear.value, quarter: quarterMap[filterQuarter.value] })
-})
-
-function onRightFloatingCollapseChange(expanded) {
-  if (expanded) {
-    nextTick(() => floatingRightRef.value?.resize())
-  }
+function togglePanel(id) {
+  dockStore.togglePanel(id)
 }
 
-// 右侧面板挂起展开时 → 触发 resize
-watch(
-  () => dockStore.isPanelExpanded('right-panel', 'left') || dockStore.isPanelExpanded('right-panel', 'right'),
-  (expanded) => {
-    if (expanded) {
-      nextTick(() => getDockRightRef()?.value?.resize())
-    }
-  }
-)
-
-// ── 事件 ──
-const onConfirm = async () => {
-  const params = {
-    year: filterYear.value,
-    quarter: quarterMap[filterQuarter.value]
-  }
-  try {
-    const [mainRes, customRes] = await Promise.all([
-      getObservationPoints(params),
-      getCustomObservationPoints(params)
-    ])
-    mapPoints.value = mainRes.data || []
-    customPoints.value = customRes.data || []
-    console.log('【主数据地图点】', mapPoints.value)
-    console.log('【自定义地图点】', customPoints.value)
-    ElMessage.success('已加载 ' + mapPoints.value.length + ' 条主数据，' + customPoints.value.length + ' 条自定义数据')
-    await loadCharts(params)
-  } catch (err) {
-    ElMessage.error('数据加载失败')
-  }
-}
-
-const onAddData = () => {
-  activeTab.value = 'bar'
-  ElMessage.info('请上传 Excel 文件并点击保存')
-}
-
-const onPreview = async () => {
-  const file = uploadFileList.value[0]
-  if (!file) {
-    ElMessage.warning('请先选择文件')
-    return
-  }
-  const formData = new FormData()
-  formData.append('file', file.raw || file)
-  try {
-    const res = await previewImport(formData)
-    if (res.code === 200) {
-      previewData.value = res.data
-      console.log('【预览数据】', previewData.value)
-      const totalCount = res.data.totalCount || 0
-      const validCount = res.data.validCount || 0
-      const invalidCount = res.data.invalidCount || 0
-      
-      ElMessage.success('预览成功')
-    } else {
-      previewData.value = null
-      ElMessage.warning(res.message || '预览未返回有效数据')
-    }
-  } catch (err) {
-    previewData.value = null
-    ElMessage.error('预览失败')
-  }
-}
-
-const onSave = async () => {
-  const file = uploadFileList.value[0]
-  if (!file) {
-    ElMessage.warning('请先选择文件')
-    return
-  }
-  try {
-    const formData = new FormData()
-    formData.append('file', file.raw || file)
-    const res = await previewImport(formData)
-    if (res.code === 200 && res.data?.batchId) {
-      await confirmImport({ batchId: res.data.batchId })
-      ElMessage.success('保存成功')
-      uploadFileList.value = []
-      previewData.value = null
-      onConfirm()
-    } else {
-      ElMessage.warning(res.message || '预览未返回有效批次号，无法保存')
-    }
-  } catch (err) {
-    ElMessage.error('保存失败')
-  }
-}
-
-const onSearch = async () => {
-  if (!searchText.value.trim()) {
-    ElMessage.warning('请输入搜索内容')
-    return
-  }
-  try {
-    const res = await queryObjects({ keyword: searchText.value.trim() })
-    queryResult.value = res.data || []
-    console.log('query result', queryResult.value)
-    nextTick(() => {
-      floatingRightRef.value?.setQueryResult?.(queryResult.value)
-      getDockRightRef()?.value?.setQueryResult?.(queryResult.value)
-    })
-    ElMessage.success('查询到 ' + queryResult.value.length + ' 条结果')
-  } catch (err) {
-    ElMessage.error('查询失败')
-  }
+function isPanelActive(id) {
+  return dockStore.isPanelVisible(id) || dockStore.isPanelDocked(id)
 }
 </script>
 
@@ -433,7 +285,7 @@ const onSearch = async () => {
   top: 0; left: 0; right: 0;
   height: 72px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   padding-top: 10px;
   z-index: 50;
@@ -477,6 +329,58 @@ const onSearch = async () => {
 @keyframes titleGlow {
   0%, 100% { text-shadow: 0 0 12px rgba(114,198,195,0.25), 0 0 30px rgba(114,198,195,0.1); }
   50% { text-shadow: 0 0 24px rgba(114,198,195,0.5), 0 0 50px rgba(114,198,195,0.25); }
+}
+
+/* 顶栏左右区域 */
+.header-left {
+  position: absolute;
+  left: 20px;
+  top: 14px;
+  pointer-events: auto;
+  z-index: 10;
+}
+
+.header-right {
+  position: absolute;
+  right: 20px;
+  top: 14px;
+  pointer-events: auto;
+  z-index: 10;
+}
+
+/* ── 面板切换按钮 ── */
+.panel-toggles {
+  display: flex;
+  gap: 6px;
+}
+
+.panel-toggles button {
+  padding: 4px 12px;
+  background: rgba(36, 53, 73, 0.8);
+  border: 1px solid rgba(73, 93, 104, 0.5);
+  border-radius: 4px;
+  color: #cbd5e1;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.panel-toggles button:hover {
+  background: rgba(114, 198, 195, 0.15);
+  border-color: rgba(114, 198, 195, 0.4);
+}
+
+.panel-toggles button.active {
+  background: rgba(114, 198, 195, 0.2);
+  border-color: rgba(114, 198, 195, 0.6);
+  color: #72C6C3;
+}
+
+/* ── 全局筛选 ── */
+.global-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ── 浮动底栏 ── */
@@ -547,5 +451,4 @@ const onSearch = async () => {
 
 .scale-tick.left { left: 0; }
 .scale-tick.right { right: 0; }
-
 </style>

@@ -4,6 +4,7 @@ import { reactive } from 'vue'
 const dockedPanels = reactive({ left: [], right: [] })
 const expandedId = reactive({ left: null, right: null })
 const panelRegistry = reactive({})
+const visiblePanels = reactive(new Set())
 
 export function useDockStore() {
   function registerPanel(id, title) {
@@ -55,10 +56,32 @@ export function useDockStore() {
     return null
   }
 
+  // ── 面板显隐控制 ──
+  function showPanel(id) {
+    visiblePanels.add(id)
+  }
+
+  function hidePanel(id) {
+    visiblePanels.delete(id)
+  }
+
+  function togglePanel(id) {
+    if (visiblePanels.has(id)) {
+      visiblePanels.delete(id)
+    } else {
+      visiblePanels.add(id)
+    }
+  }
+
+  function isPanelVisible(id) {
+    return visiblePanels.has(id)
+  }
+
   return {
     dockedPanels,
     expandedId,
     panelRegistry,
+    visiblePanels,
     registerPanel,
     unregisterPanel,
     dockPanel,
@@ -66,6 +89,10 @@ export function useDockStore() {
     toggleExpand,
     isPanelDocked,
     isPanelExpanded,
-    getPanelSide
+    getPanelSide,
+    showPanel,
+    hidePanel,
+    togglePanel,
+    isPanelVisible
   }
 }
