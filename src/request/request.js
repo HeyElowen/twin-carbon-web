@@ -1,12 +1,12 @@
 import axios from 'axios'
 import { getMockResponse } from '@/api/mock-data.js'
 
-// ========== Mock 开关 ==========
-const USE_MOCK = true  // true = 使用 mock，false = 连真实后端
-// ==============================
+// ========== Mock 开关（改这一行即可切换）==========
+const USE_MOCK = true   // true = 使用 mock 数据，false = 连接真实后端
+// ================================================
 
 const request = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: '/api',      // 走 Vite 代理，mock/真实两用
   timeout: 10000
 })
 
@@ -22,10 +22,13 @@ request.interceptors.request.use(config => {
         headers: {},
         config
       })
+      console.log(`[Mock] ${config.method.toUpperCase()} ${config.url}`)
+    } else {
+      console.warn(`[Mock] ${config.method.toUpperCase()} ${config.url} — 无匹配 mock 数据`)
     }
   }
 
-  // 真实请求：带上 token
+  // 真实请求：带上 token（登录逻辑后续实现，本次不改）
   const token = localStorage.getItem('token')
   if (token) {
     config.headers['X-Token'] = token

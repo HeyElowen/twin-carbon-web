@@ -1,20 +1,5 @@
 <template>
   <div>
-    <!-- 年份/季度筛选 -->
-    <div class="filter-group">
-      <div class="filter-row">
-        <el-select v-model="filterYear" size="small" style="width: 92px">
-          <el-option v-for="y in years" :key="y" :label="y" :value="y" />
-        </el-select>
-        <el-select v-model="filterQuarter" size="small" style="width: 120px">
-          <el-option v-for="q in quarters" :key="q" :label="q" :value="q" />
-        </el-select>
-      </div>
-      <el-button type="primary" size="small" @click="$emit('confirm')" style="width:100%">
-        确认
-      </el-button>
-    </div>
-
     <!-- 图显示模式 -->
     <el-segmented v-model="activeTab" :options="chartModes" class="chart-mode" />
 
@@ -27,9 +12,8 @@
       </div>
     </div>
 
-
-
-     <el-upload
+    <!-- Excel 上传 -->
+    <el-upload
       ref="uploadRef"
       v-model:file-list="fileList"
       action="#"
@@ -61,8 +45,8 @@
     </el-upload>
 
     <div class="btn-group">
-      <el-button @click="$emit('preview')" size="small" style="flex:1">预览</el-button>
-      <el-button type="warning" @click="$emit('save')" size="small" style="flex:1">保存</el-button>
+      <el-button @click="onPreview" size="small" style="flex:1">预览</el-button>
+      <el-button type="warning" @click="onSave" size="small" style="flex:1">保存</el-button>
     </div>
   </div>
 </template>
@@ -70,42 +54,84 @@
 <script setup>
 import { ref } from 'vue'
 import { Plus, Close } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { usePanelFilterStore } from '@/stores/panelFilter'
+import { useMapDataStore } from '@/stores/mapData'
+import {
+  previewImport,
+  confirmImport
+} from '@/api/index.js'
 
-defineProps({
-  years: { type: Array, default: () => [] },
-  quarters: { type: Array, default: () => [] },
+const props = defineProps({
   chartModes: { type: Array, default: () => [] },
   legendList: { type: Array, default: () => [] }
 })
 
-const filterYear = defineModel('filterYear', { default: '2025' })
-const filterQuarter = defineModel('filterQuarter', { default: '第二季度' })
 const activeTab = defineModel('activeTab', { default: 'bar' })
 const fileList = defineModel('fileList', { default: () => [] })
 
 const uploadRef = ref(null)
+const previewData = ref(null)
+const filterStore = usePanelFilterStore()
+const mapStore = useMapDataStore()
 
 function clearFile() {
   fileList.value = []
 }
 
-defineEmits(['confirm', 'add-data', 'preview', 'save'])
+// ── Excel 预览 ──
+const onPreview = async () => {
+  const file = fileList.value[0]
+  if (!file) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  const formData = new FormData()
+  formData.append('file', file.raw || file)
+  try {
+    const res = await previewImport(formData)
+    if (res.code === 200) {
+      previewData.value = res.data
+      console.log('【预览数据】', previewData.value)
+      ElMessage.success('预览成功')
+    } else {
+      previewData.value = null
+      ElMessage.warning(res.message || '预览未返回有效数据')
+    }
+  } catch (err) {
+    previewData.value = null
+    ElMessage.error('预览失败')
+  }
+}
+
+// ── Excel 保存 ──
+const onSave = async () => {
+  const file = fileList.value[0]
+  if (!file) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  try {
+    const formData = new FormData()
+    formData.append('file', file.raw || file)
+    const res = await previewImport(formData)
+    if (res.code === 200 && res.data?.batchId) {
+      await confirmImport({ batchId: res.data.batchId })
+      ElMessage.success('保存成功')
+      fileList.value = []
+      previewData.value = null
+      // 触发全局刷新
+      filterStore.confirm()
+    } else {
+      ElMessage.warning(res.message || '预览未返回有效批次号，无法保存')
+    }
+  } catch (err) {
+    ElMessage.error('保存失败')
+  }
+}
 </script>
 
 <style scoped>
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.filter-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .chart-mode {
   display: flex;
   margin-bottom: 10px;

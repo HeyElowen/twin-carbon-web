@@ -49,7 +49,7 @@
     </div>
 
     <div v-else class="dock-empty">
-      <span>暂无挂起面板</span>
+      
     </div>
 
     <!-- 四角装饰 -->
