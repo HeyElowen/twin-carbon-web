@@ -1,33 +1,11 @@
 <script setup>
 import { onMounted } from 'vue';
 import home from './views/home.vue';
-let viewer = null;
-const printfms=()=>{
-console.log("点击事件");
-}
-onMounted(async () => {
-  viewer = new Cesium.Viewer('cesiumContainer', {
-    navigation: false
-  });
-  window.cesiumViewer = viewer;
-  viewer.pickEvent.addEventListener(printfms);
-  const scene = viewer.scene;
-
-  try {
-    const layers = await scene.open("/iserver/services/campus/rest/realspace","AnZheng");
-    console.log("场景加载成功，图层数:", layers?.length ?? 0);
-
-    if (layers?.length > 0) {
-      viewer.flyTo?.(layers[0]);
-    }
-  } catch (error) {
-    console.error("场景加载失败:", error);
-  }
-});
+import cesiumMap from './views/cesiumMap.vue';
 </script>
 
 <template>
-  <div id="cesiumContainer"></div>
+ <cesiumMap></cesiumMap>
   <home></home>
 </template>
 
