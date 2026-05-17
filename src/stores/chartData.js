@@ -38,7 +38,7 @@ export const useChartDataStore = defineStore('chartData', () => {
       pieData.value = pieRes.data || []
       trendData.value = trendRes.data || []
     } catch (err) {
-      console.error('图表数据加载失败', err)
+      // 图表数据加载失败，已在调用方处理
     } finally {
       loading.value = false
     }
@@ -50,7 +50,7 @@ export const useChartDataStore = defineStore('chartData', () => {
       const res = await getTrend(trendParams)
       trendData.value = res.data || []
     } catch (err) {
-      console.error('趋势图加载失败', err)
+      // 趋势图加载失败，已在调用方处理
     }
   }
 

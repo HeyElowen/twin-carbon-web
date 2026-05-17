@@ -22,9 +22,9 @@ request.interceptors.request.use(config => {
         headers: {},
         config
       })
-      console.log(`[Mock] ${config.method.toUpperCase()} ${config.url}`)
+      // Mock 命中
     } else {
-      console.warn(`[Mock] ${config.method.toUpperCase()} ${config.url} — 无匹配 mock 数据`)
+      // Mock 未命中，将走真实请求
     }
   }
 

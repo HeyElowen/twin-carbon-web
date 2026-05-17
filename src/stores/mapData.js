@@ -17,7 +17,7 @@ export const useMapDataStore = defineStore('mapData', () => {
       mapPoints.value = mainRes.data || []
       customPoints.value = customRes.data || []
     } catch (err) {
-      console.error('地图数据加载失败', err)
+      // 地图数据加载失败，已在调用方处理
     } finally {
       loading.value = false
     }

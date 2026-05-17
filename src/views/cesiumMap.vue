@@ -1,28 +1,35 @@
 <script setup>
-import { onMounted } from 'vue';
-let viewer = null;
-const printfms=()=>{
-console.log("点击事件");
-}
+import { onMounted, onUnmounted } from 'vue'
+
+let viewer = null
+
 onMounted(async () => {
   viewer = new Cesium.Viewer('cesiumContainer', {
     navigation: false
-  });
-  window.cesiumViewer = viewer;
-  viewer.pickEvent.addEventListener(printfms);
-  const scene = viewer.scene;
+  })
+  window.cesiumViewer = viewer
 
+  const scene = viewer.scene
   try {
-    const layers = await scene.open("/iserver/services/campus/rest/realspace","AnZheng");
-    console.log("场景加载成功，图层数:", layers?.length ?? 0);
-
+    const layers = await scene.open('/iserver/services/campus/rest/realspace', 'AnZheng')
     if (layers?.length > 0) {
-      viewer.flyTo?.(layers[0]);
+      viewer.flyTo?.(layers[0])
     }
   } catch (error) {
-    console.error("场景加载失败:", error);
+    // eslint-disable-next-line no-console
+    console.error('场景加载失败:', error)
   }
-});
+})
+
+onUnmounted(() => {
+  if (viewer) {
+    viewer.destroy()
+    viewer = null
+  }
+  if (window.cesiumViewer) {
+    window.cesiumViewer = null
+  }
+})
 </script>
 
 <template>
@@ -30,23 +37,6 @@ onMounted(async () => {
 </template>
 
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html, body, #app {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  user-select: none;
-}
-
-input, textarea, [contenteditable] {
-  user-select: text;
-}
-
 #cesiumContainer {
   position: fixed;
   top: 0;

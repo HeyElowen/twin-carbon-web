@@ -2,7 +2,13 @@
   <div>
     <!-- 多类占比饼图 -->
     <div class="section-title">多类占比</div>
-    <div ref="pieChartRef" class="chart-container" style="height: 180px"></div>
+    <ChartContainer
+      ref="pieChartContainer"
+      :option="pieOption"
+      :loading="chartStore.loading"
+      :empty="!chartStore.pieData.length"
+      height="180px"
+    />
 
     <!-- 对象查询 -->
     <div class="section-title">对象查询</div>
@@ -59,17 +65,24 @@
         {{ item }}
       </el-radio-button>
     </el-radio-group>
-    <div ref="lineChartRef" class="chart-container" style="height: 180px; margin-top: 6px"></div>
+    <ChartContainer
+      ref="lineChartContainer"
+      :option="lineOption"
+      :loading="chartStore.loading"
+      :empty="!chartStore.trendData.length"
+      height="180px"
+      style="margin-top: 6px"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import * as echarts from 'echarts'
+import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { usePanelFilterStore } from '@/stores/panelFilter'
 import { useChartDataStore } from '@/stores/chartData'
 import { queryObjects } from '@/api/index.js'
+import ChartContainer from '@/components/chart/ChartContainer.vue'
 
 const filterStore = usePanelFilterStore()
 const chartStore = useChartDataStore()
@@ -134,14 +147,6 @@ const CHART_COLORS = {
   residential: '#5BA3D9'
 }
 
-// 图表 DOM 与实例
-const pieChartRef = ref(null)
-const lineChartRef = ref(null)
-let pieChart = null
-let lineChart = null
-let pieObserver = null
-let lineObserver = null
-
 // 查询数据（保留在组件内，不放入 Store）
 const queryResult = ref(null)
 const selectedIndex = ref(0)
@@ -168,7 +173,6 @@ const onSearch = async () => {
       quarter: filterStore.quarterCode
     })
     queryResult.value = res.data || []
-    console.log('query result', queryResult.value)
     ElMessage.success('查询到 ' + queryResult.value.length + ' 条结果')
   } catch (err) {
     ElMessage.error('查询失败')
@@ -260,68 +264,25 @@ function mapCategoryKey(name) {
   return map[name] || 'industry'
 }
 
-// ── 图表初始化 ──
-function initCharts() {
-  if (pieChartRef.value) {
-    pieChart?.dispose()
-    pieChart = echarts.init(pieChartRef.value)
-    pieChart.setOption(createPieOption(chartStore.pieData))
-    pieObserver = new ResizeObserver(() => pieChart?.resize())
-    pieObserver.observe(pieChartRef.value)
-  }
-  if (lineChartRef.value) {
-    lineChart?.dispose()
-    lineChart = echarts.init(lineChartRef.value)
-    lineChart.setOption(createLineOption(chartStore.trendData))
-    lineObserver = new ResizeObserver(() => lineChart?.resize())
-    lineObserver.observe(lineChartRef.value)
-  }
-}
+// ── 图表 option 响应式 ──
+const pieOption = computed(() => createPieOption(chartStore.pieData))
+const lineOption = computed(() => createLineOption(chartStore.trendData))
 
-function updateCharts(newPieData, newTrendData) {
-  if (pieChart) {
-    pieChart.setOption(createPieOption(newPieData), true)
-  }
-  if (lineChart) {
-    lineChart.setOption(createLineOption(newTrendData), true)
-  }
-}
+// ── 图表容器 ref ──
+const pieChartContainer = ref(null)
+const lineChartContainer = ref(null)
 
 function resize() {
-  pieChart?.resize()
-  lineChart?.resize()
+  pieChartContainer.value?.resize()
+  lineChartContainer.value?.resize()
 }
 
-function dispose() {
-  pieObserver?.disconnect()
-  lineObserver?.disconnect()
-  pieChart?.dispose()
-  lineChart?.dispose()
-  pieChart = null
-  lineChart = null
+function updateCharts() {
+  pieChartContainer.value?.update()
+  lineChartContainer.value?.update()
 }
-
-// ── 监听 Store 数据变化，自动刷新图表 ──
-watch(() => chartStore.pieData, (newData) => {
-  if (pieChart) pieChart.setOption(createPieOption(newData), true)
-})
-
-watch(() => chartStore.trendData, (newData) => {
-  if (lineChart) lineChart.setOption(createLineOption(newData), true)
-})
-
-// trendTab / 时间尺度变化时，直接在 computed setter 中调用 loadTrendOnly
-// 不需要 watch 监听
 
 defineExpose({ resize, updateCharts })
-
-onMounted(() => {
-  nextTick(() => initCharts())
-})
-
-onUnmounted(() => {
-  dispose()
-})
 </script>
 
 <style scoped>
@@ -343,10 +304,6 @@ onUnmounted(() => {
   height: 16px;
   background: linear-gradient(180deg, #72C6C3, rgba(114,198,195,0.4));
   border-radius: 2px;
-}
-
-.chart-container {
-  width: 100%;
 }
 
 .query-wrapper {

@@ -92,7 +92,6 @@ const onPreview = async () => {
     const res = await previewImport(formData)
     if (res.code === 200) {
       previewData.value = res.data
-      console.log('【预览数据】', previewData.value)
       ElMessage.success('预览成功')
     } else {
       previewData.value = null
