@@ -14,11 +14,25 @@
     <div class="section-title">对象查询</div>
     <div class="query-wrapper">
       <div class="query-box">
-        <el-input
+        <el-autocomplete
           v-model="localSearchText"
+          :fetch-suggestions="fetchSuggestions"
           placeholder="搜索地块/建筑名称..."
           size="small"
-        />
+          value-key="name"
+          highlight-first-item
+          popper-class="dark-autocomplete"
+          @select="onSelectSuggestion"
+          @keyup.enter="onSearch"
+          class="query-autocomplete"
+        >
+          <template #default="{ item }">
+            <div class="suggestion-item">
+              <span class="suggestion-name">{{ item.name }}</span>
+              <span class="suggestion-category">{{ item.category }}</span>
+            </div>
+          </template>
+        </el-autocomplete>
         <el-button type="primary" size="small" @click="onSearch">Go</el-button>
       </div>
     </div>
@@ -159,6 +173,31 @@ const selectedItem = computed(() => {
 watch(() => queryResult.value, () => {
   selectedIndex.value = 0
 })
+
+// ── 输入建议 ──
+const fetchSuggestions = async (queryString, callback) => {
+  if (!queryString.trim()) {
+    callback([])
+    return
+  }
+  try {
+    const res = await queryObjects({
+      name: queryString.trim(),
+      year: parseInt(filterStore.filterYear),
+      quarter: filterStore.quarterCode
+    })
+    const list = res.data || []
+    callback(list)
+  } catch (err) {
+    callback([])
+  }
+}
+
+const onSelectSuggestion = (item) => {
+  queryResult.value = [item]
+  selectedIndex.value = 0
+  ElMessage.success(`已选择：${item.name}`)
+}
 
 // ── 自主搜索 ──
 const onSearch = async () => {
@@ -318,8 +357,57 @@ defineExpose({ resize, updateCharts })
   gap: 0;
 }
 
-.query-box .el-input {
+.query-box .query-autocomplete {
   flex: 1;
+}
+
+.query-autocomplete :deep(.el-input__wrapper) {
+  border-radius: 4px 0 0 4px;
+}
+
+.suggestion-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.suggestion-name {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.suggestion-category {
+  color: #4a6275;
+  font-size: 11px;
+  margin-left: 8px;
+}
+
+/* 深色下拉建议框 */
+:deep(.dark-autocomplete) {
+  background: rgba(32, 51, 71, 0.95) !important;
+  border: 1px solid rgba(73, 93, 104, 0.6) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+:deep(.dark-autocomplete .el-autocomplete-suggestion__wrap) {
+  background: transparent !important;
+}
+
+:deep(.dark-autocomplete .el-autocomplete-suggestion__list) {
+  padding: 4px 0;
+}
+
+:deep(.dark-autocomplete .el-autocomplete-suggestion__list li) {
+  color: #cbd5e1;
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+:deep(.dark-autocomplete .el-autocomplete-suggestion__list li.highlighted),
+:deep(.dark-autocomplete .el-autocomplete-suggestion__list li:hover) {
+  background: rgba(114, 198, 195, 0.15) !important;
+  color: #72c6c3;
 }
 
 .result-card {
