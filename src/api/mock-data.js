@@ -196,17 +196,188 @@ export const mockCustomPoints = {
   ]
 }
 
-// ==================== 4. 饼图统计 — 主数据 ✅ ====================
+// ==================== 4. 饼图统计 — 主数据（24组真实数据，按 year+quarter 区分）✅ ====================
+const mockCategoryRatioByQuarter = {
+  // 2025: 工业主导，Q4 达到峰值
+  '2025-Q1': [
+    { name: "工业区", value: 42100 },
+    { name: "商业区", value: 28300 },
+    { name: "住宅区", value: 15200 },
+    { name: "农业区", value: 8900 },
+    { name: "教育区", value: 5500 }
+  ],
+  '2025-Q2': [
+    { name: "工业区", value: 51200 },
+    { name: "商业区", value: 31500 },
+    { name: "住宅区", value: 17800 },
+    { name: "农业区", value: 7200 },
+    { name: "教育区", value: 4300 }
+  ],
+  '2025-Q3': [
+    { name: "工业区", value: 64800 },
+    { name: "商业区", value: 29200 },
+    { name: "住宅区", value: 16500 },
+    { name: "农业区", value: 5800 },
+    { name: "教育区", value: 3700 }
+  ],
+  '2025-Q4': [
+    { name: "工业区", value: 72500 },
+    { name: "商业区", value: 26800 },
+    { name: "住宅区", value: 14300 },
+    { name: "农业区", value: 4100 },
+    { name: "教育区", value: 2300 }
+  ],
+  // 2024: 商业主导
+  '2024-Q1': [
+    { name: "工业区", value: 18200 },
+    { name: "商业区", value: 59800 },
+    { name: "住宅区", value: 24300 },
+    { name: "农业区", value: 13100 },
+    { name: "教育区", value: 4600 }
+  ],
+  '2024-Q2': [
+    { name: "工业区", value: 21500 },
+    { name: "商业区", value: 68200 },
+    { name: "住宅区", value: 22800 },
+    { name: "农业区", value: 9800 },
+    { name: "教育区", value: 5700 }
+  ],
+  '2024-Q3': [
+    { name: "工业区", value: 19800 },
+    { name: "商业区", value: 64500 },
+    { name: "住宅区", value: 26100 },
+    { name: "农业区", value: 11500 },
+    { name: "教育区", value: 5100 }
+  ],
+  '2024-Q4': [
+    { name: "工业区", value: 16200 },
+    { name: "商业区", value: 71800 },
+    { name: "住宅区", value: 19500 },
+    { name: "农业区", value: 14200 },
+    { name: "教育区", value: 6300 }
+  ],
+  // 2023: 住宅主导
+  '2023-Q1': [
+    { name: "工业区", value: 14300 },
+    { name: "商业区", value: 21800 },
+    { name: "住宅区", value: 56200 },
+    { name: "农业区", value: 12800 },
+    { name: "教育区", value: 4900 }
+  ],
+  '2023-Q2': [
+    { name: "工业区", value: 16800 },
+    { name: "商业区", value: 19500 },
+    { name: "住宅区", value: 62800 },
+    { name: "农业区", value: 10500 },
+    { name: "教育区", value: 5400 }
+  ],
+  '2023-Q3': [
+    { name: "工业区", value: 15100 },
+    { name: "商业区", value: 23200 },
+    { name: "住宅区", value: 59500 },
+    { name: "农业区", value: 15700 },
+    { name: "教育区", value: 6500 }
+  ],
+  '2023-Q4': [
+    { name: "工业区", value: 12500 },
+    { name: "商业区", value: 20400 },
+    { name: "住宅区", value: 67100 },
+    { name: "农业区", value: 11300 },
+    { name: "教育区", value: 7200 }
+  ],
+  // 2022: 农业主导
+  '2022-Q1': [
+    { name: "工业区", value: 11200 },
+    { name: "商业区", value: 16800 },
+    { name: "住宅区", value: 19800 },
+    { name: "农业区", value: 52800 },
+    { name: "教育区", value: 9400 }
+  ],
+  '2022-Q2': [
+    { name: "工业区", value: 13500 },
+    { name: "商业区", value: 18700 },
+    { name: "住宅区", value: 22500 },
+    { name: "农业区", value: 49800 },
+    { name: "教育区", value: 10500 }
+  ],
+  '2022-Q3': [
+    { name: "工业区", value: 9800 },
+    { name: "商业区", value: 15200 },
+    { name: "住宅区", value: 21100 },
+    { name: "农业区", value: 61500 },
+    { name: "教育区", value: 12300 }
+  ],
+  '2022-Q4': [
+    { name: "工业区", value: 14500 },
+    { name: "商业区", value: 17500 },
+    { name: "住宅区", value: 18900 },
+    { name: "农业区", value: 57200 },
+    { name: "教育区", value: 8900 }
+  ],
+  // 2021: 教育主导
+  '2021-Q1': [
+    { name: "工业区", value: 8200 },
+    { name: "商业区", value: 10500 },
+    { name: "住宅区", value: 14200 },
+    { name: "农业区", value: 16800 },
+    { name: "教育区", value: 50300 }
+  ],
+  '2021-Q2': [
+    { name: "工业区", value: 9600 },
+    { name: "商业区", value: 11800 },
+    { name: "住宅区", value: 16500 },
+    { name: "农业区", value: 19200 },
+    { name: "教育区", value: 42900 }
+  ],
+  '2021-Q3': [
+    { name: "工业区", value: 8900 },
+    { name: "商业区", value: 9400 },
+    { name: "住宅区", value: 12800 },
+    { name: "农业区", value: 21500 },
+    { name: "教育区", value: 47400 }
+  ],
+  '2021-Q4': [
+    { name: "工业区", value: 10700 },
+    { name: "商业区", value: 13200 },
+    { name: "住宅区", value: 15100 },
+    { name: "农业区", value: 18500 },
+    { name: "教育区", value: 42500 }
+  ],
+  // 2020: 五类均衡，季度间波动明显
+  '2020-Q1': [
+    { name: "工业区", value: 18200 },
+    { name: "商业区", value: 21500 },
+    { name: "住宅区", value: 16800 },
+    { name: "农业区", value: 22300 },
+    { name: "教育区", value: 17200 }
+  ],
+  '2020-Q2': [
+    { name: "工业区", value: 25800 },
+    { name: "商业区", value: 16200 },
+    { name: "住宅区", value: 24100 },
+    { name: "农业区", value: 14800 },
+    { name: "教育区", value: 15100 }
+  ],
+  '2020-Q3': [
+    { name: "工业区", value: 14500 },
+    { name: "商业区", value: 23800 },
+    { name: "住宅区", value: 19500 },
+    { name: "农业区", value: 11200 },
+    { name: "教育区", value: 21000 }
+  ],
+  '2020-Q4': [
+    { name: "工业区", value: 19800 },
+    { name: "商业区", value: 17500 },
+    { name: "住宅区", value: 15400 },
+    { name: "农业区", value: 28600 },
+    { name: "教育区", value: 8700 }
+  ]
+}
+
 export const mockCategoryRatio = {
   code: 200,
   message: "success",
-  data: [
-    { name: "工业区", value: 45200.8 },
-    { name: "商业区", value: 38500.5 },
-    { name: "住宅区", value: 26800.2 },
-    { name: "农业区", value: 8900.6 },
-    { name: "教育区", value: 5600.4 }
-  ]
+  data: mockCategoryRatioByQuarter['2025-Q3']
 }
 
 // ==================== 5. 饼图统计 — 自定义数据 ✅ ====================
@@ -310,6 +481,286 @@ export const mockCustomTrend = {
     { name: "2025-Q2", value: 4920 },
     { name: "2025-Q3", value: 5340 }
   ]
+}
+
+// ==================== 趋势折线图 — 多组真实数据（按 category + yearStart 区分）✅ ====================
+const mockTrendData = {
+  all: {
+    '2025': [
+      { name: "2025-Q1", value: 142000 },
+      { name: "2025-Q2", value: 158000 },
+      { name: "2025-Q3", value: 175000 }
+    ],
+    '2024': [
+      { name: "2024-Q1", value: 98000 },
+      { name: "2024-Q2", value: 105000 },
+      { name: "2024-Q3", value: 112000 },
+      { name: "2024-Q4", value: 128000 },
+      { name: "2025-Q1", value: 135000 },
+      { name: "2025-Q2", value: 142000 },
+      { name: "2025-Q3", value: 158000 }
+    ],
+    '2023': [
+      { name: "2023-Q1", value: 65000 },
+      { name: "2023-Q2", value: 72000 },
+      { name: "2023-Q3", value: 68000 },
+      { name: "2023-Q4", value: 81000 },
+      { name: "2024-Q1", value: 89000 },
+      { name: "2024-Q2", value: 95000 },
+      { name: "2024-Q3", value: 102000 },
+      { name: "2024-Q4", value: 118000 },
+      { name: "2025-Q1", value: 125000 },
+      { name: "2025-Q2", value: 132000 },
+      { name: "2025-Q3", value: 148000 }
+    ],
+    '2022': [
+      { name: "2022-Q1", value: 45000 },
+      { name: "2022-Q2", value: 38000 },
+      { name: "2022-Q3", value: 52000 },
+      { name: "2022-Q4", value: 48000 },
+      { name: "2023-Q1", value: 61000 },
+      { name: "2023-Q2", value: 68000 },
+      { name: "2023-Q3", value: 64000 },
+      { name: "2023-Q4", value: 77000 },
+      { name: "2024-Q1", value: 85000 },
+      { name: "2024-Q2", value: 91000 },
+      { name: "2024-Q3", value: 98000 },
+      { name: "2024-Q4", value: 114000 },
+      { name: "2025-Q1", value: 121000 },
+      { name: "2025-Q2", value: 128000 },
+      { name: "2025-Q3", value: 144000 }
+    ],
+    '2021': [
+      { name: "2021-Q1", value: 32000 },
+      { name: "2021-Q2", value: 28000 },
+      { name: "2021-Q3", value: 35000 },
+      { name: "2021-Q4", value: 31000 },
+      { name: "2022-Q1", value: 42000 },
+      { name: "2022-Q2", value: 35000 },
+      { name: "2022-Q3", value: 49000 },
+      { name: "2022-Q4", value: 45000 },
+      { name: "2023-Q1", value: 58000 },
+      { name: "2023-Q2", value: 65000 },
+      { name: "2023-Q3", value: 61000 },
+      { name: "2023-Q4", value: 74000 },
+      { name: "2024-Q1", value: 82000 },
+      { name: "2024-Q2", value: 88000 },
+      { name: "2024-Q3", value: 95000 },
+      { name: "2024-Q4", value: 111000 },
+      { name: "2025-Q1", value: 118000 },
+      { name: "2025-Q2", value: 125000 },
+      { name: "2025-Q3", value: 141000 }
+    ],
+    '2020': [
+      { name: "2020-Q1", value: 25000 },
+      { name: "2020-Q2", value: 22000 },
+      { name: "2020-Q3", value: 28000 },
+      { name: "2020-Q4", value: 30000 },
+      { name: "2021-Q1", value: 31000 },
+      { name: "2021-Q2", value: 27000 },
+      { name: "2021-Q3", value: 34000 },
+      { name: "2021-Q4", value: 30000 },
+      { name: "2022-Q1", value: 41000 },
+      { name: "2022-Q2", value: 34000 },
+      { name: "2022-Q3", value: 48000 },
+      { name: "2022-Q4", value: 44000 },
+      { name: "2023-Q1", value: 57000 },
+      { name: "2023-Q2", value: 64000 },
+      { name: "2023-Q3", value: 60000 },
+      { name: "2023-Q4", value: 73000 },
+      { name: "2024-Q1", value: 81000 },
+      { name: "2024-Q2", value: 87000 },
+      { name: "2024-Q3", value: 94000 },
+      { name: "2024-Q4", value: 110000 },
+      { name: "2025-Q1", value: 117000 },
+      { name: "2025-Q2", value: 124000 },
+      { name: "2025-Q3", value: 140000 }
+    ]
+  },
+  '工业区': {
+    '2025': [
+      { name: "2025-Q1", value: 58000 },
+      { name: "2025-Q2", value: 62000 },
+      { name: "2025-Q3", value: 71000 }
+    ],
+    '2024': [
+      { name: "2024-Q1", value: 42000 },
+      { name: "2024-Q2", value: 45000 },
+      { name: "2024-Q3", value: 48000 },
+      { name: "2024-Q4", value: 55000 },
+      { name: "2025-Q1", value: 58000 },
+      { name: "2025-Q2", value: 62000 },
+      { name: "2025-Q3", value: 71000 }
+    ],
+    '2023': [
+      { name: "2023-Q1", value: 28000 },
+      { name: "2023-Q2", value: 31000 },
+      { name: "2023-Q3", value: 29000 },
+      { name: "2023-Q4", value: 36000 },
+      { name: "2024-Q1", value: 40000 },
+      { name: "2024-Q2", value: 43000 },
+      { name: "2024-Q3", value: 46000 },
+      { name: "2024-Q4", value: 53000 },
+      { name: "2025-Q1", value: 56000 },
+      { name: "2025-Q2", value: 60000 },
+      { name: "2025-Q3", value: 69000 }
+    ],
+    '2022': [
+      { name: "2022-Q1", value: 18000 },
+      { name: "2022-Q2", value: 15000 },
+      { name: "2022-Q3", value: 22000 },
+      { name: "2022-Q4", value: 19000 },
+      { name: "2023-Q1", value: 26000 },
+      { name: "2023-Q2", value: 29000 },
+      { name: "2023-Q3", value: 27000 },
+      { name: "2023-Q4", value: 34000 },
+      { name: "2024-Q1", value: 38000 },
+      { name: "2024-Q2", value: 41000 },
+      { name: "2024-Q3", value: 44000 },
+      { name: "2024-Q4", value: 51000 },
+      { name: "2025-Q1", value: 54000 },
+      { name: "2025-Q2", value: 58000 },
+      { name: "2025-Q3", value: 67000 }
+    ]
+  },
+  '商业区': {
+    '2025': [
+      { name: "2025-Q1", value: 35000 },
+      { name: "2025-Q2", value: 42000 },
+      { name: "2025-Q3", value: 48000 }
+    ],
+    '2024': [
+      { name: "2024-Q1", value: 28000 },
+      { name: "2024-Q2", value: 31000 },
+      { name: "2024-Q3", value: 33000 },
+      { name: "2024-Q4", value: 38000 },
+      { name: "2025-Q1", value: 35000 },
+      { name: "2025-Q2", value: 42000 },
+      { name: "2025-Q3", value: 48000 }
+    ],
+    '2023': [
+      { name: "2023-Q1", value: 18000 },
+      { name: "2023-Q2", value: 21000 },
+      { name: "2023-Q3", value: 19000 },
+      { name: "2023-Q4", value: 25000 },
+      { name: "2024-Q1", value: 27000 },
+      { name: "2024-Q2", value: 30000 },
+      { name: "2024-Q3", value: 32000 },
+      { name: "2024-Q4", value: 37000 },
+      { name: "2025-Q1", value: 34000 },
+      { name: "2025-Q2", value: 41000 },
+      { name: "2025-Q3", value: 47000 }
+    ],
+    '2022': [
+      { name: "2022-Q1", value: 12000 },
+      { name: "2022-Q2", value: 10000 },
+      { name: "2022-Q3", value: 15000 },
+      { name: "2022-Q4", value: 13000 },
+      { name: "2023-Q1", value: 17000 },
+      { name: "2023-Q2", value: 20000 },
+      { name: "2023-Q3", value: 18000 },
+      { name: "2023-Q4", value: 24000 },
+      { name: "2024-Q1", value: 26000 },
+      { name: "2024-Q2", value: 29000 },
+      { name: "2024-Q3", value: 31000 },
+      { name: "2024-Q4", value: 36000 },
+      { name: "2025-Q1", value: 33000 },
+      { name: "2025-Q2", value: 40000 },
+      { name: "2025-Q3", value: 46000 }
+    ]
+  },
+  '农业区': {
+    '2025': [
+      { name: "2025-Q1", value: 22000 },
+      { name: "2025-Q2", value: 28000 },
+      { name: "2025-Q3", value: 32000 }
+    ],
+    '2024': [
+      { name: "2024-Q1", value: 15000 },
+      { name: "2024-Q2", value: 18000 },
+      { name: "2024-Q3", value: 20000 },
+      { name: "2024-Q4", value: 24000 },
+      { name: "2025-Q1", value: 22000 },
+      { name: "2025-Q2", value: 28000 },
+      { name: "2025-Q3", value: 32000 }
+    ],
+    '2023': [
+      { name: "2023-Q1", value: 9000 },
+      { name: "2023-Q2", value: 12000 },
+      { name: "2023-Q3", value: 10000 },
+      { name: "2023-Q4", value: 16000 },
+      { name: "2024-Q1", value: 14000 },
+      { name: "2024-Q2", value: 17000 },
+      { name: "2024-Q3", value: 19000 },
+      { name: "2024-Q4", value: 23000 },
+      { name: "2025-Q1", value: 21000 },
+      { name: "2025-Q2", value: 27000 },
+      { name: "2025-Q3", value: 31000 }
+    ],
+    '2022': [
+      { name: "2022-Q1", value: 6000 },
+      { name: "2022-Q2", value: 5000 },
+      { name: "2022-Q3", value: 9000 },
+      { name: "2022-Q4", value: 7000 },
+      { name: "2023-Q1", value: 8000 },
+      { name: "2023-Q2", value: 11000 },
+      { name: "2023-Q3", value: 9000 },
+      { name: "2023-Q4", value: 15000 },
+      { name: "2024-Q1", value: 13000 },
+      { name: "2024-Q2", value: 16000 },
+      { name: "2024-Q3", value: 18000 },
+      { name: "2024-Q4", value: 22000 },
+      { name: "2025-Q1", value: 20000 },
+      { name: "2025-Q2", value: 26000 },
+      { name: "2025-Q3", value: 30000 }
+    ]
+  },
+  '住宅区': {
+    '2025': [
+      { name: "2025-Q1", value: 27000 },
+      { name: "2025-Q2", value: 26000 },
+      { name: "2025-Q3", value: 24000 }
+    ],
+    '2024': [
+      { name: "2024-Q1", value: 22000 },
+      { name: "2024-Q2", value: 21000 },
+      { name: "2024-Q3", value: 20000 },
+      { name: "2024-Q4", value: 19000 },
+      { name: "2025-Q1", value: 27000 },
+      { name: "2025-Q2", value: 26000 },
+      { name: "2025-Q3", value: 24000 }
+    ],
+    '2023': [
+      { name: "2023-Q1", value: 18000 },
+      { name: "2023-Q2", value: 17000 },
+      { name: "2023-Q3", value: 16000 },
+      { name: "2023-Q4", value: 15000 },
+      { name: "2024-Q1", value: 21000 },
+      { name: "2024-Q2", value: 20000 },
+      { name: "2024-Q3", value: 19000 },
+      { name: "2024-Q4", value: 18000 },
+      { name: "2025-Q1", value: 26000 },
+      { name: "2025-Q2", value: 25000 },
+      { name: "2025-Q3", value: 23000 }
+    ],
+    '2022': [
+      { name: "2022-Q1", value: 14000 },
+      { name: "2022-Q2", value: 13000 },
+      { name: "2022-Q3", value: 12000 },
+      { name: "2022-Q4", value: 11000 },
+      { name: "2023-Q1", value: 17000 },
+      { name: "2023-Q2", value: 16000 },
+      { name: "2023-Q3", value: 15000 },
+      { name: "2023-Q4", value: 14000 },
+      { name: "2024-Q1", value: 20000 },
+      { name: "2024-Q2", value: 19000 },
+      { name: "2024-Q3", value: 18000 },
+      { name: "2024-Q4", value: 17000 },
+      { name: "2025-Q1", value: 25000 },
+      { name: "2025-Q2", value: 24000 },
+      { name: "2025-Q3", value: 22000 }
+    ]
+  }
 }
 
 // ==================== 8. 对象查询 ✅ ====================
@@ -541,18 +992,15 @@ export function getMockResponse(config) {
   const { method, url, params, data } = config
   const key = `${method.toLowerCase()}:${url}`
 
-  // 对趋势图接口按 category + yearStart/yearEnd 返回数据
+  // 对趋势图接口按 category + yearStart 返回独立的真实数据
   if (key === 'get:/monitoring/statistics/trend') {
-    const category = params?.category
-    let source
-    if (!category) source = mockTrendAll
-    else if (category === '工业区') source = mockTrendIndustry
-    else if (category === '商业区') source = mockTrendCommercial
-    else if (category === '农业区') source = mockTrendAgriculture
-    else if (category === '住宅区') source = mockTrendResidential
-    else source = mockTrendAll
-
-    return filterTrendByYearRange(source, params?.yearStart, params?.yearEnd)
+    const category = params?.category || 'all'
+    const yearStart = params?.yearStart || '2020'
+    const catKey = category || 'all'
+    const source = mockTrendData[catKey]?.[yearStart]
+      || mockTrendData[catKey]?.['2020']
+      || mockTrendData['all']?.['2020']
+    return { code: 200, message: "success", data: source || [] }
   }
 
   if (key === 'get:/monitoring/statistics/custom-trend') {
@@ -574,32 +1022,46 @@ export function getMockResponse(config) {
   if (key === 'get:/monitoring/statistics/category-ratio') {
     const year = params?.year || '2025'
     const quarter = params?.quarter || 'Q3'
-    const yearFactor = 1 + (parseInt(year) - 2025) * 0.05
-    const qf = { 'Q1': 0.9, 'Q2': 0.95, 'Q3': 1.0, 'Q4': 1.05 }
-    const quarterFactor = qf[quarter] || 1.0
+    const dataKey = `${year}-${quarter}`
     return {
       code: 200,
       message: "success",
-      data: mockCategoryRatio.data.map(item => ({
-        ...item,
-        value: Math.round(item.value * yearFactor * quarterFactor * 100) / 100
-      }))
+      data: mockCategoryRatioByQuarter[dataKey] || mockCategoryRatioByQuarter['2025-Q3']
     }
   }
 
   if (key === 'get:/monitoring/statistics/custom-category-ratio') {
     const year = params?.year || '2025'
-    const quarter = params?.quarter || 'Q3'
-    const yearFactor = 1 + (parseInt(year) - 2025) * 0.05
-    const qf = { 'Q1': 0.9, 'Q2': 0.95, 'Q3': 1.0, 'Q4': 1.05 }
-    const quarterFactor = qf[quarter] || 1.0
+    const customByYear = {
+      '2025': [
+        { name: "工业区", value: 9200 },
+        { name: "农业区", value: 3100 }
+      ],
+      '2024': [
+        { name: "工业区", value: 4500 },
+        { name: "农业区", value: 7800 }
+      ],
+      '2023': [
+        { name: "工业区", value: 11200 },
+        { name: "农业区", value: 2400 }
+      ],
+      '2022': [
+        { name: "工业区", value: 2800 },
+        { name: "农业区", value: 9500 }
+      ],
+      '2021': [
+        { name: "工业区", value: 6800 },
+        { name: "农业区", value: 6200 }
+      ],
+      '2020': [
+        { name: "工业区", value: 5100 },
+        { name: "农业区", value: 4900 }
+      ]
+    }
     return {
       code: 200,
       message: "success",
-      data: mockCustomCategoryRatio.data.map(item => ({
-        ...item,
-        value: Math.round(item.value * yearFactor * quarterFactor * 100) / 100
-      }))
+      data: customByYear[year] || customByYear['2025']
     }
   }
 

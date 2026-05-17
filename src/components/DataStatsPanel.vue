@@ -233,14 +233,14 @@ function createLineOption(data) {
       smooth: false,
       symbol: 'circle',
       symbolSize: 6,
-      lineStyle: { color: '#333', width: 2 },
-      itemStyle: { color: '#333' },
+      lineStyle: { color: '#fff', width: 2 },
+      itemStyle: { color: '#fff' },
       areaStyle: {
         color: {
           type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
           colorStops: [
-            { offset: 0, color: 'rgba(0,0,0,0.08)' },
-            { offset: 1, color: 'rgba(0,0,0,0.01)' }
+            { offset: 0, color: 'rgba(255,255,255,0.12)' },
+            { offset: 1, color: 'rgba(255,255,255,0.02)' }
           ]
         }
       }
@@ -267,6 +267,8 @@ function mapCategoryKey(name) {
 // ── 图表 option 响应式 ──
 const pieOption = computed(() => createPieOption(chartStore.pieData))
 const lineOption = computed(() => createLineOption(chartStore.trendData))
+
+
 
 // ── 图表容器 ref ──
 const pieChartContainer = ref(null)

@@ -38,7 +38,8 @@ export const useChartDataStore = defineStore('chartData', () => {
       pieData.value = pieRes.data || []
       trendData.value = trendRes.data || []
     } catch (err) {
-      // 图表数据加载失败，已在调用方处理
+      // eslint-disable-next-line no-console
+      console.error('图表数据加载失败', err)
     } finally {
       loading.value = false
     }

@@ -22,9 +22,6 @@ request.interceptors.request.use(config => {
         headers: {},
         config
       })
-      // Mock 命中
-    } else {
-      // Mock 未命中，将走真实请求
     }
   }
 

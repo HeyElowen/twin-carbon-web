@@ -76,20 +76,18 @@ const { chartInstance, update, resize } = useChart(
   }
 )
 
-// option 变化时自动更新（仅在非 loading/empty/error 状态）
+// option 变化时自动更新
+// 注意：不在此处检查 loading/empty/error，因为 v-if/v-show 已控制视觉状态
+// 如果在这里阻止 update，loading 结束后再无机会触发（option 引用已不再变化）
 watch(
   () => props.option,
-  () => {
-    if (!props.loading && !props.empty && !props.error) {
-      update()
-    }
-  },
+  () => update(),
   { deep: true }
 )
 
-// loading 结束后如果有数据，触发更新
-watch(() => props.loading, (val) => {
-  if (!val && !props.empty && !props.error) {
+// loading 从 true → false 时补一次 update（防止 option 和 loading 在同一 tick 变化导致 watch 错过）
+watch(() => props.loading, (val, oldVal) => {
+  if (oldVal && !val) {
     nextTick(() => update())
   }
 })
