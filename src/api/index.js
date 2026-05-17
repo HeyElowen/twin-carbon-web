@@ -29,9 +29,8 @@ export const queryObjects = (params) =>
 
 // ==================== 5. Excel 导入 ====================
 export const previewImport = (data) =>
-  request.post('/monitoring/import', data, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  request.post('/monitoring/import', data)
+  // 注意：不要手动设置 Content-Type，让 axios 根据 FormData 自动添加含 boundary 的 multipart header
 
 export const confirmImport = (data) =>
   request.post('/monitoring/import/confirm', data)

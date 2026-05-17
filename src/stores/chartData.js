@@ -1,6 +1,11 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { getCategoryRatio, getTrend } from '@/api/index.js'
+import {
+  getCategoryRatio,
+  getCustomCategoryRatio,
+  getTrend,
+  getCustomTrend
+} from '@/api/index.js'
 
 export const useChartDataStore = defineStore('chartData', () => {
   const pieData = ref([])
@@ -31,9 +36,11 @@ export const useChartDataStore = defineStore('chartData', () => {
     loading.value = true
     try {
       const trendParams = buildTrendParams(params.year)
+      const isCustom = params.dataSource === 'custom'
+
       const [pieRes, trendRes] = await Promise.all([
-        getCategoryRatio(params),
-        getTrend(trendParams)
+        isCustom ? getCustomCategoryRatio(params) : getCategoryRatio(params),
+        isCustom ? getCustomTrend(trendParams) : getTrend(trendParams)
       ])
       pieData.value = pieRes.data || []
       trendData.value = trendRes.data || []
@@ -45,10 +52,12 @@ export const useChartDataStore = defineStore('chartData', () => {
     }
   }
 
-  async function loadTrendOnly(yearStr) {
+  async function loadTrendOnly(yearStr, dataSource = 'system') {
     try {
       const trendParams = buildTrendParams(yearStr)
-      const res = await getTrend(trendParams)
+      const res = dataSource === 'custom'
+        ? await getCustomTrend(trendParams)
+        : await getTrend(trendParams)
       trendData.value = res.data || []
     } catch (err) {
       // 趋势图加载失败，已在调用方处理

@@ -1,8 +1,8 @@
 import axios from 'axios'
 import { getMockResponse } from '@/api/mock-data.js'
 
-// ========== Mock 开关（改这一行即可切换）==========
-const USE_MOCK = true   // true = 使用 mock 数据，false = 连接真实后端
+// ========== Mock 开关（==========
+const USE_MOCK = true  // true = 使用 mock 数据，false = 连接真实后端
 // ================================================
 
 const request = axios.create({
@@ -25,11 +25,13 @@ request.interceptors.request.use(config => {
     }
   }
 
-  // 真实请求：带上 token（登录逻辑后续实现，本次不改）
+  // 真实请求：带上 token（login 接口除外）
   const token = localStorage.getItem('token')
-  if (token) {
-    config.headers['X-Token'] = token
+  if (token && config.url !== '/login') {
+    config.headers['Authorization'] = token
   }
+  // eslint-disable-next-line no-console
+  console.log('[Request]', config.method?.toUpperCase(), config.url, 'headers:', JSON.stringify(config.headers))
   return config
 })
 
@@ -37,9 +39,24 @@ request.interceptors.request.use(config => {
 request.interceptors.response.use(
   response => response.data,
   error => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+    const status = error.response?.status
+    const url = error.config?.url
+    const data = error.response?.data
+
+    if (status === 401) {
+      // eslint-disable-next-line no-console
+      console.error('[401 认证失败]', url, data)
+      import('@/stores/auth.js').then(({ useAuthStore }) => {
+        const authStore = useAuthStore()
+        authStore.logout()
+        window.location.href = '/login'
+      }).catch(() => {
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+      })
+    } else if (status) {
+      // eslint-disable-next-line no-console
+      console.error(`[HTTP ${status}]`, url, data)
     }
     return Promise.reject(error)
   }

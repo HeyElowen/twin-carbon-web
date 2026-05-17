@@ -10,12 +10,15 @@ export const useMapDataStore = defineStore('mapData', () => {
   async function load(params) {
     loading.value = true
     try {
-      const [mainRes, customRes] = await Promise.all([
-        getObservationPoints(params),
-        getCustomObservationPoints(params)
-      ])
-      mapPoints.value = mainRes.data || []
-      customPoints.value = customRes.data || []
+      if (params.dataSource === 'custom') {
+        const res = await getCustomObservationPoints(params)
+        customPoints.value = res.data || []
+        mapPoints.value = []
+      } else {
+        const res = await getObservationPoints(params)
+        mapPoints.value = res.data || []
+        customPoints.value = []
+      }
     } catch (err) {
       // 地图数据加载失败，已在调用方处理
     } finally {

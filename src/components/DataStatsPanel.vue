@@ -106,7 +106,7 @@ const localTrendTab = computed({
     chartStore.selectedCategory = categoryMap[val] || ''
     emit('update:trendTab', val)
     if (filterStore.lastConfirmedParams) {
-      chartStore.loadTrendOnly(filterStore.filterYear)
+      chartStore.loadTrendOnly(filterStore.filterYear, filterStore.lastConfirmedParams?.dataSource)
     }
   }
 })
@@ -124,7 +124,7 @@ const selectedTimeScale = computed({
   set: (val) => {
     chartStore.selectedTimeScale = val
     if (filterStore.lastConfirmedParams) {
-      chartStore.loadTrendOnly(filterStore.filterYear)
+      chartStore.loadTrendOnly(filterStore.filterYear, filterStore.lastConfirmedParams?.dataSource)
     }
   }
 })

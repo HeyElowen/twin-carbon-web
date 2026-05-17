@@ -1,12 +1,8 @@
 <script setup>
-import { onMounted } from 'vue';
-import home from './views/home.vue';
-import cesiumMap from './views/cesiumMap.vue';
 </script>
 
 <template>
- <cesiumMap></cesiumMap>
-  <home></home>
+  <router-view />
 </template>
 
 <style>

@@ -1,5 +1,8 @@
 <template>
   <div class="carbon-emission-app">
+    <!-- 3D 地图底图 -->
+    <cesiumMap />
+
     <!-- 浮动顶栏 -->
     <header class="header-float">
       <svg class="header-bg" viewBox="0 0 1920 72" preserveAspectRatio="none">
@@ -51,7 +54,27 @@
 
       <!-- 右侧全局筛选 -->
       <div class="header-right">
+        <div v-if="authStore.isLoggedIn" class="user-info">
+          <span class="username">{{ authStore.username }}</span>
+          <el-button
+            type="info"
+            size="small"
+            text
+            :icon="SwitchButton"
+            @click="handleLogout"
+          >
+            退出
+          </el-button>
+        </div>
         <div class="global-filter">
+          <el-select v-model="filterStore.filterDataSource" size="small" style="width: 110px">
+            <el-option
+              v-for="opt in filterStore.dataSourceOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
           <el-select v-model="filterStore.filterYear" size="small" style="width: 80px">
             <el-option v-for="y in filterStore.years" :key="y" :label="y" :value="y" />
           </el-select>
@@ -158,7 +181,11 @@
 
 <script setup>
 import { ref, markRaw } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { SwitchButton } from '@element-plus/icons-vue'
 import FloatingPanel from '../components/FloatingPanel.vue'
+import cesiumMap from './cesiumMap.vue'
 import DockArea from '../components/DockArea.vue'
 import LayerControlPanel from '../components/LayerControlPanel.vue'
 import DataStatsPanel from '../components/DataStatsPanel.vue'
@@ -166,11 +193,20 @@ import { useDockStore } from '../composables/useDockStore'
 import { usePanelFilterStore } from '../stores/panelFilter'
 import { useMapDataStore } from '../stores/mapData'
 import { useChartDataStore } from '../stores/chartData'
+import { useAuthStore } from '../stores/auth.js'
 
+const router = useRouter()
 const dockStore = useDockStore()
 const filterStore = usePanelFilterStore()
 const mapStore = useMapDataStore()
 const chartStore = useChartDataStore()
+const authStore = useAuthStore()
+
+function handleLogout() {
+  authStore.logout()
+  ElMessage.success('已退出登录')
+  router.push('/login')
+}
 
 // ── 面板配置表 ──
 const panelConfigs = [
@@ -372,6 +408,20 @@ function isPanelActive(id) {
   background: rgba(114, 198, 195, 0.2);
   border-color: rgba(114, 198, 195, 0.6);
   color: #72C6C3;
+}
+
+/* ── 用户信息 ── */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+}
+
+.user-info .username {
+  color: #72c6c3;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* ── 全局筛选 ── */
