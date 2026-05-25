@@ -106,14 +106,59 @@ onMounted(async() => {
   // 初始加载观测点数据
   fetchPoints();
 
- viewer = new Cesium.Viewer('cesiumContainer', {
-    navigation: false
+  viewer = new Cesium.Viewer('cesiumContainer', {
+    navigationHelpButton: false,
+    baseLayerPicker: false,
+    skyBox: false,
+    skyAtmosphere: false,
+    shouldAnimate: false
   })
   window.cesiumViewer = viewer
 
+  // 限制并发请求数，缓解天地图 429 限流
+  Cesium.RequestScheduler.maximumRequests = 12
+  Cesium.RequestScheduler.maximumRequestsPerServer = 2
+
   const scene = viewer.scene
+  const imageryLayers = viewer.imageryLayers
+
+  // 移除默认底图
+  imageryLayers.remove(imageryLayers.get(0), true)
+
+  const subdomains = ['0', '1', '2', '3', '4', '5', '6', '7']
+  const tk = 'cec53f834be34c955bae0afecd4caa3e'
+
+  // 添加天地图影像底图（使用 DataServer 轻量接口，避免 WMTS 参数重复）
+  const tdtImg = new Cesium.UrlTemplateImageryProvider({
+    url: `https://t{s}.tianditu.gov.cn/DataServer?T=img_w&x={x}&y={y}&l={z}&tk=${tk}`,
+    subdomains,
+    tilingScheme: new Cesium.WebMercatorTilingScheme(),
+    minimumLevel: 1,
+    maximumLevel: 18,
+    credit: new Cesium.Credit('天地图')
+  })
+  imageryLayers.addImageryProvider(tdtImg)
+
+  // 监听瓦片加载错误，429 时停止重试该瓦片，避免错误刷屏
+  tdtImg.errorEvent.addEventListener((error) => {
+    if (error?.statusCode === 429) {
+      return false // 告诉 Cesium 不要重试这个瓦片
+    }
+  })
+
+  // 标注层：天地图免费密钥限流严格，影像+标注双图层容易触发 429
+  // 如需显示地名标注，可取消下面注释（但可能再次出现大量 429 错误）
+  // const tdtCia = new Cesium.UrlTemplateImageryProvider({
+  //   url: `https://t{s}.tianditu.gov.cn/DataServer?T=cia_w&x={x}&y={y}&l={z}&tk=${tk}`,
+  //   subdomains,
+  //   tilingScheme: new Cesium.WebMercatorTilingScheme(),
+  //   maximumLevel: 12,
+  //   credit: new Cesium.Credit('天地图')
+  // })
+  // imageryLayers.addImageryProvider(tdtCia)
+
   try {
-    const layers = await scene.open('/iserver/services/3D-twin-carbon-city/rest/realspace')
+    const layers = await scene.open('http://localhost:8090/iserver/services/3D-global/rest/realspace')
     if (layers?.length > 0) {
       viewer.flyTo?.(layers[0])
     }
