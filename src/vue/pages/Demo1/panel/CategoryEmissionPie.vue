@@ -1,0 +1,189 @@
+<template>
+  <Chart ref="chartRef" :use="chartModules" :option="chartOptionRef" />
+</template>
+
+<script setup>
+import { computed, ref, watch, onMounted } from "vue";
+import Chart from "@/vue/components/Chart.vue";
+import { PieChart } from "echarts/charts";
+import { LegendComponent, TooltipComponent } from "echarts/components";
+import { useConfigStore } from "@/js/stores/useConfigStore";
+import { mockCategoryRatioByQuarter } from "@/api/mock-data";
+
+const store = useConfigStore();
+const chartRef = ref(null);
+
+const colorMap = {
+  工业区: "#3b82f6",
+  商业区: "#60a5fa",
+  住宅区: "#8b5cf6",
+  农业区: "#fbbf24",
+  教育区: "#34d399",
+};
+
+const order = ["工业区", "商业区", "住宅区", "农业区", "教育区"];
+
+function resolveYear(targetYear) {
+  const key = `${targetYear}-Q1`;
+  if (mockCategoryRatioByQuarter[key]) return targetYear;
+  const availableYears = Object.keys(mockCategoryRatioByQuarter)
+    .map((k) => parseInt(k.split("-")[0]))
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .sort((a, b) => b - a);
+  return availableYears[0] || 2025;
+}
+
+// 基础数据（不带 selectedCategory 相关样式）
+const pieDataBase = computed(() => {
+  const y = resolveYear(store.year);
+  const q = store.quarter;
+
+  let raw = [];
+  if (q === "ALL") {
+    const map = {};
+    for (let i = 1; i <= 4; i++) {
+      const key = `${y}-Q${i}`;
+      const items = mockCategoryRatioByQuarter[key] || [];
+      items.forEach((item) => {
+        map[item.name] = (map[item.name] || 0) + item.value;
+      });
+    }
+    raw = Object.keys(map).map((name) => ({ name, value: map[name] }));
+  } else {
+    const key = `${y}-${q}`;
+    raw = mockCategoryRatioByQuarter[key] || [];
+  }
+
+  const result = [];
+  order.forEach((name) => {
+    const item = raw.find((r) => r.name === name);
+    if (item) {
+      const c = colorMap[name];
+      result.push({
+        value: item.value,
+        name: item.name,
+        itemStyle: {
+          borderRadius: 8,
+          shadowBlur: 16,
+          color: c,
+          shadowColor: c,
+        },
+      });
+      result.push({
+        value: 2,
+        name: "",
+        itemStyle: { color: "rgba(0, 0, 0, 0)", borderColor: "rgba(0, 0, 0, 0)", borderWidth: 0 },
+      });
+    }
+  });
+  return result;
+});
+
+const legendData = computed(() => {
+  return order.filter((name) => pieDataBase.value.some((d) => d.name === name));
+});
+
+function applyOpacity(data, selected) {
+  return data.map((item) => {
+    if (!item.name) return item;
+    const isDimmed = selected && selected !== item.name;
+    return {
+      ...item,
+      itemStyle: {
+        ...item.itemStyle,
+        opacity: isDimmed ? 0.25 : 1,
+        shadowBlur: isDimmed ? 0 : 16,
+      },
+    };
+  });
+}
+
+function buildOption(data, selected) {
+  return {
+    tooltip: {
+      trigger: "item",
+      formatter: "{b}: {c} ({d}%)",
+      textStyle: { color: "rgba(224, 230, 240, 0.9)" },
+      backgroundColor: "rgba(15, 20, 32, 0.85)",
+      borderColor: "#3b82f6",
+      borderWidth: 1,
+      borderRadius: 8,
+    },
+    legend: {
+      icon: "circle",
+      orient: "vertical",
+      data: legendData.value,
+      top: "middle",
+      right: "10%",
+      textStyle: { color: "rgba(224, 230, 240, 0.8)" },
+      itemGap: 20,
+      selectedMode: false,
+    },
+    series: {
+      name: "碳排放占比",
+      type: "pie",
+      center: ["30%", "50%"],
+      radius: ["45%", "60%"],
+      label: { show: false },
+      labelLine: { show: false },
+      data: applyOpacity(data, selected),
+      animationDuration: 400,
+      animationDurationUpdate: 400,
+    },
+  };
+}
+
+// 用 ref 持有 option，避免 selectedCategory 变化时触发 Chart.vue 的 watch
+const chartOptionRef = ref(buildOption(pieDataBase.value, store.selectedCategory));
+
+// year/quarter 变化时更新整个 option（走 Chart.vue 的正常 setOption）
+watch([() => store.year, () => store.quarter], () => {
+  chartOptionRef.value = buildOption(pieDataBase.value, store.selectedCategory);
+});
+
+// selectedCategory 变化时直接操作 ECharts 实例，只更新 itemStyle，不重绘整个饼图
+watch(() => store.selectedCategory, (selected) => {
+  const inst = chartRef.value?.chartInstance;
+  if (!inst) return;
+
+  inst.setOption(
+    {
+      series: [
+        {
+          data: applyOpacity(pieDataBase.value, selected),
+        },
+      ],
+    },
+    {
+      notMerge: false,
+      replaceMerge: [],
+      animationDuration: 300,
+      animationDurationUpdate: 300,
+    }
+  );
+});
+
+const chartModules = [PieChart, TooltipComponent, LegendComponent];
+
+// 绑定饼图 click 事件
+function bindClick(inst) {
+  inst.off("click");
+  inst.on("click", (params) => {
+    if (params.name && colorMap[params.name]) {
+      store.setSelectedCategory(params.name);
+    }
+  });
+}
+
+onMounted(() => {
+  const tryBind = () => {
+    const inst = chartRef.value?.chartInstance;
+    if (inst) {
+      bindClick(inst);
+    } else {
+      setTimeout(tryBind, 100);
+    }
+  };
+  tryBind();
+});
+</script>

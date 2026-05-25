@@ -1,0 +1,127 @@
+<template>
+  <div class="charts-group">
+    <div class="chart-item">
+      <div class="item-title">2025年规模指标分析<span>INDICATOR ANALYSIS</span></div>
+      <div class="chart-content">
+        <CityPopulationRank />
+      </div>
+    </div>
+    <div class="chart-item">
+      <div class="item-title">区域显示控制<span>DISTRICT CONTROL</span></div>
+      <div class="district-content">
+        <el-checkbox
+          v-for="name in districtNames"
+          :key="name"
+          v-model="store.districts[name]"
+          :label="name"
+          class="district-check"
+        >
+          <span class="district-label">{{ name }}</span>
+        </el-checkbox>
+      </div>
+    </div>
+    <div class="chart-item empty"></div>
+  </div>
+</template>
+
+<script setup>
+import { useConfigStore } from "@/js/stores/useConfigStore";
+import CityPopulationRank from "./CityPopulationRank.vue";
+
+const store = useConfigStore();
+const districtNames = ["农业区", "工业区", "住宅区", "商业区", "教育区"];
+</script>
+
+<style scoped>
+.charts-group {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 12px;
+}
+
+.chart-item {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-item.empty {
+  background: transparent;
+}
+
+.item-title {
+  font-size: 14px;
+  margin-bottom: 6px;
+  padding-left: 8px;
+  border-left: 3px solid #3b82f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #e0e6f0;
+  flex-shrink: 0;
+}
+
+.item-title span {
+  font-size: 9px;
+  color: rgba(224, 230, 240, 0.4);
+  font-weight: normal;
+}
+
+.chart-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.district-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.district-check {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.district-check :deep(.el-checkbox__inner) {
+  width: 18px;
+  height: 18px;
+  background: rgba(15, 20, 32, 0.8);
+  border-color: rgba(96, 165, 250, 0.5);
+  border-radius: 4px;
+}
+
+.district-check :deep(.el-checkbox__inner::after) {
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 9px;
+}
+
+.district-check :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.district-check :deep(.el-checkbox__label) {
+  padding-left: 14px;
+  font-size: 16px;
+  color: rgba(224, 230, 240, 0.7);
+}
+
+.district-check :deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
+  color: #e0e6f0;
+}
+
+.district-label {
+  letter-spacing: 2px;
+}
+</style>
