@@ -123,7 +123,7 @@ import { useConfigStore } from "@/js/stores/useConfigStore";
 const store = useConfigStore();
 const controlVisible = ref(false);
 
-const years = [2024, 2025, 2026];
+const years = [2023, 2024, 2025];
 const quarters = [
   { label: "Q1", value: "Q1" },
   { label: "Q2", value: "Q2" },
@@ -147,6 +147,8 @@ const filters = ref({
 watch(() => filters.value.year, (v) => store.setYear(v));
 watch(() => filters.value.quarter, (v) => store.setQuarter(v));
 watch(() => filters.value.viewMode, (v) => store.setViewMode(v));
+// 反向同步：外部修改 viewMode 时更新筛选面板（如纯净模式下激活按钮自动切回标准）
+watch(() => store.viewMode, (v) => { filters.value.viewMode = v; });
 </script>
 
 <style scoped>

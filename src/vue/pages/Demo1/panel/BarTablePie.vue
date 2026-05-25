@@ -9,11 +9,13 @@
     <div class="chart-item">
       <div class="item-title">区域显示控制<span>DISTRICT CONTROL</span></div>
       <div class="district-content">
+
         <el-checkbox
           v-for="name in districtNames"
           :key="name"
           v-model="store.districts[name]"
           :label="name"
+        
           class="district-check"
         >
           <span class="district-label">{{ name }}</span>
@@ -100,8 +102,7 @@ const districtNames = ["农业区", "工业区", "住宅区", "商业区", "教�
 }
 
 .district-check :deep(.el-checkbox__inner::after) {
-  left: 5px;
-  top: 2px;
+  
   width: 4px;
   height: 9px;
 }
@@ -113,7 +114,7 @@ const districtNames = ["农业区", "工业区", "住宅区", "商业区", "教�
 
 .district-check :deep(.el-checkbox__label) {
   padding-left: 14px;
-  font-size: 16px;
+  font-size: 14px;
   color: rgba(224, 230, 240, 0.7);
 }
 

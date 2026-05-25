@@ -3,14 +3,17 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import Chart from "@/vue/components/Chart.vue";
 import { LineChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import { useConfigStore } from "@/js/stores/useConfigStore";
-import { mockTrendData } from "@/api/mock-data";
+import { getTrend } from "@/api/monitoring";
 
 const store = useConfigStore();
+
+// 从后端获取的原始数据
+const rawData = ref([]);
 
 const categoryColors = {
   工业区: "#3b82f6",
@@ -20,23 +23,43 @@ const categoryColors = {
   教育区: "#34d399",
 };
 
-function resolveYear(targetYear) {
-  if (mockTrendData["all"]?.[targetYear]) return targetYear;
-  const available = Object.keys(mockTrendData["all"] || {})
-    .map(Number)
-    .sort((a, b) => b - a);
-  return available[0] || 2025;
+// 请求趋势数据
+// 1年: 只显示当前年份
+// 3年: year-2 ~ year
+// 5年: year-4 ~ year
+async function fetchData() {
+  try {
+    const category = store.selectedCategory || "";
+    const yearStart = store.year - (store.trendYearScale - 1);
+    const res = await getTrend(yearStart, store.year, category);
+    rawData.value = res.data || [];
+  } catch {
+    rawData.value = [];
+  }
 }
 
+// 初始化请求
+fetchData();
+
+// year / trendYearScale / selectedCategory 变化时重新请求数据
+watch([() => store.year, () => store.trendYearScale, () => store.selectedCategory], fetchData);
+
 const trendData = computed(() => {
-  const y = resolveYear(store.year);
-  const cat = store.selectedCategory || "all";
-  const raw = mockTrendData[cat]?.[y] || mockTrendData["all"]?.[y] || [];
-  return raw.map((item) => ({
-    quarter: item.name.split("-")[1],
+  return rawData.value.map((item) => ({
+    label: formatAxisLabel(item.name),
     value: item.value,
   }));
 });
+
+/**
+ * 将 "2023-Q1" 格式化为 "23Q1"
+ */
+function formatAxisLabel(name) {
+  if (!name || !name.includes("-")) return name;
+  const [year, quarter] = name.split("-");
+  const shortYear = year.slice(-2);
+  return `${shortYear}${quarter}`;
+}
 
 const lineColor = computed(() => {
   return store.selectedCategory
@@ -58,6 +81,10 @@ const chartOption = computed(() => {
       borderColor: lineColor.value,
       borderWidth: 1,
       borderRadius: 8,
+      formatter: (params) => {
+        const p = params[0];
+        return `${p.name}<br/>${p.seriesName}: ${p.value}`;
+      },
     },
     grid: { top: 30, bottom: 24, left: 16, right: 16, containLabel: true },
     legend: {
@@ -70,10 +97,14 @@ const chartOption = computed(() => {
       type: "category",
       boundaryGap: false,
       axisLine: { lineStyle: { color: "rgba(224, 230, 240, 0.15)" } },
-      axisLabel: { interval: 0, color: "rgba(224, 230, 240, 0.5)" },
+      axisLabel: {
+        interval: 0,
+        color: "rgba(224, 230, 240, 0.5)",
+        fontSize: 10,
+      },
       splitLine: { show: false },
       axisTick: { show: false },
-      data: data.map((d) => d.quarter),
+      data: data.map((d) => d.label),
     },
     yAxis: {
       type: "value",

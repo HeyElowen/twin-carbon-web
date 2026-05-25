@@ -8,10 +8,13 @@ import Chart from "@/vue/components/Chart.vue";
 import { PieChart } from "echarts/charts";
 import { LegendComponent, TooltipComponent } from "echarts/components";
 import { useConfigStore } from "@/js/stores/useConfigStore";
-import { mockCategoryRatioByQuarter } from "@/api/mock-data";
+import { getCategoryRatio } from "@/api/monitoring";
 
 const store = useConfigStore();
 const chartRef = ref(null);
+
+// 从后端获取的原始数据
+const rawData = ref([]);
 
 const colorMap = {
   工业区: "#3b82f6",
@@ -23,37 +26,25 @@ const colorMap = {
 
 const order = ["工业区", "商业区", "住宅区", "农业区", "教育区"];
 
-function resolveYear(targetYear) {
-  const key = `${targetYear}-Q1`;
-  if (mockCategoryRatioByQuarter[key]) return targetYear;
-  const availableYears = Object.keys(mockCategoryRatioByQuarter)
-    .map((k) => parseInt(k.split("-")[0]))
-    .filter((v, i, a) => a.indexOf(v) === i)
-    .sort((a, b) => b - a);
-  return availableYears[0] || 2025;
+// 请求饼图数据
+async function fetchData() {
+  try {
+    const res = await getCategoryRatio(store.year, store.quarter);
+    rawData.value = res.data || [];
+  } catch {
+    rawData.value = [];
+  }
 }
 
-// 基础数据（不带 selectedCategory 相关样式）
+// 初始化请求
+fetchData();
+
+// year / quarter 变化时重新请求数据
+watch([() => store.year, () => store.quarter], fetchData);
+
+// 格式化后的饼图数据（包含 itemStyle）
 const pieDataBase = computed(() => {
-  const y = resolveYear(store.year);
-  const q = store.quarter;
-
-  let raw = [];
-  if (q === "ALL") {
-    const map = {};
-    for (let i = 1; i <= 4; i++) {
-      const key = `${y}-Q${i}`;
-      const items = mockCategoryRatioByQuarter[key] || [];
-      items.forEach((item) => {
-        map[item.name] = (map[item.name] || 0) + item.value;
-      });
-    }
-    raw = Object.keys(map).map((name) => ({ name, value: map[name] }));
-  } else {
-    const key = `${y}-${q}`;
-    raw = mockCategoryRatioByQuarter[key] || [];
-  }
-
+  const raw = rawData.value;
   const result = [];
   order.forEach((name) => {
     const item = raw.find((r) => r.name === name);
@@ -134,12 +125,12 @@ function buildOption(data, selected) {
 }
 
 // 用 ref 持有 option，避免 selectedCategory 变化时触发 Chart.vue 的 watch
-const chartOptionRef = ref(buildOption(pieDataBase.value, store.selectedCategory));
+const chartOptionRef = ref(buildOption([], store.selectedCategory));
 
-// year/quarter 变化时更新整个 option（走 Chart.vue 的正常 setOption）
-watch([() => store.year, () => store.quarter], () => {
-  chartOptionRef.value = buildOption(pieDataBase.value, store.selectedCategory);
-});
+// 数据变化时更新整个 option（走 Chart.vue 的正常 setOption）
+watch(pieDataBase, (data) => {
+  chartOptionRef.value = buildOption(data, store.selectedCategory);
+}, { immediate: true });
 
 // selectedCategory 变化时直接操作 ECharts 实例，只更新 itemStyle，不重绘整个饼图
 watch(() => store.selectedCategory, (selected) => {

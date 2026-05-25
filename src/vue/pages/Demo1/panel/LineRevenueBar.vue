@@ -13,7 +13,20 @@
       </div>
     </div>
     <div class="chart-item">
-      <div class="item-title">{{ lineTitle }}<span>{{ lineSubtitle }}</span></div>
+      <div class="item-title">
+        <span>{{ lineTitle }}</span>
+        <div class="scale-switch">
+          <span
+            v-for="s in [1, 3, 5]"
+            :key="s"
+            :class="{ active: store.trendYearScale === s }"
+            @click="store.setTrendYearScale(s)"
+          >
+            {{ s }}年
+          </span>
+        </div>
+        <span class="subtitle">{{ lineSubtitle }}</span>
+      </div>
       <div class="chart-content">
         <QuarterEmissionTrend />
       </div>
@@ -67,10 +80,39 @@ const lineSubtitle = computed(() =>
   flex-shrink: 0;
 }
 
-.item-title span {
+.item-title .subtitle {
   font-size: 9px;
   color: rgba(224, 230, 240, 0.4);
   font-weight: normal;
+}
+
+.scale-switch {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.scale-switch span {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: rgba(224, 230, 240, 0.5);
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  transition: all 0.2s ease;
+}
+
+.scale-switch span:hover {
+  color: rgba(224, 230, 240, 0.8);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.scale-switch span.active {
+  color: #fff;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  border-color: transparent;
 }
 
 .chart-content {

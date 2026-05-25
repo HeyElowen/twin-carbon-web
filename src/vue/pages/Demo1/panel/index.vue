@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import { computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import { useMoveTo } from "@/js/composables/useMoveTo";
 import AutoFit from "@/vue/components/AutoFit.vue";
@@ -98,25 +98,63 @@ const leftBox = useMoveTo("toRight", 0.12, 0);
 const rightBox = useMoveTo("toLeft", 0.12, 0);
 const bottomBox = useMoveTo("toTop", 0.8, 0.5);
 
+const sideVisible = ref(true);
+
 function animateIn() {
   topBox.restart();
   bottomBox.restart();
   leftBox.restart();
   rightBox.restart();
+  sideVisible.value = true;
 }
 
-function animateSideOut() {
-  leftBox.reverse();
-  rightBox.reverse();
+function showSide() {
+  if (!sideVisible.value) {
+    leftBox.restart();
+    rightBox.restart();
+    sideVisible.value = true;
+  }
 }
 
-function animateSideIn() {
-  leftBox.restart();
-  rightBox.restart();
+function hideSide() {
+  if (sideVisible.value) {
+    leftBox.reverse();
+    rightBox.reverse();
+    sideVisible.value = false;
+  }
 }
 
+// 地图加载完成后播放入场动画
 watch(() => store.mapPlayComplete, (v) => { if (v) animateIn(); });
-watch(() => store.activeKey, () => { animateSideOut(); setTimeout(() => animateSideIn(), 150); });
+
+// activeKey 变化时：标准模式先退出再进入；纯净模式只退出
+watch(() => store.activeKey, (newKey) => {
+  // 如果有按钮被激活，且当前是纯净模式，自动切换到标准模式
+  if (newKey !== null && store.viewMode === 'clean') {
+    store.setViewMode('standard');
+    return;
+  }
+
+  if (store.viewMode === 'clean') {
+    hideSide();
+  } else {
+    hideSide();
+    setTimeout(() => showSide(), 150);
+  }
+});
+
+// viewMode 变化时：进入纯净模式隐藏面板；退出纯净模式显示面板
+watch(() => store.viewMode, (newMode, oldMode) => {
+  if (newMode === 'clean') {
+    if (store.activeKey !== null) {
+      store.setActive(null); // 取消按钮激活，由 activeKey watch 处理动画
+    } else {
+      hideSide();
+    }
+  } else if (oldMode === 'clean') {
+    showSide();
+  }
+});
 </script>
 
 <style scoped>

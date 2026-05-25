@@ -22,6 +22,9 @@ export const useConfigStore = defineStore("demo1-config", () => {
   const quarter = ref("Q3");
   const viewMode = ref("standard");
 
+  // 趋势折线图年份尺度：1年 / 3年 / 5年
+  const trendYearScale = ref(3);
+
   // 饼图选中的用地类型（null = 全部未选中）
   const selectedCategory = ref(null);
 
@@ -44,6 +47,7 @@ export const useConfigStore = defineStore("demo1-config", () => {
   function setYear(v) { year.value = v; }
   function setQuarter(v) { quarter.value = v; }
   function setViewMode(v) { viewMode.value = v; }
+  function setTrendYearScale(v) { trendYearScale.value = v; }
 
   function setSelectedCategory(name) {
     selectedCategory.value = selectedCategory.value === name ? null : name;
@@ -63,14 +67,15 @@ export const useConfigStore = defineStore("demo1-config", () => {
     year.value = 2025;
     quarter.value = "Q3";
     viewMode.value = "standard";
+    trendYearScale.value = 3;
     selectedCategory.value = null;
   }
 
   return {
     mapPlayComplete, activeKey, controlOpen, districts,
-    year, quarter, viewMode, selectedCategory,
+    year, quarter, viewMode, trendYearScale, selectedCategory,
     setActive, toggleControl, toggleDistrict,
-    setYear, setQuarter, setViewMode, setSelectedCategory,
+    setYear, setQuarter, setViewMode, setTrendYearScale, setSelectedCategory,
     reset,
   };
 });
