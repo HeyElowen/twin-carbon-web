@@ -40,3 +40,6 @@ coverage/
 
 # Misc
 .codegraph/
+
+# Agent documentation (auto-generated, do not commit)
+AGENTS.md

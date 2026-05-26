@@ -34,3 +34,25 @@ export function getTrend(yearStart, yearEnd, category) {
     params: { yearStart, yearEnd, category: category || "" },
   });
 }
+
+/**
+ * 获取各类用地排放强度统计
+ * @param {number} year 年份
+ * @param {string} quarter 季度 Q1/Q2/Q3/Q4/ALL
+ */
+export function getCategoryIntensity(year, quarter) {
+  return request.get("/monitoring/statistics/category-intensity", {
+    params: { year, quarter },
+  });
+}
+
+/**
+ * 获取碳排放概览统计
+ * @param {number} year 年份
+ * @param {string} quarter 季度 Q1/Q2/Q3/Q4/ALL
+ */
+export function getOverview(year, quarter) {
+  return request.get("/monitoring/statistics/overview", {
+    params: { year, quarter },
+  });
+}

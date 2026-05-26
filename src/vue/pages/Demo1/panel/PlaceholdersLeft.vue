@@ -1,7 +1,7 @@
 <template>
   <div class="charts-group">
     <div class="chart-item" v-for="(item, i) in items" :key="i">
-      <div class="item-title">{{ item.title }}<span>{{ item.subtitle }}</span></div>
+      <div class="item-title">{{ item.title }}</div>
       <div class="chart-content">
         <PanelBlank v-bind="item.props" />
       </div>

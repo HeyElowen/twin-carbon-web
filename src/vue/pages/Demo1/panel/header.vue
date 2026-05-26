@@ -158,14 +158,8 @@ function handleLogout() {
 }
 
 .title::after {
-  content: "SICHUAN SMART BRAIN";
-  display: block;
-  font-size: 12px;
-  letter-spacing: 12px;
-  text-align: center;
-  color: rgba(59, 130, 246, 0.5);
-  margin-top: -5px;
-  -webkit-text-fill-color: rgba(59, 130, 246, 0.5);
+  content: "";
+  display: none;
 }
 
 /* 用户信息区域 */

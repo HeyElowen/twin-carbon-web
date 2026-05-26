@@ -330,6 +330,41 @@ export const mock500 = {
   data: null
 }
 
+// ==================== 11. 各类用地排放强度 ✅ ====================
+export const mockCategoryIntensity = {
+  code: 200,
+  message: "success",
+  data: [
+    { name: "工业区", value: 0.36 },
+    { name: "商业区", value: 0.21 },
+    { name: "住宅区", value: 0.06 },
+    { name: "教育区", value: 0.09 },
+    { name: "农业区", value: 0.015 },
+  ]
+}
+
+// ==================== 12. 碳排放概览 ✅ ====================
+export const mockOverview = {
+  code: 200,
+  message: "success",
+  data: {
+    totalEmission: 157300.25,      // 总排放量（吨）
+    buildingCount: 128,            // 监测建筑数
+    avgIntensity: 0.18,            // 平均排放强度（吨/平方米）
+    yoyChange: -5.2,               // 同比变化率（%）
+    trend: [
+      { name: "2023-Q4", value: 148500.20 },
+      { name: "2024-Q1", value: 144200.80 },
+      { name: "2024-Q2", value: 150800.50 },
+      { name: "2024-Q3", value: 141800.60 },
+      { name: "2024-Q4", value: 148500.20 },
+      { name: "2025-Q1", value: 144200.80 },
+      { name: "2025-Q2", value: 150800.50 },
+      { name: "2025-Q3", value: 157300.25 },
+    ]
+  }
+}
+
 // ==================== 汇总对象（兜底匹配用）====================
 export const mockData = {
   'post:/login': mockLogin,
@@ -339,6 +374,8 @@ export const mockData = {
   'get:/monitoring/statistics/building-category-ratio': mockBuildingCategoryRatio,
   'get:/monitoring/statistics/trend': mockTrendAll,
   'get:/monitoring/statistics/building-trend': mockBuildingTrend,
+  'get:/monitoring/statistics/category-intensity': mockCategoryIntensity,
+  'get:/monitoring/statistics/overview': mockOverview,
   'get:/monitoring/query': mockQuery,
   'post:/monitoring/import': mockImportSuccess,
   'post:/monitoring/import/confirm': mockConfirm
@@ -433,6 +470,55 @@ export function getMockResponse(config) {
     })
 
     return { code: 200, message: "success", data: filtered }
+  }
+
+  // 排放强度 — 按 year/quarter 参数化微调
+  if (key === 'get:/monitoring/statistics/category-intensity') {
+    const year = parseInt(params?.year) || 2025
+    const quarter = params?.quarter || 'Q3'
+    const yearFactor = 1 + (year - 2025) * 0.03
+    const qf = { 'Q1': 0.92, 'Q2': 0.96, 'Q3': 1.0, 'Q4': 1.08, 'ALL': 1.0 }
+    const quarterFactor = qf[quarter] || 1.0
+    return {
+      code: 200,
+      message: "success",
+      data: mockCategoryIntensity.data.map(item => ({
+        ...item,
+        value: Math.round(item.value * yearFactor * quarterFactor * 1000) / 1000
+      }))
+    }
+  }
+
+  // 概览 — 按 year/quarter 参数化微调
+  if (key === 'get:/monitoring/statistics/overview') {
+    const year = parseInt(params?.year) || 2025
+    const quarter = params?.quarter || 'Q3'
+    const yearFactor = 1 + (year - 2025) * 0.05
+    const qf = { 'Q1': 0.9, 'Q2': 0.95, 'Q3': 1.0, 'Q4': 1.05, 'ALL': 1.0 }
+    const quarterFactor = qf[quarter] || 1.0
+    const baseTotal = mockOverview.data.totalEmission * yearFactor * quarterFactor
+    return {
+      code: 200,
+      message: "success",
+      data: {
+        ...mockOverview.data,
+        totalEmission: Math.round(baseTotal * 100) / 100,
+        avgIntensity: Math.round(mockOverview.data.avgIntensity * yearFactor * quarterFactor * 1000) / 1000,
+        trend: mockOverview.data.trend.map(item => {
+          const itemYear = parseInt(item.name.split('-')[0])
+          const itemQuarter = item.name.split('-')[1]
+          const yf = 1 + (itemYear - 2025) * 0.05
+          const iqf = qf[itemQuarter] || 1.0
+          return {
+            ...item,
+            value: Math.round(item.value * yf * iqf * 100) / 100
+          }
+        }).filter(item => {
+          const itemYear = parseInt(item.name.split('-')[0])
+          return itemYear <= year
+        })
+      }
+    }
   }
 
   // 兜底：精确 key 匹配

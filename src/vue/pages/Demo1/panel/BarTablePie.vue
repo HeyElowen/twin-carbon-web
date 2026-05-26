@@ -1,13 +1,13 @@
 <template>
   <div class="charts-group">
     <div class="chart-item">
-      <div class="item-title">2025年规模指标分析<span>INDICATOR ANALYSIS</span></div>
+      <div class="item-title">各类用地排放强度</div>
       <div class="chart-content">
         <CityPopulationRank />
       </div>
     </div>
     <div class="chart-item">
-      <div class="item-title">区域显示控制<span>DISTRICT CONTROL</span></div>
+      <div class="item-title">区域显示控制</div>
       <div class="district-content">
 
         <el-checkbox
@@ -47,6 +47,7 @@ const districtNames = ["农业区", "工业区", "住宅区", "商业区", "教�
   min-height: 0;
   display: flex;
   flex-direction: column;
+  border-radius: 6px;
 }
 
 .chart-item.empty {

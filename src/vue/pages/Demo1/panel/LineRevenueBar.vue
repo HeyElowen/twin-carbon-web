@@ -1,13 +1,13 @@
 <template>
   <div class="charts-group">
     <div class="chart-item">
-      <div class="item-title">企业收益总数统计<span>REVENUE STATISTICS</span></div>
+      <div class="item-title">碳排放概览</div>
       <div class="chart-content">
         <RevenueOverview />
       </div>
     </div>
     <div class="chart-item">
-      <div class="item-title">各地类碳排放所占百分比<span>CATEGORY EMISSION RATIO</span></div>
+      <div class="item-title">各地类碳排放所占百分比</div>
       <div class="chart-content">
         <CategoryEmissionPie />
       </div>
@@ -25,7 +25,7 @@
             {{ s }}年
           </span>
         </div>
-        <span class="subtitle">{{ lineSubtitle }}</span>
+        <span v-if="lineSubtitle" class="subtitle">{{ lineSubtitle }}</span>
       </div>
       <div class="chart-content">
         <QuarterEmissionTrend />
@@ -48,9 +48,7 @@ const lineTitle = computed(() =>
     ? `${store.selectedCategory}碳排放趋势`
     : "碳排放季度变化趋势"
 );
-const lineSubtitle = computed(() =>
-  store.selectedCategory ? "CATEGORY TREND" : "QUARTERLY EMISSION TREND"
-);
+const lineSubtitle = computed(() => "");
 </script>
 
 <style scoped>
@@ -66,6 +64,7 @@ const lineSubtitle = computed(() =>
   min-height: 0;
   display: flex;
   flex-direction: column;
+  border-radius: 6px;
 }
 
 .item-title {

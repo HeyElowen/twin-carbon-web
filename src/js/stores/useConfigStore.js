@@ -3,8 +3,8 @@ import { ref } from "vue";
 
 export const useConfigStore = defineStore("demo1-config", () => {
   const mapPlayComplete = ref(false);
-  // cloud / rotation / heat / bar 四键互斥；null = 显示默认面板
-  const activeKey = ref(null);
+  // cloud / rotation / heat / bar 四键互斥；cloud 为默认激活按钮
+  const activeKey = ref('cloud');
   // 中键控制面板，独立开关
   const controlOpen = ref(false);
 
@@ -29,10 +29,9 @@ export const useConfigStore = defineStore("demo1-config", () => {
   const selectedCategory = ref(null);
 
   function setActive(key) {
-    if (activeKey.value === key) {
-      activeKey.value = null;
-      return;
-    }
+    // 强制互斥：始终有且只有一个按钮处于激活状态
+    // 点击已激活按钮不再取消，保持激活
+    if (activeKey.value === key) return;
     activeKey.value = key;
   }
 
@@ -55,7 +54,7 @@ export const useConfigStore = defineStore("demo1-config", () => {
 
   function reset() {
     mapPlayComplete.value = false;
-    activeKey.value = null;
+    activeKey.value = 'cloud';
     controlOpen.value = false;
     districts.value = {
       农业区: true,

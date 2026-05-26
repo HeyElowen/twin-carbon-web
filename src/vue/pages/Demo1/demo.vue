@@ -51,41 +51,16 @@ async function loadGeoJsonToCesium(geoJson) {
     });
     await viewer.dataSources.add(pointDataSource);
 
-    // 设置点样式
+    // 隐藏所有视觉表示：数据已加载到场景，但完全不显示外观
+    // 后续仍可通过 pointDataSource.entities.values 访问属性数据做分析
     const entities = pointDataSource.entities.values;
     for (const entity of entities) {
-      const category = entity.properties?.category?.getValue?.() || entity.properties?.用地类型?.getValue?.();
-      const emission = entity.properties?.emission?.getValue?.() || 0;
-      const name = entity.properties?.name?.getValue?.() || '';
-
-      // 点大小根据排放量动态计算（有最小值保证可见）
-      const size = Math.max(8, Math.min(24, Math.sqrt(emission) * 0.3));
-      const color = categoryColors[category] || defaultPointColor;
-
-      entity.point = {
-        pixelSize: size,
-        color: color,
-        outlineColor: Cesium.Color.WHITE,
-        outlineWidth: 1,
-        scaleByDistance: new Cesium.NearFarScalar(500, 1.5, 50000, 0.5),
-        translucencyByDistance: new Cesium.NearFarScalar(500, 1.0, 50000, 0.3),
-      };
-
-      // 标签：显示名称和排放量
-      entity.label = {
-        text: `${name}\n${emission.toFixed(1)}t`,
-        font: '12px sans-serif',
-        fillColor: Cesium.Color.WHITE,
-        outlineColor: Cesium.Color.BLACK,
-        outlineWidth: 2,
-        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-        pixelOffset: new Cesium.Cartesian2(0, -10),
-        scaleByDistance: new Cesium.NearFarScalar(500, 1.0, 20000, 0.0),
-      };
-
-      // 清除默认的 billboard（如果有）
+      entity.point = undefined;
+      entity.label = undefined;
       entity.billboard = undefined;
+      entity.polyline = undefined;
+      entity.polygon = undefined;
+      // entity.properties 中保留了原始 GeoJSON 属性（category / emission / name / lon / lat 等）
     }
 
     // eslint-disable-next-line no-console

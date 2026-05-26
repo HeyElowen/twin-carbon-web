@@ -3,81 +3,127 @@
 </template>
 
 <script setup>
+import { computed, ref, watch } from "vue";
 import Chart from "@/vue/components/Chart.vue";
 import { BarChart, PictorialBarChart } from "echarts/charts";
 import { GridComponent, TooltipComponent } from "echarts/components";
 import { LabelLayout } from "echarts/features";
-import cityData from "@/js/data/cityData";
+import { useConfigStore } from "@/js/stores/useConfigStore";
+import { getCategoryIntensity } from "@/api/monitoring";
 
-const colors = ["#60a5fa", "#3b82f6"];
-const citys = Object.keys(cityData);
+const store = useConfigStore();
+const rawData = ref([]);
 
-const data = Array.from({ length: 5 }, (_, k) => ({
-  name: citys[k],
-  value: cityData[citys[k]].population,
-}));
+async function fetchData() {
+  try {
+    const res = await getCategoryIntensity(store.year, store.quarter);
+    rawData.value = res.data || [];
+  } catch {
+    rawData.value = [];
+  }
+}
+
+fetchData();
+watch([() => store.year, () => store.quarter], fetchData);
+
+const categoryColors = {
+  工业区: "#ef4444",
+  商业区: "#f59e0b",
+  住宅区: "#3b82f6",
+  教育区: "#a855f7",
+  农业区: "#22c55e",
+};
+
+const chartData = computed(() => {
+  const order = ["工业区", "商业区", "教育区", "住宅区", "农业区"];
+  const list = order.map((name) => {
+    const item = rawData.value.find((d) => d.name === name);
+    return item || { name, value: 0 };
+  });
+  // 按排放强度从高到低排序（工业区通常在顶部）
+  return list.sort((a, b) => b.value - a.value);
+});
 
 const chartModules = [BarChart, PictorialBarChart, GridComponent, TooltipComponent, LabelLayout];
 
-const chartOption = {
-  grid: { top: 0, bottom: 0, left: "8%", right: "12%" },
-  xAxis: { show: false },
-  yAxis: {
-    axisLine: { show: false },
-    axisTick: { show: false },
-    axisLabel: {
-      fontSize: 14,
-      margin: 16,
-      inside: false,
-      verticalAlign: "middle",
-      color: "#e0e6f0",
-      formatter: (v, i) => `{a|NO.${i + 1}} ${v}`,
-      rich: { a: { color: "rgba(224, 230, 240, 0.5)" } },
-    },
-    data: data.map((item) => item.name),
-    type: "category",
-    inverse: true,
-    animationDuration: 300,
-    animationDurationUpdate: 300,
-  },
-  series: [
-    {
-      type: "bar",
-      data: data.map((item) => item.value),
-      realtimeSort: true,
-      barWidth: 8,
-      itemStyle: {
-        borderRadius: 4,
-        color: {
-          type: "linear",
-          x: 1, y: 0, x2: 0, y2: 0,
-          colorStops: colors.map((color, index) => ({ offset: index, color })),
-          global: false,
-        },
+const chartOption = computed(() => {
+  const data = chartData.value;
+  return {
+    grid: { top: 4, bottom: 4, left: "10%", right: "18%" },
+    xAxis: { show: false },
+    yAxis: {
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        fontSize: 13,
+        margin: 10,
+        color: "#e0e6f0",
       },
-      showBackground: true,
-      backgroundStyle: { borderRadius: 4, color: "rgba(156, 163, 175, 0.08)" },
-      label: { show: true, color: "rgba(224, 230, 240, 0.85)", valueAnimation: true, fontSize: 16, fontWeight: "bold" },
-      labelLayout: (params) => ({
-        x: "100%",
-        y: params.rect.y + params.rect.height / 2,
-        verticalAlign: "middle",
-        align: "right",
-      }),
+      data: data.map((item) => item.name),
+      type: "category",
+      inverse: true,
+      animationDuration: 300,
+      animationDurationUpdate: 300,
     },
-    {
-      name: "dot",
-      type: "pictorialBar",
-      symbol: "circle",
-      symbolSize: 16,
-      z: 12,
-      itemStyle: { color: "#3b82f6", shadowColor: "#3b82f6", shadowBlur: 10 },
-      data: data.map((item) => ({ value: item.value, symbolPosition: "end" })),
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      textStyle: { color: "rgba(224, 230, 240, 0.9)" },
+      backgroundColor: "rgba(15, 20, 32, 0.85)",
+      borderColor: "#3b82f6",
+      borderWidth: 1,
+      borderRadius: 8,
+      formatter: (params) => {
+        const p = params[0];
+        return `${p.name}<br/>排放强度: ${p.value} t/m²`;
+      },
     },
-  ],
-  animationDuration: 0,
-  animationDurationUpdate: 1000,
-  animationEasing: "linear",
-  animationEasingUpdate: "linear",
-};
+    series: [
+      {
+        type: "bar",
+        data: data.map((item) => ({
+          value: item.value,
+          itemStyle: {
+            borderRadius: 4,
+            color: categoryColors[item.name] || "#3b82f6",
+          },
+        })),
+        barWidth: 10,
+        showBackground: true,
+        backgroundStyle: { borderRadius: 4, color: "rgba(156, 163, 175, 0.08)" },
+        label: {
+          show: true,
+          color: "rgba(224, 230, 240, 0.85)",
+          valueAnimation: true,
+          fontSize: 12,
+          fontWeight: "bold",
+          formatter: (p) => `${p.value} t/m²`,
+        },
+        labelLayout: (params) => ({
+          x: "100%",
+          y: params.rect.y + params.rect.height / 2,
+          verticalAlign: "middle",
+          align: "right",
+        }),
+      },
+      {
+        name: "dot",
+        type: "pictorialBar",
+        symbol: "circle",
+        symbolSize: 14,
+        z: 12,
+        itemStyle: {
+          color: (p) => categoryColors[p.name] || "#3b82f6",
+          shadowColor: (p) => categoryColors[p.name] || "#3b82f6",
+          shadowBlur: 10,
+        },
+        data: data.map((item) => ({ value: item.value, symbolPosition: "end" })),
+      },
+    ],
+    animationDuration: 0,
+    animationDurationUpdate: 1000,
+    animationEasing: "linear",
+    animationEasingUpdate: "linear",
+  };
+});
 </script>
