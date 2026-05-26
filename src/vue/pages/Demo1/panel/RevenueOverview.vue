@@ -31,7 +31,7 @@
       >
         {{ yoyText }}
       </span>
-      <span class="statistics-item-number">{{ overview.avgIntensity }}</span>
+      <span class="statistics-item-number">{{ overview.avgIntensity?.toFixed?.(2) ?? overview.avgIntensity }}</span>
     </div>
   </div>
 </template>
@@ -58,7 +58,15 @@ async function fetchData() {
   try {
     const res = await getOverview(store.year, store.quarter);
     if (res.data) {
-      overview.value = res.data;
+      const d = res.data;
+      // 兼容后端返回的下划线/驼峰两种 key 格式
+      overview.value = {
+        totalEmission: d.totalEmission ?? d.total_emission ?? 0,
+        buildingCount: d.buildingCount ?? d.building_count ?? 0,
+        avgIntensity: d.avgIntensity ?? d.avg_intensity ?? 0,
+        yoyChange: d.yoyChange ?? d.yoy_change ?? 0,
+        trend: d.trend ?? [],
+      };
     }
   } catch {
     overview.value = { totalEmission: 0, buildingCount: 0, avgIntensity: 0, yoyChange: 0, trend: [] };
@@ -97,8 +105,10 @@ const chartOption = computed(() => {
       borderWidth: 1,
       borderRadius: 8,
       formatter: (params) => {
+        if (!params || !params.length) return "";
         const p = params[0];
-        return `${p.name}<br/>排放量: ${p.value} t`;
+        const val = typeof p.value === "number" ? p.value.toFixed(2) : p.value;
+        return `${p.name}<br/>排放量: ${val} t`;
       },
     },
     grid: { top: 8, bottom: 8, left: 8, right: 8 },
