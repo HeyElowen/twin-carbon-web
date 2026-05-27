@@ -28,6 +28,21 @@ export const useConfigStore = defineStore("demo1-config", () => {
   // 饼图选中的用地类型（null = 全部未选中）
   const selectedCategory = ref(null);
 
+  // 3D 热力图配置
+  const heatmapConfig = ref({
+    enabled: false,
+    scaleHeight: 0.08,
+    gridSize: 40,
+    sigmaMeters: 800,
+    opacity: 0.85,
+    clampToGround: true,
+    power: 2.0,
+  });
+
+  function updateHeatmapConfig(patch) {
+    Object.assign(heatmapConfig.value, patch);
+  }
+
   function setActive(key) {
     // 强制互斥：始终有且只有一个按钮处于激活状态
     // 点击已激活按钮不再取消，保持激活
@@ -68,11 +83,21 @@ export const useConfigStore = defineStore("demo1-config", () => {
     viewMode.value = "standard";
     trendYearScale.value = 3;
     selectedCategory.value = null;
+    heatmapConfig.value = {
+      enabled: false,
+      scaleHeight: 0.08,
+      gridSize: 40,
+      sigmaMeters: 800,
+      opacity: 0.85,
+      clampToGround: true,
+      power: 2.0,
+    };
   }
 
   return {
     mapPlayComplete, activeKey, controlOpen, districts,
     year, quarter, viewMode, trendYearScale, selectedCategory,
+    heatmapConfig, updateHeatmapConfig,
     setActive, toggleControl, toggleDistrict,
     setYear, setQuarter, setViewMode, setTrendYearScale, setSelectedCategory,
     reset,

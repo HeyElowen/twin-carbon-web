@@ -22,16 +22,26 @@
         </el-checkbox>
       </div>
     </div>
-    <div class="chart-item empty"></div>
+    <div class="chart-item heatmap-item">
+      <div class="item-title">3D 碳排放热力图</div>
+      <div class="heatmap-panel-wrapper">
+        <HeatmapPanel :modelValue="store.heatmapConfig" @update:modelValue="onHeatmapUpdate" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import CityPopulationRank from "./CityPopulationRank.vue";
+import HeatmapPanel from "@/vue/pages/Demo1/components/HeatmapPanel.vue";
 
 const store = useConfigStore();
 const districtNames = ["农业区", "工业区", "住宅区", "商业区", "教育区"];
+
+function onHeatmapUpdate(val) {
+  store.updateHeatmapConfig(val);
+}
 </script>
 
 <style scoped>
@@ -52,6 +62,17 @@ const districtNames = ["农业区", "工业区", "住宅区", "商业区", "教�
 
 .chart-item.empty {
   background: transparent;
+}
+
+.chart-item.heatmap-item {
+  flex: 1.6;
+}
+
+.heatmap-panel-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 2px 4px;
 }
 
 .item-title {
