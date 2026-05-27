@@ -24,28 +24,6 @@ export const mockLogin = {
 // 与后端真实返回格式保持一致：data.features[] 为 GeoJSON Feature 数组
 const buildingPointsRaw = [
   {
-    id: 1,
-    name: "用户上传-工业区M01",
-    category: "工业区",
-    emission: 5200.5,
-    year: 2025,
-    quarter: "Q3",
-    lon: 116.355,
-    lat: 39.895,
-    createTime: "2025-03-20T14:20:00"
-  },
-  {
-    id: 2,
-    name: "用户上传-农业区M02",
-    category: "农业区",
-    emission: 950.2,
-    year: 2025,
-    quarter: "Q3",
-    lon: 116.438,
-    lat: 39.945,
-    createTime: "2025-03-20T14:20:00"
-  },
-  {
     id: 3,
     name: "安基里村1",
     category: "住宅区",
