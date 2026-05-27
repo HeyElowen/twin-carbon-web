@@ -82,8 +82,10 @@ const chartOption = computed(() => {
       borderWidth: 1,
       borderRadius: 8,
       formatter: (params) => {
+        if (!params || !params.length) return "";
         const p = params[0];
-        return `${p.name}<br/>${p.seriesName}: ${p.value}`;
+        const val = typeof p.value === "number" ? p.value.toFixed(2) : p.value;
+        return `${p.name}<br/>${p.seriesName}: ${val}`;
       },
     },
     grid: { top: 30, bottom: 24, left: 16, right: 16, containLabel: true },

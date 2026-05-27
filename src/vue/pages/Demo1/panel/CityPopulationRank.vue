@@ -74,8 +74,10 @@ const chartOption = computed(() => {
       borderWidth: 1,
       borderRadius: 8,
       formatter: (params) => {
+        if (!params || !params.length) return "";
         const p = params[0];
-        return `${p.name}<br/>排放强度: ${p.value} t/m²`;
+        const val = typeof p.value === "number" ? p.value.toFixed(2) : p.value;
+        return `${p.name}<br/>排放强度: ${val} kg/m²`;
       },
     },
     series: [
@@ -97,7 +99,7 @@ const chartOption = computed(() => {
           valueAnimation: true,
           fontSize: 12,
           fontWeight: "bold",
-          formatter: (p) => `${p.value} t/m²`,
+          formatter: (p) => `${p.value.toFixed(2)} kg/m²`,
         },
         labelLayout: (params) => ({
           x: "100%",
