@@ -2,7 +2,7 @@ import { createRouter, createWebHashHistory } from "vue-router";
 import { useAuthStore } from "@/js/stores/useAuthStore";
 
 const router = createRouter({
-  history: createWebHashHistory("/sc-datav/"),
+  history: createWebHashHistory("/twin-carbon/"),
   routes: [
     {
       path: "/login",
@@ -12,12 +12,12 @@ const router = createRouter({
     },
     {
       path: "/",
-      redirect: "/demo1",
+      redirect: "/dashboard",
     },
     {
-      path: "/demo1",
-      name: "Demo1",
-      component: () => import("@/vue/pages/Demo1/index.vue"),
+      path: "/dashboard",
+      name: "Dashboard",
+      component: () => import("@/vue/pages/Dashboard/index.vue"),
     },
   ],
 });
@@ -30,7 +30,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta?.public) {
     // 已登录用户访问登录页，重定向到首页
     if (authStore.isLoggedIn && to.path === "/login") {
-      next("/demo1");
+      next("/dashboard");
       return;
     }
     next();

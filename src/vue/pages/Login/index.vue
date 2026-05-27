@@ -87,7 +87,7 @@ async function handleLogin() {
       password: form.password,
     });
     ElMessage.success("登录成功");
-    router.push("/demo1");
+    router.push("/dashboard");
   } catch (error) {
     ElMessage.error(error.message || "登录失败");
   } finally {

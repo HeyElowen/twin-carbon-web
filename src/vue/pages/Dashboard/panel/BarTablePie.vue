@@ -34,7 +34,7 @@
 <script setup>
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import CityPopulationRank from "./CityPopulationRank.vue";
-import HeatmapPanel from "@/vue/pages/Demo1/components/HeatmapPanel.vue";
+import HeatmapPanel from "@/vue/pages/Dashboard/components/HeatmapPanel.vue";
 
 const store = useConfigStore();
 const districtNames = ["农业区", "工业区", "住宅区", "商业区", "教育区"];

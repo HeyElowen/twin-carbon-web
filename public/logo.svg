@@ -1,1 +1,28 @@
-<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="a" x1="0%" y1="0%" y2="0%"><stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#3b82f6"/></linearGradient></defs><path d="M30 50c0-15-15-15-15 0s15 15 25 8l20-16c10-7 25-7 25 8s-15 15-15 0" stroke="url(#a)" stroke-width="8" stroke-linecap="round"/></svg>
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0" y1="20" x2="100" y2="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 左碳环（碳达峰）右边框位于右环中心至右边框中点 -->
+  <path d="M49 20 L75 35 L75 65 L49 80 L23 65 L23 35 Z"
+        stroke="url(#g)" stroke-width="4.5" fill="none" stroke-linejoin="round"/>
+
+  <!-- 右碳环（碳中和）孪生交错 -->
+  <path d="M62 20 L88 35 L88 65 L62 80 L36 65 L36 35 Z"
+        stroke="url(#g)" stroke-width="4.5" fill="none" stroke-linejoin="round" opacity="0.5"/>
+
+  <!-- 交叠区域监测靶心（居中于交叠中心） -->
+  <circle cx="56" cy="50" r="15" stroke="url(#g)" stroke-width="1" fill="none" opacity="0.5"/>
+  <circle cx="56" cy="50" r="9" stroke="url(#g)" stroke-width="0.8" fill="none" opacity="0.15"/>
+
+
+  <!-- 中心监测点 -->
+  <circle cx="56" cy="50" r="4" fill="url(#glow)"/>
+</svg>

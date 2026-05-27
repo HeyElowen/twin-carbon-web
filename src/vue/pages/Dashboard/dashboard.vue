@@ -1,8 +1,7 @@
 <template>
-  <div class="wrapper">
-    <div class="map-placeholder">
-      <div id="cesiumContainer"></div>
-    </div>
+  <div class="wrapper" :class="{ 'is-split': store.uploadPreviewActive }">
+    <PreviewCesium />
+    <div id="cesiumContainer"></div>
     <Panel />
   </div>
 </template>
@@ -12,6 +11,7 @@ import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import { getBuildingObservationPoint } from "@/api/monitoring";
 import Panel from "./panel/index.vue";
+import PreviewCesium from "./PreviewCesium.vue";
 import { Heatmap3D } from "@/js/utils/heatmap3D";
 
 let viewer = null;
@@ -193,6 +193,11 @@ watch(
   }
 );
 
+// 离开数据上传面板时强制关闭预览分屏
+watch(() => store.activeKey, (key) => {
+  if (key !== 'bar') store.setUploadPreview(false);
+});
+
 onMounted(async() => {
   store.mapPlayComplete = true;
 
@@ -251,7 +256,7 @@ onMounted(async() => {
   // imageryLayers.addImageryProvider(tdtCia)
 
   try {
-    const layers = await scene.open('http://localhost:8090/iserver/services/3D-global/rest/realspace')
+    const layers = await scene.open('http://localhost:8090/iserver/services/3D-twin-carbon-city/rest/realspace')
     if (layers?.length > 0) {
       viewer.flyTo?.(layers[0])
     }
@@ -294,7 +299,14 @@ onUnmounted(() => {
   width: 100vw;
   height: 100vh;
   z-index: 1;
+  transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1), width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.wrapper.is-split #cesiumContainer {
+  left: 50vw;
+  width: 50vw;
+}
+
 .wrapper {
   position: relative;
   width: 100vw;

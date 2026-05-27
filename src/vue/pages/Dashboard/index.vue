@@ -1,7 +1,7 @@
 <template>
   <Suspense>
     <template #default>
-      <Demo />
+      <Dashboard />
     </template>
     <template #fallback>
       <Loading />
@@ -13,5 +13,5 @@
 import { defineAsyncComponent } from "vue";
 import Loading from "./loading.vue";
 
-const Demo = defineAsyncComponent(() => import("./demo.vue"));
+const Dashboard = defineAsyncComponent(() => import("./dashboard.vue"));
 </script>

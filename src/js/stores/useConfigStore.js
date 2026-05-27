@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 
-export const useConfigStore = defineStore("demo1-config", () => {
+export const useConfigStore = defineStore("dashboard", () => {
   const mapPlayComplete = ref(false);
   // cloud / rotation / heat / bar 四键互斥；cloud 为默认激活按钮
   const activeKey = ref('cloud');
@@ -27,6 +27,16 @@ export const useConfigStore = defineStore("demo1-config", () => {
 
   // 饼图选中的用地类型（null = 全部未选中）
   const selectedCategory = ref(null);
+
+  // 数据上传预览：分屏 Cesium 模式
+  const uploadPreviewActive = ref(false);
+  // 数据上传左面板视图切换：'upload' | 'panorama'
+  const uploadLeftView = ref('upload');
+  // 已上传的文件对象（跨组件重建保持）
+  const uploadFile = ref(null);
+
+  // AI Agent 聊天记录
+  const aiMessages = ref([]);
 
   // 3D 热力图配置
   const heatmapConfig = ref({
@@ -67,10 +77,20 @@ export const useConfigStore = defineStore("demo1-config", () => {
     selectedCategory.value = selectedCategory.value === name ? null : name;
   }
 
+  function setUploadPreview(v) {
+    uploadPreviewActive.value = v;
+    if (!v) uploadLeftView.value = 'upload';
+  }
+  function setUploadLeftView(v) { uploadLeftView.value = v; }
+  function setUploadFile(v) { uploadFile.value = v; }
+
   function reset() {
     mapPlayComplete.value = false;
     activeKey.value = 'cloud';
     controlOpen.value = false;
+    uploadPreviewActive.value = false;
+    uploadLeftView.value = 'upload';
+    uploadFile.value = null;
     districts.value = {
       农业区: true,
       工业区: true,
@@ -92,12 +112,15 @@ export const useConfigStore = defineStore("demo1-config", () => {
       clampToGround: true,
       power: 2.0,
     };
+    aiMessages.value = [];
   }
 
   return {
     mapPlayComplete, activeKey, controlOpen, districts,
     year, quarter, viewMode, trendYearScale, selectedCategory,
     heatmapConfig, updateHeatmapConfig,
+    uploadPreviewActive, setUploadPreview, uploadLeftView, setUploadLeftView, uploadFile, setUploadFile,
+    aiMessages,
     setActive, toggleControl, toggleDistrict,
     setYear, setQuarter, setViewMode, setTrendYearScale, setSelectedCategory,
     reset,

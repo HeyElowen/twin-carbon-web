@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 export default defineConfig({
   plugins: [vue()],
-  base: "/sc-datav/",
+  base: "/twin-carbon/",
   resolve: {
     alias: {
       "@": resolve("src"),
