@@ -15,19 +15,6 @@
       </label>
     </div>
 
-    <!-- 贴地模式 -->
-    <div class="control-row">
-      <label class="switch-label">
-        <input
-          type="checkbox"
-          :checked="modelValue.clampToGround"
-          @change="$emit('update:modelValue', { ...modelValue, clampToGround: $event.target.checked })"
-        />
-        <span class="slider" />
-        <span class="label-text">贴地模式</span>
-      </label>
-    </div>
-
     <!-- 拉伸高度 -->
     <div class="control-row">
       <span class="label-text">拉伸高度</span>
@@ -84,6 +71,20 @@
       <span class="value-text">{{ Math.round(modelValue.opacity * 100) }}%</span>
     </div>
 
+    <!-- 强度幂次（power）：>1 压缩低值突出高排放，<1 扩大低值让密集区域更热 -->
+    <div class="control-row">
+      <span class="label-text">强度幂次</span>
+      <input
+        type="range"
+        min="0.2"
+        max="5.0"
+        step="0.1"
+        :value="modelValue.power"
+        @input="$emit('update:modelValue', { ...modelValue, power: parseFloat($event.target.value) })"
+      />
+      <span class="value-text">{{ modelValue.power.toFixed(1) }}</span>
+    </div>
+
     <!-- 图例 -->
     <div class="legend">
       <div class="legend-title">排放量等级</div>
@@ -105,7 +106,15 @@
 defineProps({
   modelValue: {
     type: Object,
-    required: true,
+    default: () => ({
+      enabled: false,
+      scaleHeight: 0.08,
+      gridSize: 40,
+      sigmaMeters: 800,
+      opacity: 0.85,
+      clampToGround: true,
+      power: 2.0,
+    }),
   },
 });
 
@@ -114,19 +123,13 @@ defineEmits(["update:modelValue"]);
 
 <style scoped>
 .heatmap-panel {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 280px;
-  background: rgba(10, 14, 26, 0.88);
-  border: 1px solid rgba(59, 130, 246, 0.25);
-  border-radius: 6px;
-  padding: 14px 16px;
-  z-index: 100;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   color: #c8d0e0;
-  font-size: 13px;
-  backdrop-filter: blur(6px);
-  user-select: none;
+  font-size: 12px;
+  overflow: auto;
 }
 
 .panel-title {

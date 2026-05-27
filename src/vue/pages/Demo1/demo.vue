@@ -4,7 +4,6 @@
       <div id="cesiumContainer"></div>
     </div>
     <Panel />
-    <HeatmapPanel v-model="heatmapConfig" />
   </div>
 </template>
 
@@ -13,7 +12,6 @@ import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import { getBuildingObservationPoint } from "@/api/monitoring";
 import Panel from "./panel/index.vue";
-import HeatmapPanel from "./components/HeatmapPanel.vue";
 import { Heatmap3D } from "@/js/utils/heatmap3D";
 
 let viewer = null;
@@ -23,16 +21,6 @@ let heatmap3D = null;         // 3D 热力图实例
 const store = useConfigStore();
 const pointData = ref([]);      // 观测点数据
 const pointLoading = ref(false);
-
-// 热力图配置
-const heatmapConfig = ref({
-  enabled: false,
-  scaleHeight: 0.08,
-  gridSize: 40,
-  sigmaMeters: 800,
-  opacity: 0.85,
-  clampToGround: true,
-});
 
 // 按用地类型分配颜色
 const categoryColors = {
@@ -119,7 +107,7 @@ async function updateHeatmap() {
     console.log('[Heatmap] 引擎尚未初始化，跳过渲染');
     return;
   }
-  if (!heatmapConfig.value.enabled) {
+  if (!store.heatmapConfig.enabled) {
     // eslint-disable-next-line no-console
     console.log('[Heatmap] 开关为关闭状态，跳过渲染');
     return;
@@ -128,12 +116,16 @@ async function updateHeatmap() {
   // 统一提取数据：支持对象数组 或 GeoJSON FeatureCollection
   let rawPoints = pointData.value;
   if (rawPoints && rawPoints.type === 'FeatureCollection' && Array.isArray(rawPoints.features)) {
-    rawPoints = rawPoints.features.map((f) => ({
-      name: f.properties?.name,
-      lon: f.properties?.lon,
-      lat: f.properties?.lat,
-      emission: f.properties?.emission,
-    }));
+    rawPoints = rawPoints.features.map((f) => {
+      // GeoJSON 标准坐标在 geometry.coordinates，部分后端也在 properties 里冗余 lon/lat
+      const coords = f.geometry?.coordinates;
+      return {
+        name: f.properties?.name,
+        lon: f.properties?.lon ?? coords?.[0],
+        lat: f.properties?.lat ?? coords?.[1],
+        emission: f.properties?.emission,
+      };
+    });
   }
   if (!Array.isArray(rawPoints) || rawPoints.length === 0) {
     // eslint-disable-next-line no-console
@@ -169,7 +161,7 @@ watch([() => store.year, () => store.quarter], () => {
 
 // 监听热力图开关
 watch(
-  () => heatmapConfig.value.enabled,
+  () => store.heatmapConfig.enabled,
   async (enabled) => {
     if (!heatmap3D) return;
     if (enabled) {
@@ -183,19 +175,21 @@ watch(
 // 监听热力图参数变化，调用对应 setter（setter 内部会触发 build）
 watch(
   () => [
-    heatmapConfig.value.scaleHeight,
-    heatmapConfig.value.gridSize,
-    heatmapConfig.value.sigmaMeters,
-    heatmapConfig.value.opacity,
-    heatmapConfig.value.clampToGround,
+    store.heatmapConfig.scaleHeight,
+    store.heatmapConfig.gridSize,
+    store.heatmapConfig.sigmaMeters,
+    store.heatmapConfig.opacity,
+    store.heatmapConfig.clampToGround,
+    store.heatmapConfig.power,
   ],
-  ([scaleHeight, gridSize, sigmaMeters, opacity, clampToGround]) => {
-    if (!heatmap3D || !heatmapConfig.value.enabled) return;
+  ([scaleHeight, gridSize, sigmaMeters, opacity, clampToGround, power]) => {
+    if (!heatmap3D || !store.heatmapConfig.enabled) return;
     heatmap3D.setScaleHeight(scaleHeight);
     heatmap3D.setGridSize(gridSize);
     heatmap3D.setSigmaMeters(sigmaMeters);
     heatmap3D.setOpacity(opacity);
     heatmap3D.setClampToGround(clampToGround);
+    heatmap3D.setPower(power);
   }
 );
 
@@ -268,15 +262,16 @@ onMounted(async() => {
 
   // 初始化 3D 热力图引擎（传入初始配置）
   heatmap3D = new Heatmap3D(viewer, {
-    scaleHeight: heatmapConfig.value.scaleHeight,
-    gridSize: heatmapConfig.value.gridSize,
-    sigmaMeters: heatmapConfig.value.sigmaMeters,
-    opacity: heatmapConfig.value.opacity,
-    clampToGround: heatmapConfig.value.clampToGround,
+    scaleHeight: store.heatmapConfig.scaleHeight,
+    gridSize: store.heatmapConfig.gridSize,
+    sigmaMeters: store.heatmapConfig.sigmaMeters,
+    opacity: store.heatmapConfig.opacity,
+    clampToGround: store.heatmapConfig.clampToGround,
+    power: store.heatmapConfig.power,
   })
 
   // 如果数据已提前加载完毕，且开关为打开状态，立即渲染
-  if (pointData.value.length > 0 && heatmapConfig.value.enabled) {
+  if (pointData.value.length > 0 && store.heatmapConfig.enabled) {
     await updateHeatmap()
   }
 });

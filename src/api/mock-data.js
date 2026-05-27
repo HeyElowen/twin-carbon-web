@@ -20,115 +20,84 @@ export const mockLogin = {
   }
 }
 
-// ==================== 2. 主数据地图点 ✅ ====================
-export const mockPoints = {
-  code: 200,
-  message: "success",
-  data: [
-    {
-      id: 1,
-      name: "工业园区-A01",
-      category: "工业区",
-      area: 12500.5,
-      emission: 4520.35,
-      height: 18.5,
-      year: 2025,
-      quarter: "Q3",
-      geom: "POINT(116.397 39.916)",
-      lon: 116.397,
-      lat: 39.916,
-      createTime: "2025-01-15T08:30:00"
-    },
-    {
-      id: 2,
-      name: "农业科技示范园",
-      category: "农业区",
-      area: 85600.0,
-      emission: 1280.6,
-      height: 5.0,
-      year: 2025,
-      quarter: "Q3",
-      geom: "POINT(116.412 39.928)",
-      lon: 116.412,
-      lat: 39.928,
-      createTime: "2025-01-15T08:30:00"
-    },
-    {
-      id: 3,
-      name: "中央商务区-B座",
-      category: "商业区",
-      area: 32000.0,
-      emission: 6850.2,
-      height: 45.0,
-      year: 2025,
-      quarter: "Q3",
-      geom: "POINT(116.385 39.905)",
-      lon: 116.385,
-      lat: 39.905,
-      createTime: "2025-01-15T08:30:00"
-    },
-    {
-      id: 4,
-      name: "阳光花园小区",
-      category: "住宅区",
-      area: 56000.0,
-      emission: 3240.8,
-      height: 22.0,
-      year: 2025,
-      quarter: "Q3",
-      geom: "POINT(116.420 39.912)",
-      lon: 116.42,
-      lat: 39.912,
-      createTime: "2025-01-15T08:30:00"
-    },
-    {
-      id: 5,
-      name: "实验中学",
-      category: "教育区",
-      area: 18500.0,
-      emission: 1580.4,
-      height: 15.0,
-      year: 2025,
-      quarter: "Q3",
-      geom: "POINT(116.350 39.930)",
-      lon: 116.35,
-      lat: 39.93,
-      createTime: "2025-01-15T08:30:00"
+// ==================== 2. 建筑碳排放数据点（GeoJSON FeatureCollection）✅ ====================
+// 与后端真实返回格式保持一致：data.features[] 为 GeoJSON Feature 数组
+const buildingPointsRaw = [
+  {
+    id: 1,
+    name: "用户上传-工业区M01",
+    category: "工业区",
+    emission: 5200.5,
+    year: 2025,
+    quarter: "Q3",
+    lon: 116.355,
+    lat: 39.895,
+    createTime: "2025-03-20T14:20:00"
+  },
+  {
+    id: 2,
+    name: "用户上传-农业区M02",
+    category: "农业区",
+    emission: 950.2,
+    year: 2025,
+    quarter: "Q3",
+    lon: 116.438,
+    lat: 39.945,
+    createTime: "2025-03-20T14:20:00"
+  },
+  {
+    id: 3,
+    name: "安基里村1",
+    category: "住宅区",
+    emission: 8.2469,
+    year: 2025,
+    quarter: "Q3",
+    lon: 120.4900785,
+    lat: 31.56941994,
+    createTime: "2026-05-24T17:31:14.754446"
+  },
+  {
+    id: 4,
+    name: "安基里村10",
+    category: "住宅区",
+    emission: 26.0009,
+    year: 2025,
+    quarter: "Q3",
+    lon: 120.4925604,
+    lat: 31.57027976,
+    createTime: "2026-05-24T17:31:14.754446"
+  }
+]
+
+function toFeatureCollection(points) {
+  return {
+    code: 200,
+    message: "success",
+    data: {
+      type: "FeatureCollection",
+      features: points.map((p) => ({
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [p.lon, p.lat]
+        },
+        properties: {
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          emission: p.emission,
+          year: p.year,
+          quarter: p.quarter,
+          createTime: p.createTime,
+          lon: p.lon,
+          lat: p.lat
+        }
+      }))
     }
-  ]
+  }
 }
 
-// ==================== 3. 建筑碳排放数据点 ✅ ====================
-export const mockBuildingPoints = {
-  code: 200,
-  message: "success",
-  data: [
-    {
-      id: 1,
-      name: "用户上传-工业区M01",
-      category: "工业区",
-      emission: 5200.5,
-      year: 2025,
-      quarter: "Q3",
-      geom: "POINT(116.355 39.895)",
-      lon: 116.355,
-      lat: 39.895,
-      createTime: "2025-03-20T14:20:00"
-    },
-    {
-      id: 2,
-      name: "用户上传-农业区M02",
-      category: "农业区",
-      emission: 950.2,
-      year: 2025,
-      quarter: "Q3",
-      geom: "POINT(116.438 39.945)",
-      lon: 116.438,
-      lat: 39.945,
-      createTime: "2025-03-20T14:20:00"
-    }
-  ]
-}
+export const mockBuildingPoints = toFeatureCollection(buildingPointsRaw)
 
 // ==================== 4. 饼图统计 — 主数据 ✅ ====================
 export const mockCategoryRatio = {
@@ -368,7 +337,6 @@ export const mockOverview = {
 // ==================== 汇总对象（兜底匹配用）====================
 export const mockData = {
   'post:/login': mockLogin,
-  'get:/monitoring/observation-point': mockPoints,
   'get:/monitoring/building-observation-point': mockBuildingPoints,
   'get:/monitoring/statistics/category-ratio': mockCategoryRatio,
   'get:/monitoring/statistics/building-category-ratio': mockBuildingCategoryRatio,
@@ -382,9 +350,9 @@ export const mockData = {
 }
 
 // ==================== 参数化 Mock 辅助函数 ====================
-function filterPointsByTime(mockObj, year, quarter) {
+function filterPointsByTime(features, year, quarter) {
   const yearInt = parseInt(year)
-  const totalItems = mockObj.data.length
+  const totalItems = features.length
 
   const yearRatioMap = {
     2020: 0.375, 2021: 0.5, 2022: 0.625,
@@ -402,24 +370,40 @@ function filterPointsByTime(mockObj, year, quarter) {
   const sliced = []
   for (let i = 0; i < count; i++) {
     const idx = (offset + i) % totalItems
-    sliced.push(mockObj.data[idx])
+    sliced.push(features[idx])
   }
 
   const yearFactor = 1 + (yearInt - 2025) * 0.05
   const qf = { 'Q1': 0.9, 'Q2': 0.95, 'Q3': 1.0, 'Q4': 1.05 }
   const quarterFactor = qf[quarter] || 1.0
 
+  const mapped = sliced.map((f, idx) => {
+    const p = f.properties
+    const newEmission = Math.round(p.emission * yearFactor * quarterFactor * 100) / 100
+    return {
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: p.lon != null && p.lat != null ? [p.lon, p.lat] : f.geometry.coordinates
+      },
+      properties: {
+        ...p,
+        id: idx + 1,
+        year: yearInt,
+        quarter: quarter,
+        emission: newEmission,
+        createTime: `${year}-01-15T08:30:00`
+      }
+    }
+  })
+
   return {
     code: 200,
     message: "success",
-    data: sliced.map((p, idx) => ({
-      ...p,
-      id: idx + 1,
-      year: yearInt,
-      quarter: quarter,
-      emission: Math.round(p.emission * yearFactor * quarterFactor * 100) / 100,
-      createTime: `${year}-01-15T08:30:00`
-    }))
+    data: {
+      type: "FeatureCollection",
+      features: mapped
+    }
   }
 }
 
@@ -428,14 +412,10 @@ export function getMockResponse(config) {
   const { method, url, params } = config
   const key = `${method.toLowerCase()}:${url}`
 
-  // 地图点 — 主数据（按 year/quarter 参数化）
-  if (key === 'get:/monitoring/observation-point') {
-    return filterPointsByTime(mockPoints, params?.year, params?.quarter)
-  }
-
-  // 地图点 — 建筑数据（按 year/quarter 参数化）
+  // 地图点 — 建筑碳排放观测点（按 year/quarter 参数化，返回 GeoJSON FeatureCollection）
   if (key === 'get:/monitoring/building-observation-point') {
-    return filterPointsByTime(mockBuildingPoints, params?.year, params?.quarter)
+    const sourceFeatures = mockBuildingPoints.data.features
+    return filterPointsByTime(sourceFeatures, params?.year, params?.quarter)
   }
 
   // 饼图 — 按 year/quarter 参数化（5个类别）
