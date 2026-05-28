@@ -204,7 +204,7 @@ function handleLogout() {
 }
 
 .user-arrow {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(148, 163, 184, 0.6);
 }
 

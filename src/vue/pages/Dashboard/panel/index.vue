@@ -268,7 +268,7 @@ watch(() => store.viewMode, (newMode, oldMode) => {
 }
 
 .card-title span {
-  font-size: 10px;
+  font-size: 12px;
   color: rgba(224, 230, 240, 0.4);
   font-weight: normal;
 }
@@ -289,7 +289,7 @@ watch(() => store.viewMode, (newMode, oldMode) => {
   background: rgba(15, 20, 32, 0.85);
   color: #60a5fa;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   writing-mode: vertical-lr;
   letter-spacing: 2px;

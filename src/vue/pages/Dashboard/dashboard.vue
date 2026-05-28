@@ -30,6 +30,39 @@ const categoryColors = {
   '商业区': Cesium.Color.fromCssColorString('#f59e0b'),
   '教育区': Cesium.Color.fromCssColorString('#a855f7'),
 };
+
+// ─── 区域边界（经纬度多边形）────────────────────
+const districtBoundaries = {
+  '教育区': [
+    [120.480, 31.552], [120.510, 31.552],
+    [120.510, 31.570], [120.480, 31.570],
+  ],
+  '商业区': [
+    [120.498, 31.570], [120.522, 31.570],
+    [120.522, 31.588], [120.498, 31.588],
+  ],
+  '工业区': [
+    [120.518, 31.582], [120.552, 31.582],
+    [120.552, 31.612], [120.518, 31.612],
+  ],
+  '住宅区': [
+    [120.472, 31.564], [120.498, 31.564],
+    [120.498, 31.582], [120.472, 31.582],
+  ],
+  '农业区': [
+    [120.452, 31.538], [120.482, 31.538],
+    [120.482, 31.562], [120.452, 31.562],
+  ],
+};
+const districtCenter = {
+  '教育区': [120.495, 31.561],
+  '商业区': [120.510, 31.579],
+  '工业区': [120.535, 31.597],
+  '住宅区': [120.485, 31.573],
+  '农业区': [120.467, 31.550],
+};
+
+let districtEntities = {}; // key: 区域名 → { polygon, label }
 const defaultPointColor = Cesium.Color.fromCssColorString('#60a5fa');
 
 // 移除旧的数据源
@@ -200,6 +233,113 @@ watch(() => store.activeKey, (key) => {
   if (key !== 'bar') store.setUploadPreview(false);
 });
 
+// ─── 区域显示控制（Cesium 多边形 + 标签）────────
+function createGradientCanvas(color) {
+  const size = 1024;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const r = Math.round(color.red * 255);
+  const g = Math.round(color.green * 255);
+  const b = Math.round(color.blue * 255);
+  const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  gradient.addColorStop(0, `rgba(${r},${g},${b},0)`);
+  gradient.addColorStop(0.5, `rgba(${r},${g},${b},0.06)`);
+  gradient.addColorStop(0.8, `rgba(${r},${g},${b},0.20)`);
+  gradient.addColorStop(1, `rgba(${r},${g},${b},0.55)`);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+  return canvas;
+}
+
+// 生成文字 Canvas：字号、字间距、渐变色填充
+function createTextCanvas(text, color, fontSize) {
+  const r = Math.round(color.red * 255);
+  const g = Math.round(color.green * 255);
+  const b = Math.round(color.blue * 255);
+  const font = `bold ${fontSize}px "Microsoft YaHei", sans-serif`;
+  const spaced = text.split('').join(' ');
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.font = font;
+  const tw = Math.ceil(ctx.measureText(spaced).width);
+  const th = fontSize * 1.4;
+  canvas.width = tw + 20;
+  canvas.height = th + 12;
+  ctx.font = font;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = `rgba(${r},${g},${b},0.6)`;
+  ctx.fillText(spaced, canvas.width / 2, canvas.height / 2);
+  return canvas;
+}
+
+function createDistrictOverlay() {
+  if (!viewer) return;
+  Object.values(districtEntities).forEach((e) => {
+    viewer.entities.remove(e.polygon);
+    viewer.entities.remove(e.label);
+  });
+  districtEntities = {};
+
+  Object.entries(districtBoundaries).forEach(([name, coords]) => {
+    const positions = coords.map((c) => Cesium.Cartesian3.fromDegrees(c[0], c[1], 15));
+    const color = categoryColors[name] || Cesium.Color.WHITE;
+    const center = districtCenter[name];
+    const visible = store.districts[name];
+
+    const polygon = viewer.entities.add({
+      polygon: {
+        hierarchy: new Cesium.PolygonHierarchy(positions),
+        material: new Cesium.ImageMaterialProperty({
+          image: createGradientCanvas(color),
+          transparent: true,
+        }),
+        outline: true,
+        outlineColor: color.withAlpha(0.6),
+        outlineWidth: 3,
+        perPositionHeight: true,
+        show: visible,
+      },
+    });
+
+    // 根据区域地理跨度（经度宽度）计算字号，使文字刚好适配区域大小
+    const lons = coords.map((c) => c[0]);
+    const lonSpan = Math.max(...lons) - Math.min(...lons);
+    const fontSize = Math.round(lonSpan * 1600);
+    // 使用 Canvas 绘制带渐变、字间距的文字，以 billboard 固定在区域上方
+    const textCanvas = createTextCanvas(name, color, fontSize);
+    const label = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(center[0], center[1], 30),
+      billboard: {
+        image: textCanvas,
+        verticalOrigin: Cesium.VerticalOrigin.CENTER,
+        horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        scaleByDistance: new Cesium.NearFarScalar(500, 4.0, 40000, 0.15),
+        show: visible,
+      },
+    });
+
+    districtEntities[name] = { polygon, label };
+  });
+}
+
+watch(
+  () => store.districts,
+  (val) => {
+    Object.entries(val).forEach(([name, visible]) => {
+      const e = districtEntities[name];
+      if (e) {
+        e.polygon.show = visible;
+        e.label.show = visible;
+      }
+    });
+  },
+  { deep: true }
+);
+
 onMounted(async() => {
   store.mapPlayComplete = true;
 
@@ -277,6 +417,9 @@ onMounted(async() => {
     power: store.heatmapConfig.power,
   })
 
+  // 创建区域显示控制（多边形 + 标签）
+  createDistrictOverlay();
+
   // 如果数据已提前加载完毕，且开关为打开状态，立即渲染
   if (pointData.value.length > 0 && store.heatmapConfig.enabled) {
     await updateHeatmap()
@@ -284,6 +427,11 @@ onMounted(async() => {
 });
 onUnmounted(() => {
   removePointDataSource();
+  Object.values(districtEntities).forEach((e) => {
+    viewer?.entities.remove(e.polygon);
+    viewer?.entities.remove(e.label);
+  });
+  districtEntities = {};
   if (heatmap3D) {
     heatmap3D.destroy()
     heatmap3D = null

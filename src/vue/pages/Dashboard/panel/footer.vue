@@ -326,7 +326,7 @@ watch(() => store.viewMode, (v) => { filters.value.viewMode = v; });
   background: #0f1420;
   border: 1px solid rgba(59, 130, 246, 0.25);
   color: #bfdbfe;
-  font-size: 12px;
+  font-size: 14px;
   padding: 6px 12px;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);

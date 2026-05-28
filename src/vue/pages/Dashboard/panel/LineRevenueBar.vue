@@ -80,7 +80,7 @@ const lineSubtitle = computed(() => "");
 }
 
 .item-title .subtitle {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(224, 230, 240, 0.4);
   font-weight: normal;
 }
@@ -93,7 +93,7 @@ const lineSubtitle = computed(() => "");
 }
 
 .scale-switch span {
-  font-size: 11px;
+  font-size: 13px;
   padding: 2px 8px;
   border-radius: 4px;
   cursor: pointer;

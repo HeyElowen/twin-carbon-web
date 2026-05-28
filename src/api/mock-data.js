@@ -23,28 +23,31 @@ export const mockLogin = {
 // ==================== 2. 建筑碳排放数据点（GeoJSON FeatureCollection）✅ ====================
 // 与后端真实返回格式保持一致：data.features[] 为 GeoJSON Feature 数组
 const buildingPointsRaw = [
-  {
-    id: 3,
-    name: "安基里村1",
-    category: "住宅区",
-    emission: 8.2469,
-    year: 2025,
-    quarter: "Q3",
-    lon: 120.4900785,
-    lat: 31.56941994,
-    createTime: "2026-05-24T17:31:14.754446"
-  },
-  {
-    id: 4,
-    name: "安基里村10",
-    category: "住宅区",
-    emission: 26.0009,
-    year: 2025,
-    quarter: "Q3",
-    lon: 120.4925604,
-    lat: 31.57027976,
-    createTime: "2026-05-24T17:31:14.754446"
-  }
+  // ── 住宅区 ──
+  { id: 3,  name: "安基里村1",   category: "住宅区", emission: 8.2469,  year: 2025, quarter: "Q3", lon: 120.4900785, lat: 31.56941994 },
+  { id: 4,  name: "安基里村10",  category: "住宅区", emission: 26.0009, year: 2025, quarter: "Q3", lon: 120.4925604, lat: 31.57027976 },
+  { id: 5,  name: "翠湖新城A座", category: "住宅区", emission: 15.3200, year: 2025, quarter: "Q3", lon: 120.4852000, lat: 31.57510000 },
+  { id: 6,  name: "翠湖新城B座", category: "住宅区", emission: 12.6800, year: 2025, quarter: "Q3", lon: 120.4863000, lat: 31.57480000 },
+  { id: 7,  name: "阳光花园3栋", category: "住宅区", emission: 4.5600,  year: 2025, quarter: "Q3", lon: 120.4789000, lat: 31.57230000 },
+  // ── 学校（教育区）──
+  { id: 8,  name: "第一中学",     category: "教育区", emission: 3.2500,  year: 2025, quarter: "Q3", lon: 120.4950000, lat: 31.56000000 },
+  { id: 9,  name: "实验小学",     category: "教育区", emission: 1.8200,  year: 2025, quarter: "Q3", lon: 120.4880000, lat: 31.56500000 },
+  { id: 10, name: "职业技术学院", category: "教育区", emission: 5.6700,  year: 2025, quarter: "Q3", lon: 120.5020000, lat: 31.55800000 },
+  // ── 商业区 ──
+  { id: 11, name: "万达广场",     category: "商业区", emission: 38.5000, year: 2025, quarter: "Q3", lon: 120.5100000, lat: 31.57500000 },
+  { id: 12, name: "恒隆大厦",     category: "商业区", emission: 42.3000, year: 2025, quarter: "Q3", lon: 120.5150000, lat: 31.58000000 },
+  { id: 13, name: "中央商务区A座", category: "商业区", emission: 28.7000, year: 2025, quarter: "Q3", lon: 120.5080000, lat: 31.58200000 },
+  { id: 14, name: "数码广场",     category: "商业区", emission: 18.9000, year: 2025, quarter: "Q3", lon: 120.5050000, lat: 31.57800000 },
+  // ── 工业区 ──
+  { id: 15, name: "高新产业园A区", category: "工业区", emission: 95.6000, year: 2025, quarter: "Q3", lon: 120.5300000, lat: 31.59000000 },
+  { id: 16, name: "机械制造厂",   category: "工业区", emission: 82.4000, year: 2025, quarter: "Q3", lon: 120.5400000, lat: 31.59500000 },
+  { id: 17, name: "电子科技园",   category: "工业区", emission: 55.2000, year: 2025, quarter: "Q3", lon: 120.5250000, lat: 31.58800000 },
+  { id: 18, name: "物流仓储中心", category: "工业区", emission: 35.8000, year: 2025, quarter: "Q3", lon: 120.5450000, lat: 31.60000000 },
+  { id: 19, name: "化工厂南厂区", category: "工业区", emission: 120.5000,year: 2025, quarter: "Q3", lon: 120.5350000, lat: 31.60500000 },
+  // ── 农业区 ──
+  { id: 20, name: "生态种植基地", category: "农业区", emission: 2.1500,  year: 2025, quarter: "Q3", lon: 120.4600000, lat: 31.55000000 },
+  { id: 21, name: "现代农业示范园", category: "农业区", emission: 3.8000,  year: 2025, quarter: "Q3", lon: 120.4700000, lat: 31.55500000 },
+  { id: 22, name: "畜牧养殖场",   category: "农业区", emission: 6.2000,  year: 2025, quarter: "Q3", lon: 120.4750000, lat: 31.54500000 },
 ]
 
 function toFeatureCollection(points) {

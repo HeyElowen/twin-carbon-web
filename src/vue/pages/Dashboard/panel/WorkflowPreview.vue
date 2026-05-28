@@ -36,7 +36,7 @@
 }
 
 .workflow-desc {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(224, 230, 240, 0.3);
   text-align: center;
   max-width: 220px;

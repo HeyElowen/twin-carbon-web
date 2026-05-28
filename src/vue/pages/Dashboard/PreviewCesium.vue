@@ -9,6 +9,11 @@ import { useConfigStore } from "@/js/stores/useConfigStore";
 const store = useConfigStore();
 const containerRef = ref(null);
 let previewViewer = null;
+let syncing = false;
+
+// 已注册的相机事件引用，用于销毁时移除
+let mainCameraRemove = null;
+let previewCameraRemove = null;
 
 function setupBaseImagery(v) {
   const subdomains = ["0", "1", "2", "3", "4", "5", "6", "7"];
@@ -24,6 +29,39 @@ function setupBaseImagery(v) {
   }));
 }
 
+function syncCamera(source, target) {
+  if (!source || !target) return;
+  const cam = source.camera;
+  target.camera.setView({
+    destination: cam.position,
+    orientation: { heading: cam.heading, pitch: cam.pitch, roll: cam.roll },
+  });
+}
+
+function startSync() {
+  const main = window.cesiumViewer;
+  if (!main || !previewViewer) return;
+
+  mainCameraRemove = main.scene.camera.changed.addEventListener(() => {
+    if (syncing) return;
+    syncing = true;
+    syncCamera(main, previewViewer);
+    syncing = false;
+  });
+
+  previewCameraRemove = previewViewer.scene.camera.changed.addEventListener(() => {
+    if (syncing) return;
+    syncing = true;
+    syncCamera(previewViewer, main);
+    syncing = false;
+  });
+}
+
+function stopSync() {
+  if (mainCameraRemove) { mainCameraRemove(); mainCameraRemove = null; }
+  if (previewCameraRemove) { previewCameraRemove(); previewCameraRemove = null; }
+}
+
 watch(() => store.uploadPreviewActive, async (active) => {
   await nextTick();
   if (active && containerRef.value) {
@@ -35,26 +73,25 @@ watch(() => store.uploadPreviewActive, async (active) => {
       shouldAnimate: false,
     });
     setupBaseImagery(previewViewer);
-    // 同步主 viewer 的相机视角
+    // 初始同步主 viewer 的相机视角
     const main = window.cesiumViewer;
     if (main) {
-      const cam = main.scene.camera;
-      previewViewer.camera.setView({
-        destination: cam.position,
-        orientation: { heading: cam.heading, pitch: cam.pitch, roll: cam.roll },
-      });
+      syncCamera(main, previewViewer);
     }
+    // 开启双向同步
+    startSync();
   } else {
+    stopSync();
     if (previewViewer) {
       previewViewer.destroy();
       previewViewer = null;
     }
   }
-  // 通知主 viewer 重新调整尺寸
   window.cesiumViewer?.resize();
 });
 
 onUnmounted(() => {
+  stopSync();
   if (previewViewer) {
     previewViewer.destroy();
     previewViewer = null;

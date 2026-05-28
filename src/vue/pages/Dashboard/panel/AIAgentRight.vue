@@ -216,7 +216,7 @@ function scrollToBottom() {
 }
 
 .tips-subtitle {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(224, 230, 240, 0.5);
   text-align: center;
   margin-bottom: 4px;
@@ -239,7 +239,7 @@ function scrollToBottom() {
   background: rgba(59, 130, 246, 0.08);
   border: 1px solid rgba(59, 130, 246, 0.15);
   color: rgba(224, 230, 240, 0.75);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -287,7 +287,7 @@ function scrollToBottom() {
 .message-bubble {
   padding: 10px 14px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.7;
   white-space: pre-wrap;
 }
@@ -306,7 +306,7 @@ function scrollToBottom() {
 }
 
 .message-time {
-  font-size: 10px;
+  font-size: 12px;
   color: rgba(224, 230, 240, 0.3);
   margin-top: 4px;
 }

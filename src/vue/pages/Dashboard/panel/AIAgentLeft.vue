@@ -100,7 +100,7 @@ const history = ref([
 }
 
 .section-title .history-count {
-  font-size: 10px;
+  font-size: 12px;
   color: rgba(224, 230, 240, 0.4);
   font-weight: 400;
 }
@@ -148,13 +148,13 @@ const history = ref([
 }
 
 .feature-name {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: #e0e6f0;
 }
 
 .feature-desc {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(224, 230, 240, 0.5);
   margin-top: 1px;
   white-space: nowrap;
@@ -204,20 +204,20 @@ const history = ref([
 
 .history-title {
   flex: 1;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .history-time {
-  font-size: 10px;
+  font-size: 12px;
   color: rgba(224, 230, 240, 0.3);
   flex-shrink: 0;
 }
 
 .history-empty {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(224, 230, 240, 0.3);
   text-align: center;
   padding: 20px 0;
