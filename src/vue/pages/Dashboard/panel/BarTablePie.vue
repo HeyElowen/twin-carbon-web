@@ -88,7 +88,7 @@ function onHeatmapUpdate(val) {
 }
 
 .item-title span {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(224, 230, 240, 0.4);
   font-weight: normal;
 }

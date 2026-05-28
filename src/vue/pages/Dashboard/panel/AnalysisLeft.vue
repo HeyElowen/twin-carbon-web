@@ -7,36 +7,37 @@
         <span class="analysis-name">达标分析</span>
       </div>
       <div class="legend-row">
-        <div class="legend-item pass">
-          <span class="dot"></span>
-          <span>合格</span>
-        </div>
-        <div class="legend-item fail">
-          <span class="dot"></span>
-          <span>不合格</span>
+        <div
+          class="legend-item"
+          v-for="g in gradeMeta"
+          :key="g.grade"
+        >
+          <span class="dot" :style="{ background: g.color }"></span>
+          <span>{{ g.label }}</span>
         </div>
       </div>
     </div>
 
     <!-- 中间区域：判定标准 + 图表 -->
     <div class="middle-area">
-      <!-- 判定标准 -->
+      <!-- 判定标准（静态基值，不随筛选变化） -->
       <div class="standard-section">
         <div class="section-title">判定标准</div>
         <div class="standard-list">
           <div
             class="standard-item"
-            v-for="item in standards"
+            v-for="item in staticStandards"
             :key="item.name"
           >
             <span class="name">{{ item.name }}</span>
             <span class="divider"></span>
-            <span class="value" :class="item.status">{{ item.value }}</span>
+            <span class="value">{{ item.value }}</span>
+            <span class="grade-badge" :style="{ color: item.gradeColor, background: item.gradeBg }">{{ item.grade }}</span>
           </div>
         </div>
       </div>
 
-      <!-- 堆柱状图 -->
+      <!-- 堆柱状图（各等级占比） -->
       <div class="chart-area">
         <Chart :use="modules" :option="chartOption" />
       </div>
@@ -45,117 +46,207 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import Chart from "@/vue/components/Chart.vue";
 import { BarChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, LegendComponent } from "echarts/components";
+import { getBuildingObservationPoint } from "@/api/monitoring";
 
 const store = useConfigStore();
-
 const modules = [BarChart, GridComponent, TooltipComponent, LegendComponent];
 
-const standards = [
-  { name: "学校", value: "≤0.50吨", status: "pass" },
-  { name: "商业区", value: "≤1.20吨", status: "pass" },
-  { name: "工业区", value: "高于均值", status: "fail" },
-  { name: "住宅区", value: "≤0.80吨", status: "pass" },
-  { name: "农业区", value: "≤0.35吨", status: "pass" },
+const districtNames = ["学校", "商业区", "工业区", "住宅区", "农业区"];
+const nameToCategory = {
+  "学校": "教育区", "商业区": "商业区", "工业区": "工业区",
+  "住宅区": "住宅区", "农业区": "农业区",
+};
+
+// ─── 静态基值（判定标准不随筛选变化）─────────────
+const baseThresholds = {
+  "学校": 0.50,
+  "商业区": 1.20,
+  "工业区": 1.80,
+  "住宅区": 0.80,
+  "农业区": 0.35,
+};
+
+// ─── 等级定义 ────────────────────────────────────
+const gradeMeta = [
+  { grade: "A", label: "优秀 (≤80%)",  color: "#22c55e", lower: 0,     upper: 0.8 },
+  { grade: "B", label: "良好 (≤90%)",  color: "#84cc16", lower: 0.8,   upper: 0.9 },
+  { grade: "C", label: "达标 (≤100%)", color: "#f59e0b", lower: 0.9,   upper: 1.0 },
+  { grade: "D", label: "较差 (≤120%)", color: "#f97316", lower: 1.0,   upper: 1.2 },
+  { grade: "E", label: "超标 (>120%)", color: "#ef4444", lower: 1.2,   upper: Infinity },
 ];
 
-const chartOption = computed(() => ({
-  tooltip: {
-    trigger: "axis",
-    axisPointer: { type: "shadow" },
-    backgroundColor: "rgba(15, 20, 32, 0.9)",
-    borderColor: "rgba(59, 130, 246, 0.3)",
-    textStyle: { color: "#e0e6f0" },
-    formatter: (params) => {
-      let html = `<div style="font-weight:600;margin-bottom:4px">${params[0].name}</div>`;
-      params.forEach((p) => {
-        html += `<div style="display:flex;align-items:center;gap:6px;margin-top:2px">
-          <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
-          <span>${p.seriesName}：</span>
-          <span style="font-weight:700;font-family:pmzd,monospace">${p.value}%</span>
-        </div>`;
-      });
-      return html;
-    },
-  },
-  legend: {
-    data: ["合格", "不合格"],
-    top: 0,
-    right: 0,
-    itemWidth: 10,
-    itemHeight: 10,
-    textStyle: { color: "rgba(224, 230, 240, 0.7)", fontSize: 11 },
-    icon: "roundRect",
-  },
-  grid: {
-    top: 28,
-    left: 10,
-    right: 10,
-    bottom: 20,
-    containLabel: true,
-  },
-  xAxis: {
-    type: "category",
-    data: ["学校", "商业区", "工业区", "住宅区", "农业区"],
-    axisLine: { lineStyle: { color: "rgba(224, 230, 240, 0.15)" } },
-    axisLabel: { color: "rgba(224, 230, 240, 0.6)", fontSize: 10, rotate: 20 },
-    axisTick: { show: false },
-  },
-  yAxis: {
-    type: "value",
-    max: 100,
-    name: "%",
-    nameTextStyle: { color: "rgba(224, 230, 240, 0.4)", fontSize: 10, padding: [0, 0, 0, -16] },
-    splitLine: { lineStyle: { color: "rgba(224, 230, 240, 0.08)" } },
-    axisLine: { show: false },
-    axisLabel: { color: "rgba(224, 230, 240, 0.5)", fontSize: 10, formatter: "{value}%" },
-    axisTick: { show: false },
-  },
-  series: [
-    {
-      name: "合格",
+function getGrade(emission, threshold) {
+  const ratio = emission / threshold;
+  for (const g of gradeMeta) {
+    if (ratio > g.lower && ratio <= g.upper) return g.grade;
+  }
+  return "E";
+}
+
+function getGradeMeta(g) {
+  return gradeMeta.find((m) => m.grade === g) || gradeMeta[4];
+}
+
+function hexToRgba(hex, a) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+// ─── API 数据 ─────────────────────────────────────
+const rawFeatures = ref([]);
+
+async function fetchData() {
+  try {
+    const res = await getBuildingObservationPoint(store.year, store.quarter, true);
+    rawFeatures.value = res.data?.features || [];
+  } catch {
+    rawFeatures.value = [];
+  }
+}
+
+fetchData();
+watch([() => store.year, () => store.quarter], fetchData);
+
+// ─── 静态判定标准（使用基值，不随 year/quarter 变化）─
+const staticStandards = computed(() => {
+  const features = rawFeatures.value;
+  return districtNames.map((name) => {
+    const threshold = baseThresholds[name];
+    const category = nameToCategory[name];
+    const districtBuildings = features.filter((f) => f.properties?.category === category);
+    const total = districtBuildings.length;
+
+    let grade = "C";
+    let gradeColor = "#f59e0b";
+    let gradeBg = "rgba(245, 158, 11, 0.15)";
+    if (total > 0) {
+      const avgEmission =
+        districtBuildings.reduce((s, f) => s + (f.properties?.emission ?? 0), 0) / total;
+      grade = getGrade(avgEmission, threshold);
+      const meta = getGradeMeta(grade);
+      gradeColor = meta.color;
+      gradeBg = hexToRgba(meta.color, 0.15);
+    }
+
+    return { name, value: `≤${threshold.toFixed(2)}吨`, grade, gradeColor, gradeBg };
+  });
+});
+
+// ─── 图表 — 各等级占比 ───────────────────────────
+const chartOption = computed(() => {
+  const features = rawFeatures.value;
+
+  // 为每个 district 计算 5 个等级的计数
+  const seriesData = gradeMeta.map((g) => {
+    return {
+      name: g.label,
       type: "bar",
       stack: "total",
-      barWidth: "55%",
+      barWidth: "60%",
       emphasis: { focus: "series" },
-      itemStyle: { color: "#f59e0b", borderRadius: [0, 0, 0, 0] },
-      data: [92, 78, 35, 88, 95],
+      itemStyle: { color: g.color, borderRadius: 0 },
+      data: districtNames.map((name) => {
+        const threshold = baseThresholds[name];
+        const category = nameToCategory[name];
+        const districtBuildings = features.filter((f) => f.properties?.category === category);
+        const total = districtBuildings.length || 1;
+        const count = districtBuildings.filter((f) => {
+          const e = f.properties?.emission ?? 0;
+          const ratio = e / threshold;
+          return ratio > g.lower && ratio <= g.upper;
+        }).length;
+        return Math.round((count / total) * 100);
+      }),
       label: {
         show: true,
         position: "inside",
-        formatter: (p) => (p.value > 12 ? `${p.value}%` : ""),
+        formatter: (p) => (p.value > 8 ? `${p.value}%` : ""),
         color: "#fff",
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: 600,
         textShadowColor: "rgba(0,0,0,0.5)",
         textShadowBlur: 2,
       },
-    },
-    {
-      name: "不合格",
-      type: "bar",
-      stack: "total",
-      barWidth: "55%",
-      emphasis: { focus: "series" },
-      itemStyle: { color: "#ef4444", borderRadius: [4, 4, 0, 0] },
-      data: [8, 22, 65, 12, 5],
-      label: {
-        show: true,
-        position: "inside",
-        formatter: (p) => (p.value > 12 ? `${p.value}%` : ""),
-        color: "#fff",
-        fontSize: 10,
-        fontWeight: 600,
-        textShadowColor: "rgba(0,0,0,0.5)",
-        textShadowBlur: 2,
+    };
+  });
+
+  // 顶部的 border-radius 只给最顶层（非零值的最高层）
+  // ECharts 无法原生跨 series 感知，这里用简单方案：
+  // 最顶层加 borderRadius，但因为是 stack 所以需要手动调整
+  // 简化：对所有 series 顶部加小圆角
+  seriesData.forEach((s, i) => {
+    if (i === seriesData.length - 1) {
+      s.itemStyle.borderRadius = [4, 4, 0, 0];
+    }
+  });
+
+  return {
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      backgroundColor: "rgba(15, 20, 32, 0.9)",
+      borderColor: "rgba(59, 130, 246, 0.3)",
+      textStyle: { color: "#e0e6f0" },
+      formatter: (params) => {
+        let html = `<div style="font-weight:600;margin-bottom:4px">${params[0].name}</div>`;
+        params.forEach((p) => {
+          if (p.value === 0) return;
+          html += `<div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
+            <span>${p.seriesName}：</span>
+            <span style="font-weight:700;font-family:pmzd,monospace">${p.value}%</span>
+          </div>`;
+        });
+        return html;
       },
     },
-  ],
-}));
+    legend: {
+      data: gradeMeta.map((g) => g.label),
+      top: 0,
+      right: 0,
+      itemWidth: 10,
+      itemHeight: 10,
+      textStyle: { color: "rgba(224, 230, 240, 0.7)", fontSize: 11 },
+      icon: "roundRect",
+    },
+    grid: {
+      top: 36,
+      left: 10,
+      right: 10,
+      bottom: 20,
+      containLabel: true,
+    },
+    xAxis: {
+      type: "category",
+      data: districtNames,
+      axisLine: { lineStyle: { color: "rgba(224, 230, 240, 0.15)" } },
+      axisLabel: { color: "rgba(224, 230, 240, 0.6)", fontSize: 12, rotate: 20 },
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: "value",
+      max: 100,
+      name: "%",
+      nameTextStyle: { color: "rgba(224, 230, 240, 0.4)", fontSize: 12, padding: [0, 0, 0, -16] },
+      splitLine: { lineStyle: { color: "rgba(224, 230, 240, 0.08)" } },
+      axisLine: { show: false },
+      axisLabel: { color: "rgba(224, 230, 240, 0.5)", fontSize: 12, formatter: "{value}%" },
+      axisTick: { show: false },
+    },
+    series: seriesData,
+    animationDuration: 0,
+    animationDurationUpdate: 1000,
+    animationEasing: "linear",
+    animationEasingUpdate: "linear",
+  };
+});
 </script>
 
 <style scoped>
@@ -188,7 +279,7 @@ const chartOption = computed(() => ({
 }
 
 .year-badge {
-  font-size: 11px;
+  font-size: 13px;
   padding: 2px 8px;
   border-radius: 4px;
   background: rgba(59, 130, 246, 0.15);
@@ -204,30 +295,23 @@ const chartOption = computed(() => ({
 
 .legend-row {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 6px 10px;
   margin-top: 4px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-size: 12px;
   color: rgba(224, 230, 240, 0.7);
 }
 
 .legend-item .dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 2px;
-}
-
-.legend-item.pass .dot {
-  background: #f59e0b;
-}
-
-.legend-item.fail .dot {
-  background: #ef4444;
 }
 
 .standard-section {
@@ -290,17 +374,24 @@ const chartOption = computed(() => ({
 
 .standard-item .value {
   font-family: "pmzd", monospace;
-  font-size: 12px;
+  font-size: 13px;
   flex-shrink: 0;
   font-weight: 600;
+  color: rgba(224, 230, 240, 0.7);
+  margin-right: 6px;
 }
 
-.standard-item .value.pass {
-  color: #fbbf24;
-}
-
-.standard-item .value.fail {
-  color: #f87171;
+.grade-badge {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: "pmzd", monospace;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .chart-area {
