@@ -71,6 +71,8 @@ async function fetchData() {
   } catch {
     overview.value = { totalEmission: 0, buildingCount: 0, avgIntensity: 0, yoyChange: 0, trend: [] };
   }
+  // 回溯模式下通知进度管理器
+  if (store.tracebackPlaying) store.tracebackTick();
 }
 
 fetchData();

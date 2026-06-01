@@ -34,6 +34,7 @@ async function fetchData() {
   } catch {
     rawData.value = [];
   }
+  if (store.tracebackPlaying) store.tracebackTick();
 }
 
 // 初始化请求

@@ -1,5 +1,8 @@
 <template>
   <div class="footer-wrapper">
+    <Transition name="tb-fade">
+      <TracebackBar v-if="store.viewMode === 'traceback'" />
+    </Transition>
     <svg
       viewBox="0 0 1920 100"
       preserveAspectRatio="none"
@@ -90,7 +93,7 @@
             <div class="filter-section">
               <span class="filter-label">数据查看模式</span>
               <el-radio-group v-model="filters.viewMode" size="small">
-                <el-radio-button v-for="m in viewModes" :key="m.value" :label="m.label" :value="m.value" />
+                <el-radio-button v-for="m in viewModes" :key="m.value" :label="m.label" :value="m.value" :disabled="m.disabled" />
               </el-radio-group>
             </div>
           </div>
@@ -126,9 +129,10 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { Filter } from "@element-plus/icons-vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
+import TracebackBar from "./TracebackBar.vue";
 
 const store = useConfigStore();
 const controlVisible = ref(false);
@@ -141,11 +145,12 @@ const quarters = [
   { label: "Q4", value: "Q4" },
   { label: "全年", value: "ALL" },
 ];
-const viewModes = [
-  { label: "标准", value: "standard" },
-  { label: "纯净", value: "clean" },
-  { label: "回溯", value: "traceback" },
-];
+const viewModes = computed(() => [
+  { label: "标准", value: "standard", disabled: false },
+  { label: "纯净", value: "clean", disabled: false },
+  { label: "回溯", value: "traceback", disabled: store.activeKey !== 'cloud' },
+]);
+
 
 const filters = ref({
   year: store.year,
@@ -305,6 +310,13 @@ watch(() => store.viewMode, (v) => { filters.value.viewMode = v; });
   box-shadow: none;
 }
 
+.control-popover .el-radio-button.is-disabled .el-radio-button__inner {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: rgba(59, 130, 246, 0.1);
+  color: rgba(148, 163, 184, 0.35);
+}
+
 .control-popover .el-text.el-text--info {
   color: rgba(224, 230, 240, 0.35);
 }
@@ -323,5 +335,16 @@ watch(() => store.viewMode, (v) => { filters.value.viewMode = v; });
 .buttons .el-popper.is-dark .el-popper__arrow::before {
   background: #0f1420;
   border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+/* ── 回溯进度条过渡 ── */
+.tb-fade-enter-active,
+.tb-fade-leave-active {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.tb-fade-enter-from,
+.tb-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
 }
 </style>

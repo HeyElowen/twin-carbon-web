@@ -38,6 +38,14 @@ export const useConfigStore = defineStore("dashboard", () => {
   // AI Agent 聊天记录
   const aiMessages = ref([]);
 
+  // 回溯播放控制
+  const tracebackPlaying = ref(false);
+  const tracebackProgress = ref(0);
+  const tracebackTickCount = ref(0);
+
+  function tracebackResetTicks() { tracebackTickCount.value = 0; }
+  function tracebackTick() { tracebackTickCount.value++; }
+
   // 3D 热力图配置
   const heatmapConfig = ref({
     enabled: false,
@@ -70,7 +78,13 @@ export const useConfigStore = defineStore("dashboard", () => {
 
   function setYear(v) { year.value = v; }
   function setQuarter(v) { quarter.value = v; }
-  function setViewMode(v) { viewMode.value = v; }
+  function setViewMode(v) {
+    // 回溯模式仅在 cloud 面板可用，自动切换
+    if (v === 'traceback' && activeKey.value !== 'cloud') {
+      activeKey.value = 'cloud';
+    }
+    viewMode.value = v;
+  }
   function setTrendYearScale(v) { trendYearScale.value = v; }
 
   function setSelectedCategory(name) {
@@ -103,6 +117,9 @@ export const useConfigStore = defineStore("dashboard", () => {
     viewMode.value = "standard";
     trendYearScale.value = 3;
     selectedCategory.value = null;
+    tracebackPlaying.value = false;
+    tracebackProgress.value = 0;
+    tracebackTickCount.value = 0;
     heatmapConfig.value = {
       enabled: false,
       scaleHeight: 0.08,
@@ -119,6 +136,8 @@ export const useConfigStore = defineStore("dashboard", () => {
     mapPlayComplete, activeKey, controlOpen, districts,
     year, quarter, viewMode, trendYearScale, selectedCategory,
     heatmapConfig, updateHeatmapConfig,
+    tracebackPlaying, tracebackProgress,
+    tracebackTickCount, tracebackResetTicks, tracebackTick,
     uploadPreviewActive, setUploadPreview, uploadLeftView, setUploadLeftView, uploadFile, setUploadFile,
     aiMessages,
     setActive, toggleControl, toggleDistrict,

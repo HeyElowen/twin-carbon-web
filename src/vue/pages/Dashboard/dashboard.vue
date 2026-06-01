@@ -97,6 +97,8 @@ async function fetchPoints() {
     pointData.value = [];
   } finally {
     pointLoading.value = false;
+    // 回溯模式下通知进度管理器
+    if (store.tracebackPlaying) store.tracebackTick();
   }
 }
 

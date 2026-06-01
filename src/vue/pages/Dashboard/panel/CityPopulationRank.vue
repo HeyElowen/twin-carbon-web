@@ -21,6 +21,7 @@ async function fetchData() {
   } catch {
     rawData.value = [];
   }
+  if (store.tracebackPlaying) store.tracebackTick();
 }
 
 fetchData();

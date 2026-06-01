@@ -177,9 +177,9 @@ function hideSide() {
 // 地图加载完成后播放入场动画
 watch(() => store.mapPlayComplete, (v) => { if (v) animateIn(); });
 
-// activeKey 变化时：标准模式先退出再进入；纯净模式自动切回标准模式
+// activeKey 变化时：回溯/纯净模式自动切回标准；标准模式先退出再进入
 watch(() => store.activeKey, (key) => {
-  if (store.viewMode === 'clean') {
+  if (store.viewMode === 'clean' || store.viewMode === 'traceback') {
     store.setViewMode('standard');
     return;
   }
@@ -189,11 +189,11 @@ watch(() => store.activeKey, (key) => {
   setTimeout(() => showSide(), 150);
 });
 
-// viewMode 变化时：进入纯净模式隐藏面板；退出纯净模式显示面板
+// viewMode 变化时：回溯/纯净模式隐藏面板；退出时显示面板
 watch(() => store.viewMode, (newMode, oldMode) => {
   if (newMode === 'clean') {
     hideSide();
-  } else if (oldMode === 'clean') {
+  } else if (oldMode === 'clean' || oldMode === 'traceback') {
     showSide();
   }
 });
@@ -333,4 +333,5 @@ watch(() => store.viewMode, (newMode, oldMode) => {
   border-color: rgba(52, 211, 153, 0.5);
   color: #6ee7b7;
 }
+
 </style>
