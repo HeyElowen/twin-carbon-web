@@ -117,6 +117,8 @@ async function fetchPoints() {
     const geoJson = res.data;
     if (geoJson && geoJson.type === 'FeatureCollection') {
       await loadGeoJsonToCesium(geoJson);
+      // 同步到 store 供 AnalysisLeft / AnalysisRight 复用，避免重复请求
+      store.buildingPointFeatures = geoJson.features || [];
     }
 
     // eslint-disable-next-line no-console

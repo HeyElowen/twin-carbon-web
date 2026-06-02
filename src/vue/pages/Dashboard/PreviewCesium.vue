@@ -42,18 +42,29 @@ function startSync() {
   const main = window.cesiumViewer;
   if (!main || !previewViewer) return;
 
+  let mainRafId = null;
+  let previewRafId = null;
+
   mainCameraRemove = main.scene.camera.changed.addEventListener(() => {
     if (syncing) return;
-    syncing = true;
-    syncCamera(main, previewViewer);
-    syncing = false;
+    if (mainRafId) return;
+    mainRafId = requestAnimationFrame(() => {
+      mainRafId = null;
+      syncing = true;
+      syncCamera(main, previewViewer);
+      syncing = false;
+    });
   });
 
   previewCameraRemove = previewViewer.scene.camera.changed.addEventListener(() => {
     if (syncing) return;
-    syncing = true;
-    syncCamera(previewViewer, main);
-    syncing = false;
+    if (previewRafId) return;
+    previewRafId = requestAnimationFrame(() => {
+      previewRafId = null;
+      syncing = true;
+      syncCamera(previewViewer, main);
+      syncing = false;
+    });
   });
 }
 

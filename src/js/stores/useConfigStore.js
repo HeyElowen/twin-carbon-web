@@ -38,6 +38,9 @@ export const useConfigStore = defineStore("dashboard", () => {
   // AI Agent 聊天记录
   const aiMessages = ref([]);
 
+  // 建筑观测点缓存（避免 AnalysisLeft / AnalysisRight 重复请求）
+  const buildingPointFeatures = ref([]);
+
   // 3D 热力图配置
   const heatmapConfig = ref({
     enabled: false,
@@ -113,6 +116,7 @@ export const useConfigStore = defineStore("dashboard", () => {
       power: 2.0,
     };
     aiMessages.value = [];
+    buildingPointFeatures.value = [];
   }
 
   return {
@@ -121,6 +125,7 @@ export const useConfigStore = defineStore("dashboard", () => {
     heatmapConfig, updateHeatmapConfig,
     uploadPreviewActive, setUploadPreview, uploadLeftView, setUploadLeftView, uploadFile, setUploadFile,
     aiMessages,
+    buildingPointFeatures,
     setActive, toggleControl, toggleDistrict,
     setYear, setQuarter, setViewMode, setTrendYearScale, setSelectedCategory,
     reset,

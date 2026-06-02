@@ -32,7 +32,7 @@
         </div>
       </div>
 
-      <div class="analysis-text">
+      <div class="analysis-text" v-if="rawFeatures.length">
         <p v-for="(p, i) in analysisText.paragraphs" :key="i">{{ p }}</p>
         <p>结合当前时间段经济活动及政策事件分析，极值出现原因推测为：</p>
         <ul>
@@ -70,26 +70,12 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
-import { getBuildingObservationPoint } from "@/api/monitoring";
-
 const store = useConfigStore();
 
-// ─── API 数据 ──────────────────────────────────────
-const rawFeatures = ref([]);
-
-async function fetchData() {
-  try {
-    const res = await getBuildingObservationPoint(store.year, store.quarter, true);
-    rawFeatures.value = res.data?.features || [];
-  } catch {
-    rawFeatures.value = [];
-  }
-}
-
-fetchData();
-watch([() => store.year, () => store.quarter], fetchData);
+// ─── 数据来源：从 store 共享（dashboard.vue 负责请求）─
+const rawFeatures = computed(() => store.buildingPointFeatures);
 
 // ─── 极值计算 ──────────────────────────────────────
 const extremeInfo = computed(() => {
