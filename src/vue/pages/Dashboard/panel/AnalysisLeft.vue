@@ -32,7 +32,6 @@
             <span class="name">{{ item.name }}</span>
             <span class="divider"></span>
             <span class="value">{{ item.value }}</span>
-            <span class="grade-badge" :style="{ color: item.gradeColor, background: item.gradeBg }">{{ item.grade }}</span>
           </div>
         </div>
       </div>
@@ -46,13 +45,11 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import Chart from "@/vue/components/Chart.vue";
 import { BarChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, LegendComponent } from "echarts/components";
-import { getBuildingObservationPoint } from "@/api/monitoring";
-
 const store = useConfigStore();
 const modules = [BarChart, GridComponent, TooltipComponent, LegendComponent];
 
@@ -83,36 +80,13 @@ const gradeMeta = [
 function getGrade(emission, threshold) {
   const ratio = emission / threshold;
   for (const g of gradeMeta) {
-    if (ratio > g.lower && ratio <= g.upper) return g.grade;
+    if (ratio >= g.lower && ratio <= g.upper) return g.grade;
   }
   return "E";
 }
 
-function getGradeMeta(g) {
-  return gradeMeta.find((m) => m.grade === g) || gradeMeta[4];
-}
-
-function hexToRgba(hex, a) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${a})`;
-}
-
-// ─── API 数据 ─────────────────────────────────────
-const rawFeatures = ref([]);
-
-async function fetchData() {
-  try {
-    const res = await getBuildingObservationPoint(store.year, store.quarter, true);
-    rawFeatures.value = res.data?.features || [];
-  } catch {
-    rawFeatures.value = [];
-  }
-}
-
-fetchData();
-watch([() => store.year, () => store.quarter], fetchData);
+// ─── 数据来源：从 store 共享（dashboard.vue 负责请求）─
+const rawFeatures = computed(() => store.buildingPointFeatures);
 
 // ─── 静态判定标准（使用基值，不随 year/quarter 变化）─
 const staticStandards = computed(() => {
@@ -123,25 +97,18 @@ const staticStandards = computed(() => {
     const districtBuildings = features.filter((f) => f.properties?.category === category);
     const total = districtBuildings.length;
 
-    let grade = "C";
-    let gradeColor = "#f59e0b";
-    let gradeBg = "rgba(245, 158, 11, 0.15)";
-    if (total > 0) {
-      const avgEmission =
-        districtBuildings.reduce((s, f) => s + (f.properties?.emission ?? 0), 0) / total;
-      grade = getGrade(avgEmission, threshold);
-      const meta = getGradeMeta(grade);
-      gradeColor = meta.color;
-      gradeBg = hexToRgba(meta.color, 0.15);
-    }
-
-    return { name, value: `≤${threshold.toFixed(2)}吨`, grade, gradeColor, gradeBg };
+    return { name, value: `≤${threshold.toFixed(2)}吨` };
   });
 });
 
 // ─── 图表 — 各等级占比 ───────────────────────────
 const chartOption = computed(() => {
   const features = rawFeatures.value;
+
+  // 过滤掉无建筑数据的区域
+  const nonEmptyDistricts = districtNames.filter((name) => {
+    return features.some((f) => f.properties?.category === nameToCategory[name]);
+  });
 
   // 为每个 district 计算 5 个等级的计数
   const seriesData = gradeMeta.map((g) => {
@@ -152,15 +119,16 @@ const chartOption = computed(() => {
       barWidth: "60%",
       emphasis: { focus: "series" },
       itemStyle: { color: g.color, borderRadius: 0 },
-      data: districtNames.map((name) => {
+      data: nonEmptyDistricts.map((name) => {
         const threshold = baseThresholds[name];
         const category = nameToCategory[name];
         const districtBuildings = features.filter((f) => f.properties?.category === category);
-        const total = districtBuildings.length || 1;
+        const total = districtBuildings.length;
+        if (total === 0) return 0;
         const count = districtBuildings.filter((f) => {
           const e = f.properties?.emission ?? 0;
           const ratio = e / threshold;
-          return ratio > g.lower && ratio <= g.upper;
+          return ratio >= g.lower && ratio <= g.upper;
         }).length;
         return Math.round((count / total) * 100);
       }),
@@ -225,7 +193,7 @@ const chartOption = computed(() => {
     },
     xAxis: {
       type: "category",
-      data: districtNames,
+      data: nonEmptyDistricts,
       axisLine: { lineStyle: { color: "rgba(224, 230, 240, 0.15)" } },
       axisLabel: { color: "rgba(224, 230, 240, 0.6)", fontSize: 12, rotate: 20 },
       axisTick: { show: false },
