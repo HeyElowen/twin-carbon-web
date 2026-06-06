@@ -108,35 +108,74 @@ const categoryColors = {
   '教育区': Cesium.Color.fromCssColorString('#a855f7'),
 };
 
-// ─── 区域边界（经纬度多边形）────────────────────
+// ─── 区域边界（来自类型分区.json，按三维建筑实际划分）────────────────────
 const districtBoundaries = {
-  '教育区': [
-    [120.480, 31.552], [120.510, 31.552],
-    [120.510, 31.570], [120.480, 31.570],
-  ],
-  '商业区': [
-    [120.498, 31.570], [120.522, 31.570],
-    [120.522, 31.588], [120.498, 31.588],
+  '农业区': [
+    [120.44453311315738, 31.582980213885889],
+    [120.44970844084514, 31.581314591181808],
+    [120.44988690042044, 31.578756670600512],
+    [120.46315239552803, 31.580838698980585],
+    [120.4827472569109, 31.58083275032817],
+    [120.49766231336071, 31.580193666759726],
+    [120.49743388510433, 31.560605943759697],
+    [120.46824741640683, 31.560786782796072],
+    [120.443152034332, 31.565831240128432],
+    [120.43639436507544, 31.568781771775718],
   ],
   '工业区': [
-    [120.518, 31.582], [120.552, 31.582],
-    [120.552, 31.612], [120.518, 31.612],
+    [120.47114228788053, 31.580836273391071],
+    [120.47226657588885, 31.592322814571901],
+    [120.48190339296252, 31.590966521798691],
+    [120.48204616062287, 31.599960884400616],
+    [120.49753645177077, 31.599889500570555],
+    [120.49766231336071, 31.580193666759726],
+    [120.4827472569109, 31.58083275032817],
+    [120.47203299286696, 31.580836002988747],
+  ],
+  '商业区': [
+    [120.45846788322763, 31.585608269080524],
+    [120.46178723133062, 31.584430435882609],
+    [120.4609198560396, 31.580488300406273],
+    [120.45732932244903, 31.579924763743975],
+  ],
+  '教育区': [
+    [120.46178723133062, 31.584430435882609],
+    [120.46344167154143, 31.586972294746829],
+    [120.46560222213463, 31.589104291808212],
+    [120.46826721846116, 31.593006607857717],
+    [120.46300860963834, 31.593815624599642],
+    [120.46303240424834, 31.596385442485939],
+    [120.46428756992907, 31.59989514746951],
+    [120.48204616062287, 31.599960884400616],
+    [120.48190339296252, 31.590966521798691],
+    [120.47226657588885, 31.592322814571901],
+    [120.47114228788053, 31.580836273391071],
+    [120.46315239552803, 31.580838698980585],
+    [120.4609198560396, 31.580488300406273],
   ],
   '住宅区': [
-    [120.472, 31.564], [120.498, 31.564],
-    [120.498, 31.582], [120.472, 31.582],
-  ],
-  '农业区': [
-    [120.452, 31.538], [120.482, 31.538],
-    [120.482, 31.562], [120.452, 31.562],
+    [120.46428756992907, 31.59989514746951],
+    [120.46387581942872, 31.598743807207768],
+    [120.46303240424834, 31.596385442485939],
+    [120.46300860963834, 31.593815624599642],
+    [120.46826721846116, 31.593006607857717],
+    [120.46560222213463, 31.589104291808212],
+    [120.46344167154143, 31.586972294746829],
+    [120.46178723133062, 31.584430435882609],
+    [120.45846788322763, 31.585608269080524],
+    [120.45732932244914, 31.579924763744145],
+    [120.44988690042044, 31.578756670600512],
+    [120.44970844084514, 31.581314591181808],
+    [120.44453311315738, 31.582980213885889],
+    [120.46140326661327, 31.599950192334177],
   ],
 };
 const districtCenter = {
-  '教育区': [120.495, 31.561],
-  '商业区': [120.510, 31.579],
-  '工业区': [120.535, 31.597],
-  '住宅区': [120.485, 31.573],
-  '农业区': [120.467, 31.550],
+  '农业区': [120.470064491, 31.5712461355],
+  '工业区': [120.486305147, 31.5891198715],
+  '商业区': [120.459524558, 31.582632613],
+  '教育区': [120.470944573, 31.5920172888],
+  '住宅区': [120.456854576, 31.5884363629],
 };
 
 let districtEntities = {}; // key: 区域名 → { polygon, label }
@@ -313,6 +352,7 @@ watch(() => store.activeKey, (key) => {
 });
 
 // ─── 区域显示控制（Cesium 多边形 + 标签）────────
+
 function createGradientCanvas(color) {
   const size = 1024;
   const canvas = document.createElement('canvas');
@@ -332,28 +372,6 @@ function createGradientCanvas(color) {
   return canvas;
 }
 
-// 生成文字 Canvas：字号、字间距、渐变色填充
-function createTextCanvas(text, color, fontSize) {
-  const r = Math.round(color.red * 255);
-  const g = Math.round(color.green * 255);
-  const b = Math.round(color.blue * 255);
-  const font = `bold ${fontSize}px "Microsoft YaHei", sans-serif`;
-  const spaced = text.split('').join(' ');
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  ctx.font = font;
-  const tw = Math.ceil(ctx.measureText(spaced).width);
-  const th = fontSize * 1.4;
-  canvas.width = tw + 20;
-  canvas.height = th + 12;
-  ctx.font = font;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = `rgba(${r},${g},${b},0.6)`;
-  ctx.fillText(spaced, canvas.width / 2, canvas.height / 2);
-  return canvas;
-}
-
 function createDistrictOverlay() {
   if (!viewer) return;
   Object.values(districtEntities).forEach((e) => {
@@ -363,11 +381,12 @@ function createDistrictOverlay() {
   districtEntities = {};
 
   Object.entries(districtBoundaries).forEach(([name, coords]) => {
-    const positions = coords.map((c) => Cesium.Cartesian3.fromDegrees(c[0], c[1], 15));
+    const positions = coords.map((c) => Cesium.Cartesian3.fromDegrees(c[0], c[1], 5));
     const color = categoryColors[name] || Cesium.Color.WHITE;
     const center = districtCenter[name];
     const visible = store.districts[name];
 
+    // 区域多边形（渐变填充）
     const polygon = viewer.entities.add({
       polygon: {
         hierarchy: new Cesium.PolygonHierarchy(positions),
@@ -375,28 +394,37 @@ function createDistrictOverlay() {
           image: createGradientCanvas(color),
           transparent: true,
         }),
-        outline: true,
-        outlineColor: color.withAlpha(0.6),
-        outlineWidth: 3,
         perPositionHeight: true,
+        classificationType: Cesium.ClassificationType.BOTH,
         show: visible,
       },
     });
 
-    // 根据区域地理跨度（经度宽度）计算字号，使文字刚好适配区域大小
-    const lons = coords.map((c) => c[0]);
-    const lonSpan = Math.max(...lons) - Math.min(...lons);
-    const fontSize = Math.round(lonSpan * 1600);
-    // 使用 Canvas 绘制带渐变、字间距的文字，以 billboard 固定在区域上方
-    const textCanvas = createTextCanvas(name, color, fontSize);
+    // 各区域固定字号（大区域大字，小区域小字，不随相机变化）
+    const districtFontSize = {
+      '农业区': 48,
+      '工业区': 38,
+      '住宅区': 32,
+      '教育区': 28,
+      '商业区': 22,
+    };
+    const fontSize = districtFontSize[name] || 32;
+
+    // 区域名称文字：贴地 Label，固定大小，穿透建筑确保可见
     const label = viewer.entities.add({
-      position: Cesium.Cartesian3.fromDegrees(center[0], center[1], 30),
-      billboard: {
-        image: textCanvas,
+      position: Cesium.Cartesian3.fromDegrees(center[0], center[1]),
+      label: {
+        text: name,
+        font: `bold ${fontSize}px "Microsoft YaHei", sans-serif`,
+        fillColor: Cesium.Color.WHITE,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 3,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
         verticalOrigin: Cesium.VerticalOrigin.CENTER,
         horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+        scale: 1.0,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        scaleByDistance: new Cesium.NearFarScalar(500, 4.0, 40000, 0.15),
         show: visible,
       },
     });
@@ -433,6 +461,16 @@ onMounted(async() => {
     shouldAnimate: false
   })
   window.cesiumViewer = viewer
+
+  // 阻止 Ctrl+滚轮 触发浏览器页面缩放，避免标签被浏览器缩放影响
+  const cesiumContainer = document.getElementById('cesiumContainer');
+  if (cesiumContainer) {
+    cesiumContainer.addEventListener('wheel', (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
 
   // 限制并发请求数，缓解天地图 429 限流
   Cesium.RequestScheduler.maximumRequests = 12
@@ -477,7 +515,7 @@ onMounted(async() => {
   // imageryLayers.addImageryProvider(tdtCia)
 
   try {
-    const layers = await scene.open('http://localhost:8090/iserver/services/3D-twin-carbon-city/rest/realspace')
+    const layers = await scene.open('http://localhost:8090/iserver/services/3D-global/rest/realspace')
     if (layers?.length > 0) {
       viewer.flyTo?.(layers[0])
     }

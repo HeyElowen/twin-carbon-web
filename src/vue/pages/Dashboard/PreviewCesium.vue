@@ -104,7 +104,7 @@ watch(() => store.uploadPreviewActive, async (active) => {
     setupBaseImagery(previewViewer);
 
     // 等待 3D 场景加载完成后再初始化热力图（与主视图时序一致）
-    const sceneUrl = 'http://localhost:8090/iserver/services/3D-twin-carbon-city/rest/realspace';
+    const sceneUrl = 'http://localhost:8090/iserver/services/3D-global/rest/realspace';
     try {
       await previewViewer.scene.open(sceneUrl);
     } catch (e) {
