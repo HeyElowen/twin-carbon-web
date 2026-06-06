@@ -8,10 +8,14 @@ import Chart from "@/vue/components/Chart.vue";
 import { PieChart } from "echarts/charts";
 import { LegendComponent, TooltipComponent } from "echarts/components";
 import { useConfigStore } from "@/js/stores/useConfigStore";
-import { getCategoryRatio } from "@/api/monitoring";
+import { getCategoryRatio, previewCategoryRatio } from "@/api/monitoring";
 
 const store = useConfigStore();
 const chartRef = ref(null);
+
+const props = defineProps({
+  preview: { type: Boolean, default: undefined }
+});
 
 // 从后端获取的原始数据
 const rawData = ref([]);
@@ -26,10 +30,20 @@ const colorMap = {
 
 const order = ["工业区", "商业区", "住宅区", "农业区", "教育区"];
 
+// 是否使用预览统计接口 — 仅由 prop 控制，不依赖全局 store 状态
+function usePreviewApi() {
+  return props.preview === true;
+}
+
 // 请求饼图数据
 async function fetchData() {
   try {
-    const res = await getCategoryRatio(store.year, store.quarter);
+    let res;
+    if (usePreviewApi()) {
+      res = await previewCategoryRatio(store.previewBatchId, store.year, store.quarter);
+    } else {
+      res = await getCategoryRatio(store.year, store.quarter);
+    }
     rawData.value = res.data || [];
   } catch {
     rawData.value = [];
@@ -40,8 +54,8 @@ async function fetchData() {
 // 初始化请求
 fetchData();
 
-// year / quarter 变化时重新请求数据
-watch([() => store.year, () => store.quarter], fetchData);
+// year / quarter / preview prop 变化时重新请求数据
+watch([() => store.year, () => store.quarter, () => props.preview], fetchData);
 
 // 格式化后的饼图数据（包含 itemStyle）
 const pieDataBase = computed(() => {

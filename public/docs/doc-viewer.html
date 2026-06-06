@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>加载中... — Twin Carbon 文档</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js" integrity="sha384-H+hy9ULve6xfxRkWIh/YOtvDdpXgV2fmAGQkIDTxIgZwNoaoBal14Di2YTMR6MzR" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --sidebar-w: 260px;
+    --header-h: 56px;
+    --accent: #4f6ef7;
+    --accent-hover: #3b5de7;
+    --accent-light: #eef1ff;
+    --bg: #ffffff;
+    --bg-sidebar: #f7f8fa;
+    --text: #1a1a2e;
+    --text-dim: #6b7280;
+    --text-nav: #374151;
+    --border: #e5e7eb;
+    --code-bg: #1e293b;
+    --code-text: #e2e8f0;
+    --table-header: #f8fafc;
+    --hover-bg: #eef1ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", system-ui, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.8;
+    font-size: 15px;
+    min-height: 100vh;
+  }
+
+  /* ── 顶部标题栏 ── */
+  .header {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: var(--header-h);
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+    display: flex; align-items: center;
+    padding: 0 24px 0 20px;
+  }
+  .header-logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 16px; font-weight: 700;
+    color: var(--accent); text-decoration: none;
+    flex-shrink: 0; margin-right: 32px;
+  }
+  .header-nav { display: flex; align-items: center; gap: 4px; height: 100%; overflow-x: auto; }
+  .header-nav a {
+    display: flex; align-items: center; gap: 6px;
+    height: 100%; padding: 0 16px;
+    font-size: 14px; font-weight: 500;
+    color: var(--text-dim); text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.12s; white-space: nowrap;
+  }
+  .header-nav a:hover { color: var(--text); background: var(--hover-bg); }
+  .header-nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .header-nav a .tab-icon { font-size: 16px; }
+  .header-right { margin-left: auto; font-size: 13px; color: var(--text-dim); }
+
+  /* ── 左侧导航 ── */
+  .sidebar {
+    position: fixed;
+    top: var(--header-h); left: 0;
+    width: var(--sidebar-w);
+    height: calc(100vh - var(--header-h));
+    overflow-y: auto;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+  .nav-group { margin-bottom: 4px; }
+  .nav-group-title {
+    padding: 6px 20px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 20px 7px 24px;
+    font-size: 13px;
+    color: var(--text-nav); text-decoration: none;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+    cursor: pointer;
+  }
+  .nav-item:hover { background: var(--hover-bg); color: var(--accent); }
+  .nav-item.active {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-left-color: var(--accent);
+    font-weight: 500;
+  }
+  .nav-item .nav-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+  .sidebar-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* ── 主内容区 ── */
+  .layout {
+    display: flex;
+    margin-top: var(--header-h);
+    min-height: calc(100vh - var(--header-h));
+  }
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    max-width: 880px;
+    padding: 40px 48px 64px;
+  }
+
+  /* ── Markdown 渲染样式 ── */
+  #content h1 {
+    font-size: 30px; font-weight: 700;
+    letter-spacing: -0.3px; margin-bottom: 8px;
+    color: var(--text); padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent);
+  }
+  #content h2 {
+    font-size: 22px; font-weight: 600;
+    margin-top: 48px; margin-bottom: 16px;
+    color: var(--text); padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    scroll-margin-top: calc(var(--header-h) + 16px);
+  }
+  #content h2:first-of-type { margin-top: 0; }
+  #content h3 { font-size: 17px; font-weight: 600; margin-top: 28px; margin-bottom: 12px; color: var(--text); }
+  #content h4 { font-size: 14px; font-weight: 600; margin-top: 20px; margin-bottom: 8px; color: #374151; }
+  #content p { margin: 10px 0; color: #374151; }
+
+  #content table {
+    width: 100%; border-collapse: collapse; font-size: 14px;
+    margin: 14px 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+  #content th, #content td {
+    padding: 10px 14px; text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  #content th { background: var(--table-header); font-weight: 600; font-size: 13px; color: #374151; white-space: nowrap; }
+  #content tr:last-child td { border-bottom: none; }
+
+  #content code {
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-size: 13px; background: #f3f4f6;
+    padding: 2px 7px; border-radius: 4px; color: #dc2626;
+  }
+  #content pre {
+    background: var(--code-bg); color: var(--code-text);
+    border-radius: 8px; padding: 18px 20px;
+    overflow-x: auto; font-size: 13.5px; line-height: 1.7; margin: 14px 0;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  }
+  #content pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+
+  #content ul, #content ol { padding-left: 22px; margin: 10px 0; }
+  #content li { margin-bottom: 4px; color: #374151; }
+  #content hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  #content blockquote {
+    margin: 14px 0; padding: 14px 18px;
+    background: #fefce8; border-left: 3px solid #eab308;
+    border-radius: 6px; font-size: 14px; color: #92400e;
+  }
+  #content blockquote strong { color: #78350f; }
+  #content blockquote code { background: #fef3c7; color: #92400e; }
+  #content a { color: var(--accent); text-decoration: none; }
+  #content a:hover { text-decoration: underline; }
+
+  #content input[type="checkbox"] { margin-right: 6px; }
+  #content li input[type="checkbox"] { margin-left: -20px; }
+
+  /* ── 状态 ── */
+  .loading-state, .error-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 80px 20px; text-align: center;
+  }
+  .loading-state .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-state .text { color: var(--text-dim); }
+  .error-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .error-state .text { color: var(--text-dim); }
+  .error-state .detail { font-size: 13px; color: #9ca3af; margin-top: 4px; }
+
+  @media (max-width: 820px) {
+    .sidebar { display: none; }
+    .header { padding: 0 12px; }
+    .header-logo { margin-right: 12px; font-size: 14px; }
+    .header-nav a { padding: 0 10px; font-size: 13px; }
+    .main { margin-left: 0; padding: 24px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <a class="header-logo" href="doc-viewer.html?file=EXCEL_FILLING_GUIDE.md">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    Twin Carbon
+  </a>
+  <nav class="header-nav">
+    <a href="doc-viewer.html?file=EXCEL_FILLING_GUIDE.md"><span class="tab-icon">📘</span> 填写指南</a>
+    <a href="doc-viewer.html?file=AGENT_GUIDE.md"><span class="tab-icon">🤖</span> Agent 指导</a>
+    <a href="doc-viewer.html?file=API_REFERENCE.md"><span class="tab-icon">📊</span> API 参考</a>
+    <a href="doc-viewer.html?file=DEPLOY_GUIDE.md"><span class="tab-icon">⚙️</span> 部署指南</a>
+  </nav>
+  <div class="header-right">超图杯竞赛作品</div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-nav" id="sidebarNav"></nav>
+    <div class="sidebar-footer">Twin Carbon · 超图杯竞赛作品</div>
+  </aside>
+
+  <div class="main">
+    <div id="content"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// 配置：每个文档的左侧导航结构
+// ══════════════════════════════════════════════════════════════
+const SIDEBAR = {
+  'EXCEL_FILLING_GUIDE.md': [
+    { group: '开始', icon: '', items: [
+      { label: '快速开始', href: '#快速开始' },
+      { label: '通用规则', href: '#通用规则' },
+    ]},
+    { group: '用地类型', icon: '', items: [
+      { label: '🏠 住宅区', href: '#住宅区' },
+      { label: '🏪 商业区', href: '#商业区' },
+      { label: '🏭 工业区', href: '#工业区' },
+      { label: '🌾 农业区', href: '#农业区' },
+      { label: '🏫 教育区', href: '#教育区' },
+    ]},
+    { group: '参考', icon: '', items: [
+      { label: '❌ 常见错误', href: '#常见错误' },
+      { label: '📋 完整填写流程', href: '#完整填写流程' },
+    ]},
+  ],
+  'AGENT_GUIDE.md': [
+    { group: '概览', items: [
+      { label: '快速开始', href: '#快速开始' },
+      { label: '功能规划', href: '#功能规划' },
+    ]},
+  ],
+  'API_REFERENCE.md': [
+    { group: '概览', items: [
+      { label: '概述', href: '#概述' },
+      { label: '接口列表', href: '#接口列表' },
+      { label: '认证', href: '#认证' },
+    ]},
+  ],
+  'DEPLOY_GUIDE.md': [
+    { group: '概览', items: [
+      { label: '环境要求', href: '#环境要求' },
+      { label: '组件', href: '#组件' },
+      { label: '快速启动', href: '#快速启动' },
+    ]},
+  ],
+};
+
+// ══════════════════════════════════════════════════════════════
+// 加载文档
+// ══════════════════════════════════════════════════════════════
+const params = new URLSearchParams(window.location.search);
+const file = params.get('file') || 'EXCEL_FILLING_GUIDE.md';
+
+// 更新标题
+const titles = {
+  'EXCEL_FILLING_GUIDE.md': '填写指南',
+  'AGENT_GUIDE.md': 'Agent 指导',
+  'API_REFERENCE.md': 'API 参考',
+  'DEPLOY_GUIDE.md': '部署指南',
+};
+document.title = (titles[file] || '文档') + ' — Twin Carbon 文档';
+
+// 高亮顶部导航
+document.querySelectorAll('.header-nav a').forEach(a => {
+  const href = a.getAttribute('href');
+  if (href && href.includes(file)) a.classList.add('active');
+});
+
+// 构建左侧导航
+function buildSidebar(file) {
+  const nav = document.getElementById('sidebarNav');
+  const config = SIDEBAR[file];
+  if (!config) { nav.innerHTML = ''; return; }
+
+  nav.innerHTML = config.map(group => `
+    <div class="nav-group">
+      <div class="nav-group-title">${group.group}</div>
+      ${group.items.map(item => `
+        <a class="nav-item" href="${item.href}">
+          <span class="nav-icon"></span> ${item.label}
+        </a>
+      `).join('')}
+    </div>
+  `).join('');
+
+  // 点击导航项时高亮
+  nav.querySelectorAll('.nav-item').forEach(a => {
+    a.addEventListener('click', function(e) {
+      nav.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+}
+
+// 渲染内容后监听滚动，自动高亮当前章节
+function setupScrollSpy() {
+  const headings = document.querySelectorAll('#content h2');
+  if (headings.length === 0) return;
+
+  const navItems = document.querySelectorAll('.nav-item');
+  if (navItems.length === 0) return;
+
+  // 为每个 h2 生成 id（如果 marked 没生成的话）
+  headings.forEach(h => {
+    if (!h.id) {
+      const text = h.textContent.replace(/[^\w一-鿿]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      h.id = text;
+    }
+  });
+
+  // 对应的导航映射
+  const sectionMap = [];
+  navItems.forEach(item => {
+    const href = item.getAttribute('href');
+    if (href && href.startsWith('#')) {
+      const target = document.getElementById(href.slice(1));
+      if (target) sectionMap.push({ el: item, target });
+    }
+  });
+
+  function onScroll() {
+    const scrollY = window.scrollY + 80;
+    let activeIdx = -1;
+    for (let i = sectionMap.length - 1; i >= 0; i--) {
+      if (scrollY >= sectionMap[i].target.offsetTop) { activeIdx = i; break; }
+    }
+    navItems.forEach(n => n.classList.remove('active'));
+    if (activeIdx >= 0) sectionMap[activeIdx].el.classList.add('active');
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
+
+// 加载并渲染
+async function loadDoc() {
+  const content = document.getElementById('content');
+  const sidebar = document.getElementById('sidebarNav');
+
+  // 先构建导航（让用户看到结构）
+  buildSidebar(file);
+
+  content.innerHTML = `<div class="loading-state"><div class="spinner"></div><div class="text">加载中...</div></div>`;
+
+  try {
+    const res = await fetch(file);
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const md = await res.text();
+    content.innerHTML = marked.parse(md);
+    content.querySelectorAll('a[href^="http"]').forEach(a => a.target = '_blank');
+    setupScrollSpy();
+  } catch (err) {
+    content.innerHTML = `
+      <div class="error-state">
+        <div class="icon">⚠️</div>
+        <div class="text">文档加载失败</div>
+        <div class="detail">${err.message}</div>
+      </div>`;
+  }
+}
+
+loadDoc();
+</script>
+
+</body>
+</html>

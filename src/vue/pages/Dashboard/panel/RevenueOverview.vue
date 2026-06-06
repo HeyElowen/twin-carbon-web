@@ -42,9 +42,13 @@ import Chart from "@/vue/components/Chart.vue";
 import NumberAnimation from "@/vue/components/NumberAnimation.vue";
 import { LineChart } from "echarts/charts";
 import { useConfigStore } from "@/js/stores/useConfigStore";
-import { getOverview } from "@/api/monitoring";
+import { getOverview, previewOverview } from "@/api/monitoring";
 
 const store = useConfigStore();
+
+const props = defineProps({
+  preview: { type: Boolean, default: undefined }
+});
 
 const overview = ref({
   totalEmission: 0,
@@ -54,9 +58,19 @@ const overview = ref({
   trend: [],
 });
 
+// 是否使用预览统计接口 — 仅由 prop 控制，不依赖全局 store 状态
+function usePreviewApi() {
+  return props.preview === true;
+}
+
 async function fetchData() {
   try {
-    const res = await getOverview(store.year, store.quarter);
+    let res;
+    if (usePreviewApi()) {
+      res = await previewOverview(store.previewBatchId);
+    } else {
+      res = await getOverview(store.year, store.quarter);
+    }
     if (res.data) {
       const d = res.data;
       // 兼容后端返回的下划线/驼峰两种 key 格式
@@ -76,7 +90,7 @@ async function fetchData() {
 }
 
 fetchData();
-watch([() => store.year, () => store.quarter], fetchData);
+watch([() => store.year, () => store.quarter, () => props.preview], fetchData);
 
 const yoyText = computed(() => {
   const v = overview.value.yoyChange;

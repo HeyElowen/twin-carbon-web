@@ -1,6 +1,8 @@
 /**
  * Mock 数据文件
- * 前端开发时，将此文件复制到 src/api/ 目录下使用
+ * 前端开发时，通过 request.js 中 USE_MOCK = true 启用
+ *
+ * 所有坐标以 无锡学院（120.47, 31.58）为中心，覆盖锡东新城区域
  *
  * 接口状态说明：
  *   ✅ 已实现 — 后端代码已存在，Mock 路径已对准真实接口
@@ -21,30 +23,45 @@ export const mockLogin = {
 }
 
 // ==================== 2. 建筑碳排放数据点（GeoJSON FeatureCollection）✅ ====================
-// 与后端真实返回格式保持一致：data.features[] 为 GeoJSON Feature 数组
+// 坐标以无锡学院（120.47, 31.58）为中心，覆盖锡东新城周边
 const buildingPointsRaw = [
-  {
-    id: 3,
-    name: "安基里村1",
-    category: "住宅区",
-    emission: 8.2469,
-    year: 2025,
-    quarter: "Q3",
-    lon: 120.4900785,
-    lat: 31.56941994,
-    createTime: "2026-05-24T17:31:14.754446"
-  },
-  {
-    id: 4,
-    name: "安基里村10",
-    category: "住宅区",
-    emission: 26.0009,
-    year: 2025,
-    quarter: "Q3",
-    lon: 120.4925604,
-    lat: 31.57027976,
-    createTime: "2026-05-24T17:31:14.754446"
-  }
+  // ── 住宅区（8个） ──
+  { id: 1,  name: "水岸佳苑A区",     category: "住宅区", emission: 8.25, year: 2025, quarter: "Q3", lon: 120.458, lat: 31.572 },
+  { id: 2,  name: "水岸佳苑B区",     category: "住宅区", emission: 12.36, year: 2025, quarter: "Q3", lon: 120.461, lat: 31.575 },
+  { id: 3,  name: "山河九里",         category: "住宅区", emission: 18.92, year: 2025, quarter: "Q3", lon: 120.468, lat: 31.569 },
+  { id: 4,  name: "恒大翡翠湾",       category: "住宅区", emission: 15.47, year: 2025, quarter: "Q3", lon: 120.475, lat: 31.576 },
+  { id: 5,  name: "融创·东方府",      category: "住宅区", emission: 22.18, year: 2025, quarter: "Q3", lon: 120.452, lat: 31.582 },
+  { id: 6,  name: "龙湖·九里香醍",    category: "住宅区", emission: 9.63,  year: 2025, quarter: "Q3", lon: 120.482, lat: 31.579 },
+  { id: 7,  name: "碧桂园·南光城",    category: "住宅区", emission: 14.50, year: 2025, quarter: "Q3", lon: 120.445, lat: 31.585 },
+  { id: 8,  name: "华润·江南府",      category: "住宅区", emission: 11.04, year: 2025, quarter: "Q3", lon: 120.478, lat: 31.568 },
+
+  // ── 商业区（6个） ──
+  { id: 9,  name: "锡东八佰伴",        category: "商业区", emission: 45.20, year: 2025, quarter: "Q3", lon: 120.476, lat: 31.590 },
+  { id: 10, name: "红豆万花城",        category: "商业区", emission: 38.65, year: 2025, quarter: "Q3", lon: 120.469, lat: 31.587 },
+  { id: 11, name: "映月天地商业街",    category: "商业区", emission: 22.30, year: 2025, quarter: "Q3", lon: 120.483, lat: 31.588 },
+  { id: 12, name: "创融大厦B座",       category: "商业区", emission: 18.75, year: 2025, quarter: "Q3", lon: 120.472, lat: 31.584 },
+  { id: 13, name: "锡东科技大厦",      category: "商业区", emission: 28.40, year: 2025, quarter: "Q3", lon: 120.479, lat: 31.582 },
+  { id: 14, name: "浙大网新科创园",    category: "商业区", emission: 32.15, year: 2025, quarter: "Q3", lon: 120.464, lat: 31.579 },
+
+  // ── 工业区（4个） ──
+  { id: 15, name: "锡山经济技术开发区A区", category: "工业区", emission: 86.50, year: 2025, quarter: "Q3", lon: 120.438, lat: 31.565 },
+  { id: 16, name: "锡山经济技术开发区B区", category: "工业区", emission: 72.30, year: 2025, quarter: "Q3", lon: 120.443, lat: 31.560 },
+  { id: 17, name: "联东U谷",              category: "工业区", emission: 55.80, year: 2025, quarter: "Q3", lon: 120.450, lat: 31.562 },
+  { id: 18, name: "精密机械产业园",        category: "工业区", emission: 45.20, year: 2025, quarter: "Q3", lon: 120.455, lat: 31.558 },
+
+  // ── 农业区（4个） ──
+  { id: 19, name: "锡山现代农业园",      category: "农业区", emission: 6.80,  year: 2025, quarter: "Q3", lon: 120.490, lat: 31.592 },
+  { id: 20, name: "太湖水稻示范园",      category: "农业区", emission: 5.25,  year: 2025, quarter: "Q3", lon: 120.498, lat: 31.588 },
+  { id: 21, name: "严家桥生态农场",      category: "农业区", emission: 3.90,  year: 2025, quarter: "Q3", lon: 120.485, lat: 31.595 },
+  { id: 22, name: "羊尖镇绿色农业园",    category: "农业区", emission: 4.50,  year: 2025, quarter: "Q3", lon: 120.505, lat: 31.590 },
+
+  // ── 教育区（6个，全部为无锡学院建筑） ──
+  { id: 23, name: "无锡学院-教学楼",          category: "教育区", emission: 12.60, year: 2025, quarter: "Q3", lon: 120.468, lat: 31.583 },
+  { id: 24, name: "无锡学院-图书馆",          category: "教育区", emission: 8.35,  year: 2025, quarter: "Q3", lon: 120.472, lat: 31.581 },
+  { id: 25, name: "无锡学院-实验楼",          category: "教育区", emission: 15.80, year: 2025, quarter: "Q3", lon: 120.475, lat: 31.585 },
+  { id: 26, name: "无锡学院-学生活动中心",     category: "教育区", emission: 5.60,  year: 2025, quarter: "Q3", lon: 120.470, lat: 31.586 },
+  { id: 27, name: "无锡学院-体育馆",          category: "教育区", emission: 10.20, year: 2025, quarter: "Q3", lon: 120.465, lat: 31.580 },
+  { id: 28, name: "无锡学院-学生食堂",         category: "教育区", emission: 6.75,  year: 2025, quarter: "Q3", lon: 120.473, lat: 31.588 },
 ]
 
 function toFeatureCollection(points) {
@@ -66,7 +83,7 @@ function toFeatureCollection(points) {
           emission: p.emission,
           year: p.year,
           quarter: p.quarter,
-          createTime: p.createTime,
+          createTime: p.createTime || "2026-05-24T17:31:14.754446",
           lon: p.lon,
           lat: p.lat
         }
@@ -82,11 +99,11 @@ export const mockCategoryRatio = {
   code: 200,
   message: "success",
   data: [
-    { name: "工业区", value: 45200.8 },
-    { name: "商业区", value: 38500.5 },
-    { name: "住宅区", value: 26800.2 },
-    { name: "农业区", value: 8900.6 },
-    { name: "教育区", value: 5600.4 }
+    { name: "工业区", value: 259.80 },
+    { name: "商业区", value: 185.45 },
+    { name: "住宅区", value: 112.35 },
+    { name: "教育区", value: 59.30 },
+    { name: "农业区", value: 20.45 }
   ]
 }
 
@@ -95,8 +112,8 @@ export const mockBuildingCategoryRatio = {
   code: 200,
   message: "success",
   data: [
-    { name: "工业区", value: 8200.5 },
-    { name: "农业区", value: 1950.2 }
+    { name: "工业区", value: 259.80 },
+    { name: "农业区", value: 20.45 }
   ]
 }
 
@@ -105,44 +122,44 @@ export const mockTrendAll = {
   code: 200,
   message: "success",
   data: [
-    { name: "2022-Q1", value: 98500.2 },
-    { name: "2022-Q2", value: 102300.5 },
-    { name: "2022-Q3", value: 108600.8 },
-    { name: "2022-Q4", value: 115200.3 },
-    { name: "2023-Q1", value: 112500.6 },
-    { name: "2023-Q2", value: 118900.4 },
-    { name: "2023-Q3", value: 125000.2 },
-    { name: "2023-Q4", value: 132400.8 },
-    { name: "2024-Q1", value: 128600.5 },
-    { name: "2024-Q2", value: 135200.3 },
-    { name: "2024-Q3", value: 141800.6 },
-    { name: "2024-Q4", value: 148500.2 },
-    { name: "2025-Q1", value: 144200.8 },
-    { name: "2025-Q2", value: 150800.5 },
-    { name: "2025-Q3", value: 157300.2 }
+    { name: "2022-Q1", value: 385.20 },
+    { name: "2022-Q2", value: 402.50 },
+    { name: "2022-Q3", value: 418.60 },
+    { name: "2022-Q4", value: 435.30 },
+    { name: "2023-Q1", value: 445.80 },
+    { name: "2023-Q2", value: 462.40 },
+    { name: "2023-Q3", value: 478.20 },
+    { name: "2023-Q4", value: 495.00 },
+    { name: "2024-Q1", value: 488.50 },
+    { name: "2024-Q2", value: 512.30 },
+    { name: "2024-Q3", value: 528.60 },
+    { name: "2024-Q4", value: 545.20 },
+    { name: "2025-Q1", value: 535.80 },
+    { name: "2025-Q2", value: 558.50 },
+    { name: "2025-Q3", value: 575.30 }
   ]
 }
 
-// ==================== 6. 趋势折线图 — 主数据（按类型筛选）✅ ====================
+// ==================== 6. 趋势折线图 — 工业区 ✅ ====================
 export const mockTrendIndustry = {
   code: 200,
   message: "success",
   data: [
-    { name: "2022-Q1", value: 12500.5 },
-    { name: "2022-Q2", value: 13200.8 },
-    { name: "2022-Q3", value: 14100.2 },
-    { name: "2022-Q4", value: 15800.6 },
-    { name: "2023-Q1", value: 15200.3 },
-    { name: "2023-Q2", value: 16800.5 },
-    { name: "2023-Q3", value: 17500.8 },
-    { name: "2023-Q4", value: 18200.2 },
-    { name: "2024-Q1", value: 17800.6 },
-    { name: "2024-Q2", value: 18500.3 },
-    { name: "2024-Q3", value: 19200.8 },
-    { name: "2024-Q4", value: 20100.5 },
-    { name: "2025-Q1", value: 19500.2 },
-    { name: "2025-Q2", value: 20800.6 },
-    { name: "2025-Q3", value: 21500.3 }
+    { name: "2022-Q1", value: 165.50 },
+    { name: "2022-Q2", value: 172.80 },
+    { name: "2022-Q3", value: 181.20 },
+    { name: "2022-Q4", value: 188.60 },
+    { name: "2023-Q1", value: 182.30 },
+    { name: "2023-Q2", value: 198.50 },
+    { name: "2023-Q3", value: 205.80 },
+    { name: "2023-Q4", value: 212.20 },
+    { name: "2024-Q1", value: 208.60 },
+    { name: "2024-Q2", value: 225.30 },
+    { name: "2024-Q3", value: 232.80 },
+    { name: "2024-Q4", value: 241.50 },
+    { name: "2025-Q1", value: 235.20 },
+    { name: "2025-Q2", value: 248.60 },
+    { name: "2025-Q3", value: 255.30 }
   ]
 }
 
@@ -164,99 +181,107 @@ export const mockQuery = {
   message: "success",
   data: [
     {
-      id: 3,
-      name: "中央商务区-B座",
+      id: 9,
+      name: "锡东八佰伴",
       category: "商业区",
       area: 32000.0,
-      emission: 6850.2,
+      emission: 45.20,
       height: 45.0,
       year: 2025,
       quarter: "Q3",
-      geom: "POINT(116.385 39.905)",
-      lon: 116.385,
-      lat: 39.905,
+      lon: 120.476,
+      lat: 31.590,
       createTime: "2025-01-15T08:30:00"
     },
     {
       id: 12,
-      name: "中央商务区-C座",
+      name: "创融大厦B座",
       category: "商业区",
       area: 28000.0,
-      emission: 5620.8,
+      emission: 18.75,
       height: 38.0,
       year: 2025,
       quarter: "Q3",
-      geom: "POINT(116.387 39.907)",
-      lon: 116.387,
-      lat: 39.907,
+      lon: 120.472,
+      lat: 31.584,
       createTime: "2025-01-15T08:30:00"
     }
   ]
 }
 
-// ==================== 9. Excel 上传预览 — 成功 ✅====================
+// ==================== 9. Excel 上传预览 — 成功 ✅ ====================
 export const mockImportSuccess = {
   code: 200,
   message: "success",
   data: {
-    batchId: "preview-batch-uuid-2025",
-    totalCount: 15,
-    validCount: 15,
+    batchId: "preview-batch-mock-2025",
+    totalCount: 28,
+    validCount: 28,
     invalidCount: 0,
-    previewPoints: [
-      {
-        name: "工业区-M01",
-        category: "工业区",
-        emission: 5200.5,
-        lon: 116.355,
-        lat: 39.895
-      },
-      {
-        name: "农业区-M02",
-        category: "农业区",
-        emission: 950.2,
-        lon: 116.438,
-        lat: 39.945
-      },
-      {
-        name: "商业区-M03",
-        category: "商业区",
-        emission: 3200.0,
-        lon: 116.298,
-        lat: 39.878
-      }
-    ],
-    errors: []
+    rawDataList: [],
+    errors: [],
+    features: {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [120.458, 31.572] },
+          properties: { name: "水岸佳苑A区", category: "住宅区", emission: 8.25, year: 2025, quarter: "Q3" }
+        },
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [120.468, 31.583] },
+          properties: { name: "无锡学院-教学楼", category: "教育区", emission: 12.60 }
+        },
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [120.476, 31.590] },
+          properties: { name: "锡东八佰伴", category: "商业区", emission: 45.20 }
+        },
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [120.438, 31.565] },
+          properties: { name: "锡山经济技术开发区A区", category: "工业区", emission: 86.50 }
+        },
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [120.490, 31.592] },
+          properties: { name: "锡山现代农业园", category: "农业区", emission: 6.80 }
+        }
+      ]
+    }
   }
 }
 
-// ==================== 9. Excel 上传预览 — 有错误 ✅====================
+// ==================== 9. Excel 上传预览 — 有错误 ✅ ====================
 export const mockImportError = {
   code: 200,
   message: "success",
   data: {
-    batchId: "preview-batch-uuid-2025",
-    totalCount: 15,
-    validCount: 12,
+    batchId: "preview-batch-mock-error-2025",
+    totalCount: 28,
+    validCount: 25,
     invalidCount: 3,
-    previewPoints: [
-      {
-        name: "工业区-M01",
-        category: "工业区",
-        emission: 5200.5,
-        lon: 116.355,
-        lat: 39.895
-      }
-    ],
+    rawDataList: [],
     errors: [
-      { row: 5, field: "用电量", message: "数值不能为负数" },
+      { row: 5, field: "面积", message: "建筑面积必须大于0" },
       { row: 8, field: "经度", message: "经度超出合理范围" },
       { row: 12, field: "季度", message: "季度只能为 Q1/Q2/Q3/Q4" }
-    ]
+    ],
+    features: {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [120.468, 31.583] },
+          properties: { name: "无锡学院-教学楼", category: "教育区", emission: 12.60 }
+        }
+      ]
+    }
   }
 }
 
-// ==================== 10. 确认入库 ✅====================
+// ==================== 10. 确认入库 ✅ ====================
 export const mockConfirm = {
   code: 200,
   message: "success",
@@ -282,11 +307,11 @@ export const mockCategoryIntensity = {
   code: 200,
   message: "success",
   data: [
-    { name: "工业区", value: 0.36 },
-    { name: "商业区", value: 0.21 },
-    { name: "住宅区", value: 0.06 },
-    { name: "教育区", value: 0.09 },
-    { name: "农业区", value: 0.015 },
+    { name: "工业区", value: 36.21 },
+    { name: "商业区", value: 21.45 },
+    { name: "住宅区", value: 6.82 },
+    { name: "教育区", value: 9.15 },
+    { name: "农业区", value: 1.52 }
   ]
 }
 
@@ -295,19 +320,67 @@ export const mockOverview = {
   code: 200,
   message: "success",
   data: {
-    totalEmission: 157300.25,      // 总排放量（吨）
-    buildingCount: 128,            // 监测建筑数
-    avgIntensity: 0.18,            // 平均排放强度（吨/平方米）
-    yoyChange: -5.2,               // 同比变化率（%）
+    totalEmission: 575.30,
+    buildingCount: 28,
+    avgIntensity: 15.03,
+    yoyChange: -5.2,
     trend: [
-      { name: "2023-Q4", value: 148500.20 },
-      { name: "2024-Q1", value: 144200.80 },
-      { name: "2024-Q2", value: 150800.50 },
-      { name: "2024-Q3", value: 141800.60 },
-      { name: "2024-Q4", value: 148500.20 },
-      { name: "2025-Q1", value: 144200.80 },
-      { name: "2025-Q2", value: 150800.50 },
-      { name: "2025-Q3", value: 157300.25 },
+      { name: "2023-Q4", value: 495.00 },
+      { name: "2024-Q1", value: 488.50 },
+      { name: "2024-Q2", value: 512.30 },
+      { name: "2024-Q3", value: 528.60 },
+      { name: "2024-Q4", value: 545.20 },
+      { name: "2025-Q1", value: 535.80 },
+      { name: "2025-Q2", value: 558.50 },
+      { name: "2025-Q3", value: 575.30 }
+    ]
+  }
+}
+
+// ==================== 13. 预览饼图统计 — 预览数据 ✅ ====================
+export const mockPreviewCategoryRatio = {
+  code: 200,
+  message: "success",
+  data: [
+    { name: "工业区", value: 259.80 },
+    { name: "商业区", value: 185.45 },
+    { name: "住宅区", value: 112.35 },
+    { name: "教育区", value: 59.30 },
+    { name: "农业区", value: 20.45 }
+  ]
+}
+
+// ==================== 14. 预览趋势统计 — 预览数据 ✅ ====================
+export const mockPreviewTrend = {
+  code: 200,
+  message: "success",
+  data: [
+    { name: "2024-Q1", value: 488.50 },
+    { name: "2024-Q2", value: 512.30 },
+    { name: "2024-Q3", value: 528.60 },
+    { name: "2024-Q4", value: 545.20 },
+    { name: "2025-Q1", value: 535.80 },
+    { name: "2025-Q2", value: 558.50 },
+    { name: "2025-Q3", value: 575.30 }
+  ]
+}
+
+// ==================== 15. 预览概览统计 — 预览数据 ✅ ====================
+export const mockPreviewOverview = {
+  code: 200,
+  message: "success",
+  data: {
+    totalEmission: 575.30,
+    buildingCount: 28,
+    avgIntensity: 15.03,
+    trend: [
+      { name: "2024-Q1", value: 488.50 },
+      { name: "2024-Q2", value: 512.30 },
+      { name: "2024-Q3", value: 528.60 },
+      { name: "2024-Q4", value: 545.20 },
+      { name: "2025-Q1", value: 535.80 },
+      { name: "2025-Q2", value: 558.50 },
+      { name: "2025-Q3", value: 575.30 }
     ]
   }
 }
@@ -324,7 +397,10 @@ export const mockData = {
   'get:/monitoring/statistics/overview': mockOverview,
   'get:/monitoring/query': mockQuery,
   'post:/monitoring/import': mockImportSuccess,
-  'post:/monitoring/import/confirm': mockConfirm
+  'post:/monitoring/import/confirm': mockConfirm,
+  'get:/monitoring/import/preview-statistics/category-ratio': mockPreviewCategoryRatio,
+  'get:/monitoring/import/preview-statistics/trend': mockPreviewTrend,
+  'get:/monitoring/import/preview-statistics/overview': mockPreviewOverview
 }
 
 // ==================== 参数化 Mock 辅助函数 ====================

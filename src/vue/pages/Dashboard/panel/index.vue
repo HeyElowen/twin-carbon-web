@@ -76,7 +76,6 @@ const defaultPanels = [
 ];
 
 const panelConfig = {
-  // cloud（第一个按钮）显示默认面板，不再使用云服务占位内容
   cloud: defaultPanels,
   rotation: [
     { title: "碳排放达标分析", subtitle: "", comp: AnalysisLeft, props: {} },
@@ -99,11 +98,9 @@ const heatView = ref('agent');
 
 const leftPanel = computed(() => {
   const base = panelConfig[store.activeKey]?.[0] || { title: '', comp: null, props: {} };
-  // bar 面板预览模式下，支持左面板在「上传」和「全景」间切换
   if (store.activeKey === 'bar' && store.uploadLeftView === 'panorama') {
-    return { title: '碳排放全景监测', subtitle: '新数据', comp: LineRevenueBar, props: {} };
+    return { title: '碳排放全景监测', subtitle: '新数据', comp: LineRevenueBar, props: { preview: true } };
   }
-  // heat 面板切换至工作流预览
   if (store.activeKey === 'heat' && heatView.value === 'workflow') {
     return { title: '工作流预览', subtitle: '', comp: WorkflowPreview, props: {} };
   }
@@ -112,25 +109,21 @@ const leftPanel = computed(() => {
 
 const rightPanel = computed(() => {
   const base = panelConfig[store.activeKey]?.[1] || { title: '', comp: null, props: {} };
-  // bar 面板预览模式下，右面板标为「旧数据」
   if (store.activeKey === 'bar' && store.uploadPreviewActive) {
-    return { ...base, subtitle: '旧数据' };
+    return { ...base, subtitle: '旧数据', props: { ...base.props, preview: false } };
   }
   return base;
 });
 
-// 左面板 key 随视图切换，强制重新渲染组件
 const leftPanelKey = computed(() =>
   store.activeKey + (store.activeKey === 'bar' ? '-' + store.uploadLeftView : '') +
   (store.activeKey === 'heat' ? '-' + heatView.value : '')
 );
 
-// 预览模式下显示切换按钮
 const showViewToggle = computed(() =>
   store.activeKey === 'bar' && store.uploadPreviewActive
 );
 
-// heat 面板显示视图切换按钮
 const showHeatToggle = computed(() =>
   store.activeKey === 'heat'
 );
@@ -174,22 +167,18 @@ function hideSide() {
   }
 }
 
-// 地图加载完成后播放入场动画
 watch(() => store.mapPlayComplete, (v) => { if (v) animateIn(); });
 
-// activeKey 变化时：回溯/纯净模式自动切回标准；标准模式先退出再进入
 watch(() => store.activeKey, (key) => {
   if (store.viewMode === 'clean' || store.viewMode === 'traceback') {
     store.setViewMode('standard');
     return;
   }
-  // 离开 heat 面板时重置视图
   if (key !== 'heat') heatView.value = 'agent';
   hideSide();
   setTimeout(() => showSide(), 150);
 });
 
-// viewMode 变化时：回溯/纯净模式隐藏面板；退出时显示面板
 watch(() => store.viewMode, (newMode, oldMode) => {
   if (newMode === 'clean') {
     hideSide();
@@ -333,5 +322,4 @@ watch(() => store.viewMode, (newMode, oldMode) => {
   border-color: rgba(52, 211, 153, 0.5);
   color: #6ee7b7;
 }
-
 </style>

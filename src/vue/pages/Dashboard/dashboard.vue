@@ -2,12 +2,28 @@
   <div class="wrapper" :class="{ 'is-split': store.uploadPreviewActive }">
     <PreviewCesium />
     <div id="cesiumContainer"></div>
+
+    <!-- 预览时间回溯条（跨两个地图容器） -->
+    <div class="preview-timeline" v-if="store.uploadPreviewActive && previewPeriods.length > 0">
+      <button class="pt-btn" @click="toggleTraceback" :title="tbPlaying ? '暂停' : '播放'">
+        <svg v-if="tbPlaying" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <div class="pt-track">
+        <div class="pt-fill" :style="{ width: tbProgress + '%' }" />
+      </div>
+      <span class="pt-label">{{ tbCurrentLabel }}</span>
+      <button class="pt-btn" @click="tbReset" title="重置">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+      </button>
+    </div>
+
     <Panel />
   </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, computed, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import { getBuildingObservationPoint } from "@/api/monitoring";
 import Panel from "./panel/index.vue";
@@ -21,6 +37,67 @@ let heatmap3D = null;         // 3D 热力图实例
 const store = useConfigStore();
 const pointData = ref([]);      // 观测点数据
 const pointLoading = ref(false);
+
+// ── 预览时间回溯 ──
+const tbPlaying = ref(false);
+const tbIndex = ref(0);
+let tbTimer = null;
+
+const previewPeriods = computed(() => {
+  const fc = store.previewFeatures;
+  if (!fc?.features) return [];
+  const seen = new Set();
+  const periods = [];
+  for (const f of fc.features) {
+    const y = f.properties?.year;
+    const q = f.properties?.quarter;
+    if (y == null || !q) continue;
+    const key = `${y}-${q}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      periods.push({ year: y, quarter: q, label: `${y} ${q}` });
+    }
+  }
+  return periods.sort((a, b) => a.year - b.year || a.quarter.localeCompare(b.quarter));
+});
+const tbCurrentLabel = computed(() => previewPeriods.value[tbIndex.value]?.label || '');
+const tbProgress = computed(() => {
+  if (!previewPeriods.value.length) return 0;
+  return ((tbIndex.value + 1) / previewPeriods.value.length) * 100;
+});
+
+function tbReset() {
+  tbStop();
+  tbIndex.value = 0;
+  if (previewPeriods.value.length > 0) {
+    const p = previewPeriods.value[0];
+    store.setYear(p.year);
+    store.setQuarter(p.quarter);
+  }
+}
+function tbStop() {
+  tbPlaying.value = false;
+  if (tbTimer) { clearInterval(tbTimer); tbTimer = null; }
+}
+function toggleTraceback() {
+  if (tbPlaying.value) { tbStop(); return; }
+  if (!previewPeriods.value.length) return;
+  if (tbIndex.value >= previewPeriods.value.length - 1) tbIndex.value = 0;
+  tbPlaying.value = true;
+  const p = previewPeriods.value[tbIndex.value];
+  store.setYear(p.year);
+  store.setQuarter(p.quarter);
+  tbTimer = setInterval(() => {
+    const next = tbIndex.value + 1;
+    if (next >= previewPeriods.value.length) { tbStop(); return; }
+    tbIndex.value = next;
+    const np = previewPeriods.value[next];
+    store.setYear(np.year);
+    store.setQuarter(np.quarter);
+  }, 500);
+}
+watch(() => store.previewFeatures, () => { tbReset(); });
+watch(() => store.uploadPreviewActive, (v) => { if (!v) tbStop(); });
 
 // 按用地类型分配颜色
 const categoryColors = {
@@ -267,6 +344,13 @@ onMounted(async() => {
     console.error('场景加载失败:', error)
   }
 
+  // 跟踪主相机变化 → 实时同步预览视图（camera.changed 每帧触发）
+  viewer.scene.camera.changed.addEventListener(() => {
+    store.setMainCamera(viewer.scene.camera);
+  });
+  // 首次触发一次，确保预览视图初始同步
+  store.setMainCamera(viewer.scene.camera);
+
   // 初始化 3D 热力图引擎（传入初始配置）
   heatmap3D = new Heatmap3D(viewer, {
     scaleHeight: store.heatmapConfig.scaleHeight,
@@ -326,5 +410,63 @@ onUnmounted(() => {
   font-size: 48px;
   letter-spacing: 8px;
   z-index: 1;
+}
+
+/* ── 预览时间回溯条 ── */
+.preview-timeline {
+  position: fixed;
+  bottom: 95px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(15, 20, 32, 0.85);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  min-width: 320px;
+  pointer-events: auto;
+}
+.pt-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  background: rgba(15, 20, 32, 0.5);
+  color: rgba(200, 208, 224, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+.pt-btn:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+}
+.pt-track {
+  flex: 1;
+  height: 4px;
+  background: rgba(100, 116, 139, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.pt-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.pt-label {
+  font-size: 12px;
+  color: rgba(200, 208, 224, 0.6);
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: center;
 }
 </style>
