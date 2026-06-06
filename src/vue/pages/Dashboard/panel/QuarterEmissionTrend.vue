@@ -8,9 +8,13 @@ import Chart from "@/vue/components/Chart.vue";
 import { LineChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import { useConfigStore } from "@/js/stores/useConfigStore";
-import { getTrend } from "@/api/monitoring";
+import { getTrend, previewTrend } from "@/api/monitoring";
 
 const store = useConfigStore();
+
+const props = defineProps({
+  preview: { type: Boolean, default: undefined }
+});
 
 // 从后端获取的原始数据
 const rawData = ref([]);
@@ -23,6 +27,11 @@ const categoryColors = {
   教育区: "#34d399",
 };
 
+// 是否使用预览统计接口 — 仅由 prop 控制，不依赖全局 store 状态
+function usePreviewApi() {
+  return props.preview === true;
+}
+
 // 请求趋势数据
 // 1年: 只显示当前年份
 // 3年: year-2 ~ year
@@ -31,7 +40,12 @@ async function fetchData() {
   try {
     const category = store.selectedCategory || "";
     const yearStart = store.year - (store.trendYearScale - 1);
-    const res = await getTrend(yearStart, store.year, category);
+    let res;
+    if (usePreviewApi()) {
+      res = await previewTrend(store.previewBatchId, yearStart, store.year, category);
+    } else {
+      res = await getTrend(yearStart, store.year, category);
+    }
     rawData.value = res.data || [];
   } catch {
     rawData.value = [];
@@ -41,8 +55,8 @@ async function fetchData() {
 // 初始化请求
 fetchData();
 
-// year / trendYearScale / selectedCategory 变化时重新请求数据
-watch([() => store.year, () => store.trendYearScale, () => store.selectedCategory], fetchData);
+// year / trendYearScale / selectedCategory / preview prop 变化时重新请求数据
+watch([() => store.year, () => store.trendYearScale, () => store.selectedCategory, () => props.preview], fetchData);
 
 const trendData = computed(() => {
   return rawData.value.map((item) => ({

@@ -3,13 +3,13 @@
     <div class="chart-item">
       <div class="item-title">碳排放概览</div>
       <div class="chart-content">
-        <RevenueOverview />
+        <RevenueOverview :preview="props.preview" />
       </div>
     </div>
     <div class="chart-item">
       <div class="item-title">各地类碳排放所占百分比</div>
       <div class="chart-content">
-        <CategoryEmissionPie />
+        <CategoryEmissionPie :preview="props.preview" />
       </div>
     </div>
     <div class="chart-item">
@@ -28,7 +28,7 @@
         <span v-if="lineSubtitle" class="subtitle">{{ lineSubtitle }}</span>
       </div>
       <div class="chart-content">
-        <QuarterEmissionTrend />
+        <QuarterEmissionTrend :preview="props.preview" />
       </div>
     </div>
   </div>
@@ -40,6 +40,10 @@ import { useConfigStore } from "@/js/stores/useConfigStore";
 import RevenueOverview from "./RevenueOverview.vue";
 import CategoryEmissionPie from "./CategoryEmissionPie.vue";
 import QuarterEmissionTrend from "./QuarterEmissionTrend.vue";
+
+const props = defineProps({
+  preview: { type: Boolean, default: undefined }
+});
 
 const store = useConfigStore();
 

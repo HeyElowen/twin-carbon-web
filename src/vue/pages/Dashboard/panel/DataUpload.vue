@@ -46,29 +46,29 @@
       <div class="action-buttons">
         <el-button
           class="action-btn preview-btn"
-          :disabled="!store.uploadFile"
+          :disabled="!store.uploadFile || uploading || confirming"
+          :loading="uploading"
           :type="store.uploadPreviewActive ? 'danger' : 'default'"
           @click="togglePreview"
         >
-          <el-icon :size="14">
-            <View v-if="!store.uploadPreviewActive" />
-            <Close v-else />
-          </el-icon>
-          {{ store.uploadPreviewActive ? '取消预览' : '预览数据' }}
+          <el-icon v-if="!uploading && !store.uploadPreviewActive" :size="14"><View /></el-icon>
+          <el-icon v-if="!uploading && store.uploadPreviewActive" :size="14"><Close /></el-icon>
+          {{ uploading ? '解析中...' : store.uploadPreviewActive ? '取消预览' : '预览数据' }}
         </el-button>
         <el-button
           class="action-btn confirm-btn"
-          :disabled="!store.uploadFile"
+          :disabled="!store.uploadFile || !store.previewBatchId || confirming"
+          :loading="confirming"
           type="primary"
           @click="handleConfirm"
         >
-          <el-icon :size="14"><Upload /></el-icon>
-          确认上传
+          <el-icon v-if="!confirming" :size="14"><Upload /></el-icon>
+          {{ confirming ? '导入中...' : '确认上传' }}
         </el-button>
       </div>
     </div>
 
-    <!-- 下载区域 -->
+<!-- 下载区域 -->
     <div class="download-section">
       <div class="section-title">下载数据模板</div>
       <div class="download-list">
@@ -102,12 +102,16 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
+import { ElMessage } from "element-plus";
 import { UploadFilled, View, Close, Upload, Download } from "@element-plus/icons-vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
+import { importExcel, confirmImport, downloadTemplate } from "@/api/monitoring";
 
 const store = useConfigStore();
 const uploadRef = ref(null);
+const uploading = ref(false);
+const confirming = ref(false);
 
 const downloadTemplates = [
   { name: "碳排放数据模板.xlsx", desc: "按区域填报碳排放量", url: "#" },
@@ -121,11 +125,15 @@ function exitPreview() {
 
 function onFileChange(file) {
   store.setUploadFile(file.raw);
+  // 换文件时清除旧批次 ID，下次预览会重新上传
+  store.setPreviewBatchId(null);
 }
 
 function onFileRemove() {
   store.setUploadPreview(false);
   store.setUploadFile(null);
+  store.setPreviewBatchId(null);
+  store.setPreviewFeatures(null);
   uploadRef.value?.clearFiles();
 }
 
@@ -134,23 +142,92 @@ function formatSize(bytes) {
   return (bytes / 1024 / 1024).toFixed(2) + " MB";
 }
 
-function togglePreview() {
-  store.setUploadPreview(!store.uploadPreviewActive);
+
+/**
+ * 上传 Excel → 预览（或切回旧数据视图）
+ * 首次点击：上传文件 → 获取 batchId → 激活预览分屏
+ * 再次点击：切换预览/旧数据视图，不重复上传
+ */
+async function togglePreview() {
+  if (store.uploadPreviewActive) {
+    // 关闭预览 → 回到正常视图
+    store.setUploadPreview(false);
+    return;
+  }
+
+  if (!store.uploadFile) {
+    ElMessage.warning("请先选择 Excel 文件");
+    return;
+  }
+
+  // 如果已有 batchId 且预览未激活，直接切到预览
+  if (store.previewBatchId) {
+    store.setUploadPreview(true);
+    return;
+  }
+
+  // 首次上传
+  uploading.value = true;
+  try {
+    const res = await importExcel(store.uploadFile);
+    if (res.code === 200) {
+      store.setPreviewBatchId(res.data.batchId);
+      store.setPreviewFeatures(res.data.features || null);
+      store.setUploadPreview(true);
+      ElMessage.success(`解析完成：有效 ${res.data.validCount} 条，无效 ${res.data.invalidCount} 条`);
+    }
+  } catch (e) {
+    ElMessage.error("文件上传解析失败");
+  } finally {
+    uploading.value = false;
+  }
 }
 
-function handleConfirm() {
-  // TODO: 实现上传逻辑
-  store.setUploadPreview(false);
-  store.setUploadFile(null);
-  uploadRef.value?.clearFiles();
+/**
+ * 确认入库 — 将预览数据写入数据库
+ */
+async function handleConfirm() {
+  if (!store.previewBatchId) {
+    ElMessage.warning("请先预览数据");
+    return;
+  }
+  confirming.value = true;
+  try {
+    await confirmImport(store.previewBatchId);
+    ElMessage.success("数据导入成功");
+    store.setUploadPreview(false);
+    store.setPreviewBatchId(null);
+    store.setPreviewFeatures(null);
+    store.setUploadFile(null);
+    uploadRef.value?.clearFiles();
+  } catch (e) {
+    ElMessage.error("导入失败");
+  } finally {
+    confirming.value = false;
+  }
 }
 
-function handleDownload(item) {
-  // TODO: 实现文件下载
+/**
+ * 下载 Excel 模板
+ */
+async function handleDownload(item) {
+  try {
+    const blob = await downloadTemplate();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = item.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (e) {
+    ElMessage.error("模板下载失败");
+  }
 }
 
 function openGuide() {
-  // TODO: 打开 Excel 填写指南
+  window.open(`${import.meta.env.BASE_URL}docs/doc-viewer.html?file=EXCEL_FILLING_GUIDE.md`, "_blank");
 }
 
 // 离开数据上传面板时自动清除

@@ -58,7 +58,7 @@
         <el-popover
           v-model:visible="controlVisible"
           placement="top"
-          :width="480"
+          :width="store.uploadPreviewActive ? 440 : 420"
           trigger="click"
           popper-class="control-popover"
         >
@@ -96,6 +96,82 @@
                 <el-radio-button v-for="m in viewModes" :key="m.value" :label="m.label" :value="m.value" :disabled="m.disabled" />
               </el-radio-group>
             </div>
+
+            <!-- ── 预览模式下的工具切换 ── -->
+            <template v-if="store.uploadPreviewActive">
+              <div class="heatmap-divider" />
+              <div class="mode-tabs">
+                <button class="mode-tab" :class="{ active: previewToolMode === 'heatmap' }" @click="previewToolMode = 'heatmap'">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                  热力图
+                </button>
+                <button class="mode-tab" :class="{ active: previewToolMode === 'extreme' }" @click="previewToolMode = 'extreme'">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12z"/><path d="M7 15h2V9H7v6zm4-4h2v4h-2v-4zm4-2h2v6h-2V9z"/></svg>
+                  极值分析
+                </button>
+              </div>
+
+              <!-- 热力图工具 -->
+              <template v-if="previewToolMode === 'heatmap'">
+                <div class="heat-row">
+                  <label class="heat-switch">
+                    <input type="checkbox" :checked="store.heatmapConfig.enabled" @change="toggleHeatmap" />
+                    <span class="heat-slider" />
+                    <span class="heat-label">显示热力图</span>
+                  </label>
+                </div>
+
+                <div class="heat-row">
+                  <span class="heat-label">拉伸高度</span>
+                  <input type="range" min="0.01" max="0.3" step="0.01"
+                    :value="store.heatmapConfig.scaleHeight"
+                    @input="store.updateHeatmapConfig({ scaleHeight: parseFloat($event.target.value) })" />
+                  <span class="heat-value">{{ store.heatmapConfig.scaleHeight.toFixed(2) }}</span>
+                </div>
+
+                <div class="heat-row">
+                  <span class="heat-label">扩散半径</span>
+                  <input type="range" min="200" max="3000" step="100"
+                    :value="store.heatmapConfig.sigmaMeters"
+                    @input="store.updateHeatmapConfig({ sigmaMeters: parseInt($event.target.value) })" />
+                  <span class="heat-value">{{ store.heatmapConfig.sigmaMeters }}m</span>
+                </div>
+
+                <div class="heat-row">
+                  <span class="heat-label">网格密度</span>
+                  <input type="range" min="20" max="200" step="5"
+                    :value="store.heatmapConfig.gridSize"
+                    @input="store.updateHeatmapConfig({ gridSize: parseInt($event.target.value) })" />
+                  <span class="heat-value">{{ store.heatmapConfig.gridSize }}</span>
+                </div>
+
+                <div class="heat-row">
+                  <span class="heat-label">透明度</span>
+                  <input type="range" min="0.3" max="1.0" step="0.05"
+                    :value="store.heatmapConfig.opacity"
+                    @input="store.updateHeatmapConfig({ opacity: parseFloat($event.target.value) })" />
+                  <span class="heat-value">{{ Math.round(store.heatmapConfig.opacity * 100) }}%</span>
+                </div>
+
+                <div class="heat-row">
+                  <span class="heat-label">强度幂次</span>
+                  <input type="range" min="0.2" max="5.0" step="0.1"
+                    :value="store.heatmapConfig.power"
+                    @input="store.updateHeatmapConfig({ power: parseFloat($event.target.value) })" />
+                  <span class="heat-value">{{ store.heatmapConfig.power.toFixed(1) }}</span>
+                </div>
+              </template>
+
+              <!-- 极值分析占位 -->
+              <template v-if="previewToolMode === 'extreme'">
+                <div class="extreme-placeholder">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor" opacity="0.2"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12z"/><path d="M7 15h2V9H7v6zm4-4h2v4h-2v-4zm4-2h2v6h-2V9z"/></svg>
+                  <div class="extreme-text">极值分析</div>
+                  <div class="extreme-hint">分析各用地类型碳排放极值</div>
+                  <div class="extreme-hint" style="font-size:11px;color:rgba(200,208,224,0.25)">（待完善）</div>
+                </div>
+              </template>
+            </template>
           </div>
 
           <div class="popover-footer">
@@ -136,6 +212,8 @@ import TracebackBar from "./TracebackBar.vue";
 
 const store = useConfigStore();
 const controlVisible = ref(false);
+// 预览工具模式：'heatmap' | 'extreme'
+const previewToolMode = ref('heatmap');
 
 const years = [2023, 2024, 2025];
 const quarters = [
@@ -164,6 +242,17 @@ watch(() => filters.value.quarter, (v) => store.setQuarter(v));
 watch(() => filters.value.viewMode, (v) => store.setViewMode(v));
 // 反向同步：外部修改 viewMode 时更新筛选面板（如纯净模式下激活按钮自动切回标准）
 watch(() => store.viewMode, (v) => { filters.value.viewMode = v; });
+
+// 切到极值分析时自动关闭热力图
+watch(previewToolMode, (mode) => {
+  if (mode === 'extreme' && store.heatmapConfig.enabled) {
+    store.updateHeatmapConfig({ enabled: false });
+  }
+});
+
+function toggleHeatmap(e) {
+  store.updateHeatmapConfig({ enabled: e.target.checked });
+}
 </script>
 
 <style scoped>
@@ -286,6 +375,151 @@ watch(() => store.viewMode, (v) => { filters.value.viewMode = v; });
 </style>
 
 <style>
+/* ── 模式切换标签 ── */
+.mode-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.mode-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  background: rgba(15, 20, 32, 0.5);
+  color: rgba(200, 208, 224, 0.4);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.mode-tab:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  color: rgba(200, 208, 224, 0.7);
+}
+.mode-tab.active {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.3), rgba(59, 130, 246, 0.15));
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+}
+
+/* ── 极值分析占位 ── */
+.extreme-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+  gap: 8px;
+}
+.extreme-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(200, 208, 224, 0.3);
+}
+.extreme-hint {
+  font-size: 12px;
+  color: rgba(200, 208, 224, 0.2);
+}
+
+/* ── 热力图控制（预览模式） ── */
+.heatmap-divider {
+  border-top: 1px solid rgba(59, 130, 246, 0.12);
+  margin: 10px 0;
+}
+.heatmap-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #60a5fa;
+  margin-bottom: 10px;
+}
+.heat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.heat-row:last-child {
+  margin-bottom: 0;
+}
+.heat-label {
+  font-size: 12px;
+  color: rgba(200, 208, 224, 0.85);
+  white-space: nowrap;
+  min-width: 60px;
+}
+.heat-value {
+  font-size: 12px;
+  color: #60a5fa;
+  min-width: 40px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* 开关 */
+.heat-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex: 1;
+}
+.heat-switch input { display: none; }
+.heat-slider {
+  position: relative;
+  width: 36px;
+  height: 18px;
+  background: rgba(100, 116, 139, 0.4);
+  border-radius: 9px;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+.heat-slider::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+.heat-switch input:checked + .heat-slider {
+  background: rgba(59, 130, 246, 0.6);
+}
+.heat-switch input:checked + .heat-slider::after {
+  transform: translateX(18px);
+}
+/* range 滑块 */
+.heat-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.heat-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #60a5fa;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.heat-row input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #60a5fa;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
 .control-popover.el-popover {
   background: #0f1420;
   border: 1px solid rgba(59, 130, 246, 0.25);

@@ -34,6 +34,13 @@ export const useConfigStore = defineStore("dashboard", () => {
   const uploadLeftView = ref('upload');
   // 已上传的文件对象（跨组件重建保持）
   const uploadFile = ref(null);
+  // 上传预览批次 ID — 图表组件据此判断是否调用预览统计接口
+  const previewBatchId = ref(null);
+  // 上传预览的 GeoJSON FeatureCollection（供预览 Cesium 加载 + 热力图使用）
+  const previewFeatures = ref(null);
+
+  // 主 Cesium 相机状态（同步到预览视图用）
+  const mainCamera = ref(null);
 
   // AI Agent 聊天记录
   const aiMessages = ref([]);
@@ -100,6 +107,17 @@ export const useConfigStore = defineStore("dashboard", () => {
   }
   function setUploadLeftView(v) { uploadLeftView.value = v; }
   function setUploadFile(v) { uploadFile.value = v; }
+  function setPreviewBatchId(v) { previewBatchId.value = v; }
+  function setPreviewFeatures(v) { previewFeatures.value = v; }
+  function setMainCamera(camera) {
+    if (!camera) { mainCamera.value = null; return; }
+    mainCamera.value = {
+      destination: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+      heading: camera.heading,
+      pitch: camera.pitch,
+      roll: camera.roll,
+    };
+  }
 
   function reset() {
     mapPlayComplete.value = false;
@@ -108,6 +126,8 @@ export const useConfigStore = defineStore("dashboard", () => {
     uploadPreviewActive.value = false;
     uploadLeftView.value = 'upload';
     uploadFile.value = null;
+    previewBatchId.value = null;
+    previewFeatures.value = null;
     districts.value = {
       农业区: true,
       工业区: true,
@@ -123,6 +143,7 @@ export const useConfigStore = defineStore("dashboard", () => {
     tracebackPlaying.value = false;
     tracebackProgress.value = 0;
     tracebackTickCount.value = 0;
+    mainCamera.value = null;
     heatmapConfig.value = {
       enabled: false,
       scaleHeight: 0.08,
@@ -143,6 +164,8 @@ export const useConfigStore = defineStore("dashboard", () => {
     tracebackPlaying, tracebackProgress,
     tracebackTickCount, tracebackResetTicks, tracebackTick,
     uploadPreviewActive, setUploadPreview, uploadLeftView, setUploadLeftView, uploadFile, setUploadFile,
+    previewBatchId, setPreviewBatchId, previewFeatures, setPreviewFeatures,
+    mainCamera, setMainCamera,
     aiMessages,
     buildingPointFeatures,
     setActive, toggleControl, toggleDistrict,

@@ -96,6 +96,7 @@ export class Heatmap3D {
   /* ── 构建 Primitive ── */
 
   build(shouldFly = false) {
+    console.log('[PCH] Heatmap3D.build() viewer=', !!this.viewer, 'scene=', !!this.viewer?.scene, 'data.len=', this.data.length);
     if (!this.viewer || !this.viewer.scene || this.data.length === 0) return
 
     // 移除旧热力图
