@@ -6,9 +6,11 @@
 import { ref, watch, nextTick, onUnmounted } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import { Heatmap3D } from "@/js/utils/heatmap3D";
+import { useDistrictOverlay } from "@/js/composables/useDistrictOverlay";
 
 const store = useConfigStore();
 const containerRef = ref(null);
+const districtOverlay = useDistrictOverlay();
 let previewViewer = null;
 let previewHeatmap = null;
 
@@ -103,6 +105,9 @@ watch(() => store.uploadPreviewActive, async (active) => {
     });
     setupBaseImagery(previewViewer);
 
+    // 绘制区域图幅 + 名称标签（与主视图一致，共享同一套边界/颜色数据）
+    districtOverlay.createOverlay(previewViewer, store.districts);
+
     // 等待 3D 场景加载完成后再初始化热力图（与主视图时序一致）
     const sceneUrl = 'http://localhost:8090/iserver/services/3D-global/rest/realspace';
     try {
@@ -128,7 +133,8 @@ watch(() => store.uploadPreviewActive, async (active) => {
       reloadPreviewData();
     }
   } else {
-    // 销毁预览 Viewer 及热力图
+    // 销毁预览图幅 + 热力图 + Viewer
+    districtOverlay.removeOverlay(previewViewer);
     if (previewHeatmap) {
       previewHeatmap.destroy();
       previewHeatmap = null;
@@ -228,6 +234,13 @@ watch(
   { deep: true }
 );
 
+// ==================== 区域图幅可见性切换 ====================
+watch(
+  () => store.districts,
+  (val) => { districtOverlay.updateVisibility(previewViewer, val); },
+  { deep: true }
+);
+
 // ==================== 热力图参数联动 ====================
 watch(
   () => [
@@ -250,6 +263,7 @@ watch(
 );
 
 onUnmounted(() => {
+  districtOverlay.removeOverlay(previewViewer);
   if (previewHeatmap) {
     previewHeatmap.destroy();
     previewHeatmap = null;
