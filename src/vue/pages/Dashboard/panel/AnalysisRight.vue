@@ -3,6 +3,9 @@
     <!-- 极值分析 -->
     <div class="extreme-section">
       <div class="section-title">极值分析</div>
+      <div class="selected-area" v-if="store.selectedAnalysisDistrict">
+        当前筛选区域：<strong>{{ store.selectedAnalysisDistrict }}</strong>
+      </div>
 
       <div class="extreme-cards">
         <div class="extreme-card highest">
@@ -12,7 +15,7 @@
             </svg>
           </div>
           <div class="card-info">
-            <div class="card-label">最高点</div>
+            <div class="card-label">出现极值点最大值</div>
             <div class="card-value">{{ extremeInfo.max.value.toFixed(2) }} <span class="unit">吨</span></div>
             <div class="card-desc">{{ extremeInfo.max.category }} · {{ extremeInfo.max.name }}</div>
           </div>
@@ -25,14 +28,21 @@
             </svg>
           </div>
           <div class="card-info">
-            <div class="card-label">最低点</div>
+            <div class="card-label">出现极值点最小值</div>
             <div class="card-value">{{ extremeInfo.min.value.toFixed(2) }} <span class="unit">吨</span></div>
             <div class="card-desc">{{ extremeInfo.min.category }} · {{ extremeInfo.min.name }}</div>
           </div>
         </div>
       </div>
 
-      <div class="analysis-text" v-if="rawFeatures.length">
+      <!-- 出现的个数总数 -->
+      <div class="extreme-count-row">
+        出现的个数总数：<strong>{{ extremeInfo.extremeCount }}</strong> 个
+        <span class="extreme-sep">|</span>
+        总监测数：<strong>{{ extremeInfo.totalCount }}</strong> 个
+      </div>
+
+      <div class="analysis-text" v-if="extremeInfo.totalCount">
         <p v-for="(p, i) in analysisText.paragraphs" :key="i">{{ p }}</p>
         <p>结合当前时间段经济活动及政策事件分析，极值出现原因推测为：</p>
         <ul>
@@ -63,7 +73,7 @@
     </div>
 
     <!-- 无数据时占位 -->
-    <div v-if="!rawFeatures.length" class="empty-mask">
+    <div v-if="!extremeInfo.totalCount" class="empty-mask">
       <span>暂无数据</span>
     </div>
   </div>
@@ -72,15 +82,21 @@
 <script setup>
 import { computed } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
+import { mockBuildingPoints } from "@/api/mock-data";
+
 const store = useConfigStore();
 
-// ─── 数据来源：从 store 共享（dashboard.vue 负责请求）─
-const rawFeatures = computed(() => store.buildingPointFeatures);
-
-// ─── 极值计算 ──────────────────────────────────────
+// ─── 极值计算（联动左侧选中的区域）────────────────
 const extremeInfo = computed(() => {
-  const features = rawFeatures.value;
-  if (!features.length) {
+  const features = mockBuildingPoints.data.features;
+  const selected = store.selectedAnalysisDistrict;
+
+  // 按选中区域过滤
+  const filtered = selected
+    ? features.filter((f) => f.properties?.category === selected)
+    : features;
+
+  if (!filtered.length) {
     return {
       max: { value: 0, name: "--", category: "--" },
       min: { value: 0, name: "--", category: "--" },
@@ -89,10 +105,10 @@ const extremeInfo = computed(() => {
     };
   }
 
-  let maxFeature = features[0];
-  let minFeature = features[0];
+  let maxFeature = filtered[0];
+  let minFeature = filtered[0];
 
-  features.forEach((f) => {
+  filtered.forEach((f) => {
     const e = f.properties?.emission ?? 0;
     if (e > (maxFeature.properties?.emission ?? 0)) maxFeature = f;
     if (e < (minFeature.properties?.emission ?? 0)) minFeature = f;
@@ -100,7 +116,9 @@ const extremeInfo = computed(() => {
 
   const maxVal = maxFeature.properties?.emission ?? 0;
   const threshold = maxVal * 0.7;
-  const extremeCount = features.filter((f) => (f.properties?.emission ?? 0) >= threshold).length;
+  const extremeCount = filtered.filter(
+    (f) => (f.properties?.emission ?? 0) >= threshold
+  ).length;
 
   return {
     max: {
@@ -114,7 +132,7 @@ const extremeInfo = computed(() => {
       category: minFeature.properties?.category ?? "--",
     },
     extremeCount,
-    totalCount: features.length,
+    totalCount: filtered.length,
   };
 });
 
@@ -124,11 +142,12 @@ const analysisText = computed(() => {
   const { year, quarter } = store;
   if (!info.totalCount) return { paragraphs: [], reasons: [] };
 
+  const areaLabel = store.selectedAnalysisDistrict || "全部区域";
   const qName = { Q1: "第一", Q2: "第二", Q3: "第三", Q4: "第四", ALL: "全年" }[quarter] || quarter;
   const extremeRatio = Math.round((info.extremeCount / info.totalCount) * 100);
 
   const paragraphs = [
-    `${year}年${qName}季度共监测 ${info.totalCount} 个排放源，其中极值（≥峰值70%）出现 ${info.extremeCount} 次，占比 ${extremeRatio}%。`,
+    `${year}年${qName}季度 ${areaLabel} 共监测 ${info.totalCount} 个排放源，其中极值（≥峰值70%）出现 ${info.extremeCount} 个，占比 ${extremeRatio}%。`,
   ];
 
   if (info.max.category !== "--") {
@@ -214,7 +233,7 @@ const suggestions = computed(() => {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   overflow: hidden;
 }
 
@@ -225,6 +244,19 @@ const suggestions = computed(() => {
   padding-left: 8px;
   border-left: 3px solid #3b82f6;
   flex-shrink: 0;
+}
+
+.selected-area {
+  font-size: 12px;
+  color: rgba(224, 230, 240, 0.6);
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.08);
+  flex-shrink: 0;
+}
+
+.selected-area strong {
+  color: #60a5fa;
 }
 
 .extreme-cards {
@@ -305,6 +337,28 @@ const suggestions = computed(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 出现的个数总数 */
+.extreme-count-row {
+  font-size: 13px;
+  color: rgba(224, 230, 240, 0.7);
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(15, 20, 32, 0.3);
+  border: 1px solid rgba(59, 130, 246, 0.08);
+  flex-shrink: 0;
+}
+
+.extreme-count-row strong {
+  color: #93c5fd;
+  font-weight: 700;
+  font-family: "pmzd", monospace;
+}
+
+.extreme-count-row .extreme-sep {
+  margin: 0 10px;
+  color: rgba(224, 230, 240, 0.2);
 }
 
 .analysis-text {

@@ -28,6 +28,13 @@ export const useConfigStore = defineStore("dashboard", () => {
   // 饼图选中的用地类型（null = 全部未选中）
   const selectedCategory = ref(null);
 
+  // 左面板判定标准选中的区域（null = 全部，用于与右侧极值分析联动）
+  const selectedAnalysisDistrict = ref(null);
+
+  function setSelectedAnalysisDistrict(name) {
+    selectedAnalysisDistrict.value = selectedAnalysisDistrict.value === name ? null : name;
+  }
+
   // 数据上传预览：分屏 Cesium 模式
   const uploadPreviewActive = ref(false);
   // 数据上传左面板视图切换：'upload' | 'panorama'
@@ -140,6 +147,7 @@ export const useConfigStore = defineStore("dashboard", () => {
     viewMode.value = "standard";
     trendYearScale.value = 3;
     selectedCategory.value = null;
+    selectedAnalysisDistrict.value = null;
     tracebackPlaying.value = false;
     tracebackProgress.value = 0;
     tracebackTickCount.value = 0;
@@ -159,7 +167,7 @@ export const useConfigStore = defineStore("dashboard", () => {
 
   return {
     mapPlayComplete, activeKey, controlOpen, districts,
-    year, quarter, viewMode, trendYearScale, selectedCategory,
+    year, quarter, viewMode, trendYearScale, selectedCategory, selectedAnalysisDistrict,
     heatmapConfig, updateHeatmapConfig,
     tracebackPlaying, tracebackProgress,
     tracebackTickCount, tracebackResetTicks, tracebackTick,
@@ -169,7 +177,7 @@ export const useConfigStore = defineStore("dashboard", () => {
     aiMessages,
     buildingPointFeatures,
     setActive, toggleControl, toggleDistrict,
-    setYear, setQuarter, setViewMode, setTrendYearScale, setSelectedCategory,
+    setYear, setQuarter, setViewMode, setTrendYearScale, setSelectedCategory, setSelectedAnalysisDistrict,
     reset,
   };
 });

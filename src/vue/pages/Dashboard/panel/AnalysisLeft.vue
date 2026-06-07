@@ -28,6 +28,8 @@
             class="standard-item"
             v-for="item in staticStandards"
             :key="item.name"
+            :class="{ active: store.selectedAnalysisDistrict === item.name }"
+            @click="store.setSelectedAnalysisDistrict(item.name)"
           >
             <span class="name">{{ item.name }}</span>
             <span class="divider"></span>
@@ -53,15 +55,12 @@ import { GridComponent, TooltipComponent, LegendComponent } from "echarts/compon
 const store = useConfigStore();
 const modules = [BarChart, GridComponent, TooltipComponent, LegendComponent];
 
-const districtNames = ["学校", "商业区", "工业区", "住宅区", "农业区"];
-const nameToCategory = {
-  "学校": "教育区", "商业区": "商业区", "工业区": "工业区",
-  "住宅区": "住宅区", "农业区": "农业区",
-};
+// ─── 区域名称（与 mock-data 中 category 字段一致）──
+const districtNames = ["教育区", "商业区", "工业区", "住宅区", "农业区"];
 
-// ─── 静态基值（判定标准不随筛选变化）─────────────
+// ─── 基准阈值（用于 grading 比值计算，单位为 吨）──
 const baseThresholds = {
-  "学校": 0.50,
+  "教育区": 0.50,
   "商业区": 1.20,
   "工业区": 1.80,
   "住宅区": 0.80,
@@ -88,17 +87,19 @@ function getGrade(emission, threshold) {
 // ─── 数据来源：从 store 共享（dashboard.vue 负责请求）─
 const rawFeatures = computed(() => store.buildingPointFeatures);
 
-// ─── 静态判定标准（使用基值，不随 year/quarter 变化）─
+// ─── 静态判定标准（显示行业真实标准文本）───────────
 const staticStandards = computed(() => {
-  const features = rawFeatures.value;
-  return districtNames.map((name) => {
-    const threshold = baseThresholds[name];
-    const category = nameToCategory[name];
-    const districtBuildings = features.filter((f) => f.properties?.category === category);
-    const total = districtBuildings.length;
-
-    return { name, value: `≤${threshold.toFixed(2)}吨` };
-  });
+  const textMap = {
+    "教育区": "≤ 35 kgCO₂/m²·年",
+    "商业区": "≤87.75 kgCO₂/m²·年",
+    "工业区": "≤ 2.1 tCO₂/万元",
+    "住宅区": "≤ 21 kgCO₂/m²·年",
+    "农业区": "CH₄≈ 0.46 g/m²·天",
+  };
+  return districtNames.map((name) => ({
+    name,
+    value: textMap[name],
+  }));
 });
 
 // ─── 图表 — 各等级占比 ───────────────────────────
@@ -107,7 +108,7 @@ const chartOption = computed(() => {
 
   // 过滤掉无建筑数据的区域
   const nonEmptyDistricts = districtNames.filter((name) => {
-    return features.some((f) => f.properties?.category === nameToCategory[name]);
+    return features.some((f) => f.properties?.category === name);
   });
 
   // 为每个 district 计算 5 个等级的计数
@@ -121,8 +122,7 @@ const chartOption = computed(() => {
       itemStyle: { color: g.color, borderRadius: 0 },
       data: nonEmptyDistricts.map((name) => {
         const threshold = baseThresholds[name];
-        const category = nameToCategory[name];
-        const districtBuildings = features.filter((f) => f.properties?.category === category);
+        const districtBuildings = features.filter((f) => f.properties?.category === name);
         const total = districtBuildings.length;
         if (total === 0) return 0;
         const count = districtBuildings.filter((f) => {
@@ -145,10 +145,7 @@ const chartOption = computed(() => {
     };
   });
 
-  // 顶部的 border-radius 只给最顶层（非零值的最高层）
-  // ECharts 无法原生跨 series 感知，这里用简单方案：
-  // 最顶层加 borderRadius，但因为是 stack 所以需要手动调整
-  // 简化：对所有 series 顶部加小圆角
+  // 顶部 border-radius 只给最顶层
   seriesData.forEach((s, i) => {
     if (i === seriesData.length - 1) {
       s.itemStyle.borderRadius = [4, 4, 0, 0];
@@ -325,6 +322,12 @@ const chartOption = computed(() => {
 
 .standard-item:hover {
   background: rgba(59, 130, 246, 0.1);
+}
+
+.standard-item.active {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  outline: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .standard-item .name {
