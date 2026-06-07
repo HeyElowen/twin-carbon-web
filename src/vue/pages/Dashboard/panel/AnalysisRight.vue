@@ -13,8 +13,8 @@
           </div>
           <div class="card-info">
             <div class="card-label">最高点</div>
-            <div class="card-value">2.85 <span class="unit">吨</span></div>
-            <div class="card-desc">工业区 · 2025-Q2</div>
+            <div class="card-value">{{ extremeInfo.max.value.toFixed(2) }} <span class="unit">吨</span></div>
+            <div class="card-desc">{{ extremeInfo.max.category }} · {{ extremeInfo.max.name }}</div>
           </div>
         </div>
 
@@ -26,21 +26,17 @@
           </div>
           <div class="card-info">
             <div class="card-label">最低点</div>
-            <div class="card-value">0.12 <span class="unit">吨</span></div>
-            <div class="card-desc">农业区 · 2025-Q1</div>
+            <div class="card-value">{{ extremeInfo.min.value.toFixed(2) }} <span class="unit">吨</span></div>
+            <div class="card-desc">{{ extremeInfo.min.category }} · {{ extremeInfo.min.name }}</div>
           </div>
         </div>
       </div>
 
-      <div class="analysis-text">
-        <p>
-          时间线中极值出现的频率为 <strong>3次/年</strong>，主要集中于第二季度。
-          结合当时经济活动及政策事件分析，极值出现原因推测为：
-        </p>
+      <div class="analysis-text" v-if="rawFeatures.length">
+        <p v-for="(p, i) in analysisText.paragraphs" :key="i">{{ p }}</p>
+        <p>结合当前时间段经济活动及政策事件分析，极值出现原因推测为：</p>
         <ul>
-          <li>季度初工业生产复苏，用电负荷激增</li>
-          <li>夏季高温导致空调能耗大幅上升</li>
-          <li>部分老旧设备能效未达新标</li>
+          <li v-for="(r, i) in analysisText.reasons" :key="i">{{ r }}</li>
         </ul>
       </div>
     </div>
@@ -65,24 +61,142 @@
         </div>
       </div>
     </div>
+
+    <!-- 无数据时占位 -->
+    <div v-if="!rawFeatures.length" class="empty-mask">
+      <span>暂无数据</span>
+    </div>
   </div>
 </template>
 
 <script setup>
-const suggestions = [
-  {
-    title: "优化工业用电时段",
-    desc: "建议将高耗能工序调整至低谷电价时段，降低峰时负荷。",
-  },
-  {
-    title: "推进设备能效升级",
-    desc: "对老旧高耗能设备进行变频改造或更换为一级能效设备。",
-  },
-  {
-    title: "建立碳排预警机制",
-    desc: "设置月度排放阈值，超限自动触发排查与整改流程。",
-  },
-];
+import { computed } from "vue";
+import { useConfigStore } from "@/js/stores/useConfigStore";
+const store = useConfigStore();
+
+// ─── 数据来源：从 store 共享（dashboard.vue 负责请求）─
+const rawFeatures = computed(() => store.buildingPointFeatures);
+
+// ─── 极值计算 ──────────────────────────────────────
+const extremeInfo = computed(() => {
+  const features = rawFeatures.value;
+  if (!features.length) {
+    return {
+      max: { value: 0, name: "--", category: "--" },
+      min: { value: 0, name: "--", category: "--" },
+      extremeCount: 0,
+      totalCount: 0,
+    };
+  }
+
+  let maxFeature = features[0];
+  let minFeature = features[0];
+
+  features.forEach((f) => {
+    const e = f.properties?.emission ?? 0;
+    if (e > (maxFeature.properties?.emission ?? 0)) maxFeature = f;
+    if (e < (minFeature.properties?.emission ?? 0)) minFeature = f;
+  });
+
+  const maxVal = maxFeature.properties?.emission ?? 0;
+  const threshold = maxVal * 0.7;
+  const extremeCount = features.filter((f) => (f.properties?.emission ?? 0) >= threshold).length;
+
+  return {
+    max: {
+      value: maxVal,
+      name: maxFeature.properties?.name ?? "--",
+      category: maxFeature.properties?.category ?? "--",
+    },
+    min: {
+      value: minFeature.properties?.emission ?? 0,
+      name: minFeature.properties?.name ?? "--",
+      category: minFeature.properties?.category ?? "--",
+    },
+    extremeCount,
+    totalCount: features.length,
+  };
+});
+
+// ─── AI 分析文本 ──────────────────────────────────
+const analysisText = computed(() => {
+  const info = extremeInfo.value;
+  const { year, quarter } = store;
+  if (!info.totalCount) return { paragraphs: [], reasons: [] };
+
+  const qName = { Q1: "第一", Q2: "第二", Q3: "第三", Q4: "第四", ALL: "全年" }[quarter] || quarter;
+  const extremeRatio = Math.round((info.extremeCount / info.totalCount) * 100);
+
+  const paragraphs = [
+    `${year}年${qName}季度共监测 ${info.totalCount} 个排放源，其中极值（≥峰值70%）出现 ${info.extremeCount} 次，占比 ${extremeRatio}%。`,
+  ];
+
+  if (info.max.category !== "--") {
+    paragraphs.push(`最高排放点为「${info.max.name}」（${info.max.category}），排放量 ${info.max.value.toFixed(2)} 吨，远超同类平均水平。`);
+  }
+  if (info.min.category !== "--") {
+    paragraphs.push(`最低排放点为「${info.min.name}」（${info.min.category}），排放量 ${info.min.value.toFixed(2)} 吨，减排措施成效显著。`);
+  }
+
+  // ── 原因推测 ──
+  const reasons = [];
+
+  const qReasons = {
+    Q1: ["春节后工业复工复产，用电负荷阶段性冲高", "采暖季末期部分区域仍维持高能耗运行"],
+    Q2: ["季度初工业生产全面复苏，用电负荷激增", "春耕期间农业机械用油量增加"],
+    Q3: ["夏季高温导致空调制冷能耗大幅上升", "工业生产进入高峰期，产能利用率达到年度峰值"],
+    Q4: ["冬季采暖需求增加，燃煤燃气消耗上升", "年底冲刺生产目标，工业产能超负荷运转"],
+    ALL: ["年度经济活动周期性波动影响排放水平"],
+  };
+  reasons.push(...(qReasons[quarter] || qReasons.ALL));
+
+  if (info.max.category === "工业区") {
+    reasons.push("工业区产能密集，高耗能设备集中，是区域碳排放的主要来源");
+  } else if (info.max.category === "商业区") {
+    reasons.push("商业区大型中央空调及照明系统全天候运行，建筑能耗居高不下");
+  } else if (info.max.category === "住宅区") {
+    reasons.push("住宅区人口密度高，生活用能需求集中，呈现聚集性排放特征");
+  }
+
+  if (extremeRatio > 50) {
+    reasons.push("超过半数排放源处于高排放区间，可能存在系统性减排瓶颈");
+  } else if (info.extremeCount <= 3) {
+    reasons.push("极值点较为分散，建议对个别高排放源进行精准排查与整治");
+  }
+
+  if (year >= 2025) {
+    reasons.push("2025年碳达峰目标临近，重点行业面临更严格的排放约束与考核压力");
+  }
+
+  return { paragraphs, reasons };
+});
+
+// ─── 针对性建议 ──────────────────────────────────
+const suggestions = computed(() => {
+  const info = extremeInfo.value;
+  const { year, quarter } = store;
+  if (!info.totalCount) return [];
+
+  const reductionTarget = info.max.category === "工业区" ? 25 : info.max.category === "商业区" ? 20 : 15;
+  const warnThreshold = Math.round(info.max.value * 0.8 * 10) / 10;
+
+  return [
+    {
+      title: `${info.max.category === "--" ? "重点区域" : info.max.category}减排专项整治`,
+      desc: `对「${info.max.name}」等高排放源实施重点排查，推进清洁能源替代与节能改造，目标降低排放 ${reductionTarget}% 以上。`,
+    },
+    {
+      title: "建立极值预警与响应机制",
+      desc: `将 ${info.max.value.toFixed(0)} 吨 · ${info.max.category} 设为红色预警线，${warnThreshold} 吨设为橙色预警阈值，超限自动触发排查。当前极值占比 ${Math.round((info.extremeCount / info.totalCount) * 100)}%，需密切监控排放异常波动。`,
+    },
+    {
+      title: "推动低碳技术升级与政策对接",
+      desc: year >= 2025
+        ? `面向${year}年碳达峰关键节点，推广光伏建筑一体化、智慧能源管理平台等技术手段。${quarter === "ALL" ? "全年" : quarter.replace("Q", "第") + "季度"}极值数据可为碳配额分配提供决策依据。`
+        : "提前布局碳减排技术路线，争取专项资金支持，实施重点领域能效提升工程。",
+    },
+  ];
+});
 </script>
 
 <style scoped>
@@ -92,6 +206,7 @@ const suggestions = [
   height: 100%;
   gap: 10px;
   overflow: hidden;
+  position: relative;
 }
 
 .extreme-section {
@@ -161,10 +276,11 @@ const suggestions = [
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .card-label {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(224, 230, 240, 0.5);
 }
 
@@ -177,23 +293,28 @@ const suggestions = [
 }
 
 .card-value .unit {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   color: rgba(224, 230, 240, 0.5);
   margin-left: 2px;
 }
 
 .card-desc {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(224, 230, 240, 0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .analysis-text {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.7;
   color: rgba(224, 230, 240, 0.8);
   padding: 0 4px;
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .analysis-text strong {
@@ -258,7 +379,7 @@ const suggestions = [
   border-radius: 6px;
   background: rgba(59, 130, 246, 0.15);
   color: #60a5fa;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -274,14 +395,25 @@ const suggestions = [
 }
 
 .suggestion-title {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: #e0e6f0;
 }
 
 .suggestion-desc {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(224, 230, 240, 0.6);
   line-height: 1.5;
+}
+
+.empty-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(224, 230, 240, 0.3);
+  font-size: 14px;
+  pointer-events: none;
 }
 </style>

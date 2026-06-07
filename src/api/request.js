@@ -2,12 +2,11 @@ import axios from "axios";
 import { ElMessage } from "element-plus";
 import { useAuthStore } from "@/js/stores/useAuthStore";
 import { getMockResponse } from "./mock-data";
-import { fa } from "element-plus/es/locales.mjs";
 
 // ========== Mock 开关 ==========
 // true  = 使用本地 Mock 数据（不发真实请求）
 // false = 调用真实后端 API
-const USE_MOCK = false; // 开发阶段默认开启 Mock，生产环境请务必关闭
+const USE_MOCK = true; // 开发阶段默认开启 Mock，生产环境请务必关闭
 // =============================
 
 const request = axios.create({

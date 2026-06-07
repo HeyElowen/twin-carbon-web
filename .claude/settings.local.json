@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git rev-list *)",
+      "Bash(git merge *)",
+      "Bash(git stash *)",
+      "Bash(git rm *)",
+      "Bash(git add *)",
+      "Bash(npx vite *)",
+      "Bash(npm install *)",
+      "Bash(git checkout *)",
+      "Bash(npm uninstall *)",
+      "Bash(npm run *)",
+      "Bash(git rebase *)",
+      "Bash(GIT_EDITOR=true git rebase --continue)",
+      "Bash(git commit -m ' *)",
+      "Bash(git pull *)"
+    ]
+  }
+}

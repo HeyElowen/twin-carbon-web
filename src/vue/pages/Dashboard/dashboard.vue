@@ -29,12 +29,14 @@ import { getBuildingObservationPoint } from "@/api/monitoring";
 import Panel from "./panel/index.vue";
 import PreviewCesium from "./PreviewCesium.vue";
 import { Heatmap3D } from "@/js/utils/heatmap3D";
+import { useDistrictOverlay } from "@/js/composables/useDistrictOverlay";
 
 let viewer = null;
 let pointDataSource = null;   // 当前加载的 GeoJSON 数据源
 let heatmap3D = null;         // 3D 热力图实例
 
 const store = useConfigStore();
+const districtOverlay = useDistrictOverlay();
 const pointData = ref([]);      // 观测点数据
 const pointLoading = ref(false);
 
@@ -99,16 +101,6 @@ function toggleTraceback() {
 watch(() => store.previewFeatures, () => { tbReset(); });
 watch(() => store.uploadPreviewActive, (v) => { if (!v) tbStop(); });
 
-// 按用地类型分配颜色
-const categoryColors = {
-  '工业区': Cesium.Color.fromCssColorString('#ef4444'),
-  '农业区': Cesium.Color.fromCssColorString('#22c55e'),
-  '住宅区': Cesium.Color.fromCssColorString('#3b82f6'),
-  '商业区': Cesium.Color.fromCssColorString('#f59e0b'),
-  '教育区': Cesium.Color.fromCssColorString('#a855f7'),
-};
-const defaultPointColor = Cesium.Color.fromCssColorString('#60a5fa');
-
 // 移除旧的数据源
 function removePointDataSource() {
   if (pointDataSource && viewer) {
@@ -161,6 +153,8 @@ async function fetchPoints() {
     const geoJson = res.data;
     if (geoJson && geoJson.type === 'FeatureCollection') {
       await loadGeoJsonToCesium(geoJson);
+      // 同步到 store 供 AnalysisLeft / AnalysisRight 复用，避免重复请求
+      store.buildingPointFeatures = geoJson.features || [];
     }
 
     // eslint-disable-next-line no-console
@@ -277,6 +271,17 @@ watch(() => store.activeKey, (key) => {
   if (key !== 'bar') store.setUploadPreview(false);
 });
 
+// 区域图幅可见性切换
+watch(
+  () => store.districts,
+  (val) => { districtOverlay.updateVisibility(viewer, val); },
+  { deep: true }
+);
+
+// ─── 区域显示控制由 useDistrictOverlay composable 管理 ────────
+// createOverlay / updateVisibility / removeOverlay 在 composable 中统一实现
+// dashboard 和 PreviewCesium 共享同一套边界/颜色/字号数据
+
 onMounted(async() => {
   store.mapPlayComplete = true;
 
@@ -291,6 +296,16 @@ onMounted(async() => {
     shouldAnimate: false
   })
   window.cesiumViewer = viewer
+
+  // 阻止 Ctrl+滚轮 触发浏览器页面缩放，避免标签被浏览器缩放影响
+  const cesiumContainer = document.getElementById('cesiumContainer');
+  if (cesiumContainer) {
+    cesiumContainer.addEventListener('wheel', (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
 
   // 限制并发请求数，缓解天地图 429 限流
   Cesium.RequestScheduler.maximumRequests = 12
@@ -335,7 +350,7 @@ onMounted(async() => {
   // imageryLayers.addImageryProvider(tdtCia)
 
   try {
-    const layers = await scene.open('http://localhost:8090/iserver/services/3D-twin-carbon-city/rest/realspace')
+    const layers = await scene.open('http://localhost:8090/iserver/services/3D-global/rest/realspace')
     if (layers?.length > 0) {
       viewer.flyTo?.(layers[0])
     }
@@ -361,6 +376,9 @@ onMounted(async() => {
     power: store.heatmapConfig.power,
   })
 
+  // 创建区域显示控制（多边形 + 标签）
+  districtOverlay.createOverlay(viewer, store.districts);
+
   // 如果数据已提前加载完毕，且开关为打开状态，立即渲染
   if (pointData.value.length > 0 && store.heatmapConfig.enabled) {
     await updateHeatmap()
@@ -368,6 +386,7 @@ onMounted(async() => {
 });
 onUnmounted(() => {
   removePointDataSource();
+  districtOverlay.removeOverlay(viewer);
   if (heatmap3D) {
     heatmap3D.destroy()
     heatmap3D = null
