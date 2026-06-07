@@ -37,8 +37,21 @@ let heatmap3D = null;         // 3D 热力图实例
 
 const store = useConfigStore();
 const districtOverlay = useDistrictOverlay();
-const pointData = ref([]);      // 观测点数据
+const pointData = ref([]);      // 观测点数据 
 const pointLoading = ref(false);
+
+// ─── 分区三维场景配置（rotation 模式使用）───────────────────
+const DISTRICT_SCENES = [
+  { name: '农业区', serviceName: '3D-agriculture2', sceneName: 'agriculture2' },
+  { name: '教育区', serviceName: '3D-school2',      sceneName: 'school2' },
+  { name: '工业区', serviceName: '3D-industry2',    sceneName: 'industry2' },
+  { name: '商业区', serviceName: '3D-business2',    sceneName: 'business2' },
+  { name: '住宅区', serviceName: '3D-home2',        sceneName: 'home2' },
+];
+
+let defaultSceneLayers = [];   // 默认 3D-global 场景加载的图层
+let districtSceneLayers = [];  // 分区场景加载的图层
+let isDistrictMode = false;    // 当前是否处于分区叠加模式
 
 // ── 预览时间回溯 ──
 const tbPlaying = ref(false);
@@ -266,9 +279,97 @@ watch(
   }
 );
 
+// ─── 分区三维场景切换 ────────────────────────────────────
+
+/** 切换到 rotation 模式：移除默认场景，加载5个分区场景叠加 */
+async function switchToDistrictScenes() {
+  if (!viewer || isDistrictMode) return;
+  const scene = viewer.scene;
+
+  // 移除默认场景图层
+  defaultSceneLayers.forEach((layer) => {
+    if (layer && scene.layers.find(layer.name)) {
+      scene.layers.remove(layer.name);
+    }
+  });
+  defaultSceneLayers = [];
+
+  // 依次加载5个分区三维场景
+  const loaded = [];
+  for (const ds of DISTRICT_SCENES) {
+    const url = `http://localhost:8090/iserver/services/${ds.serviceName}/rest/realspace`;
+    try {
+      const layers = await scene.open(url, ds.sceneName);
+      if (layers && layers.length > 0) {
+        loaded.push(...layers);
+        // eslint-disable-next-line no-console
+        console.log(`[DistrictScene] ${ds.name} 场景加载成功:`, layers.length, '个图层');
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`[DistrictScene] ${ds.name} 场景加载失败:`, error);
+    }
+  }
+  districtSceneLayers = loaded;
+  isDistrictMode = true;
+
+  // 分区场景加载后，确保区域图幅叠加和热力图状态正确
+  districtOverlay.updateVisibility(viewer, store.districts);
+  if (store.heatmapConfig.enabled) {
+    await updateHeatmap();
+  }
+}
+
+/** 切出 rotation 模式：移除分区场景，恢复默认 3D-global 场景 */
+async function switchToDefaultScene() {
+  if (!viewer || !isDistrictMode) return;
+  const scene = viewer.scene;
+
+  // 移除所有分区场景图层
+  districtSceneLayers.forEach((layer) => {
+    if (layer && scene.layers.find(layer.name)) {
+      scene.layers.remove(layer.name);
+    }
+  });
+  districtSceneLayers = [];
+
+  // 恢复默认场景
+  try {
+    const url = 'http://localhost:8090/iserver/services/3D-global/rest/realspace';
+    const layers = await scene.open(url);
+    if (layers && layers.length > 0) {
+      defaultSceneLayers = layers;
+      viewer.flyTo?.(layers[0]);
+    }
+    // eslint-disable-next-line no-console
+    console.log('[DefaultScene] 默认场景恢复成功');
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[DefaultScene] 默认场景恢复失败:', error);
+  }
+
+  isDistrictMode = false;
+
+  // 恢复后同步区域图幅和热力图
+  districtOverlay.updateVisibility(viewer, store.districts);
+  if (store.heatmapConfig.enabled) {
+    await updateHeatmap();
+  }
+}
+
 // 离开数据上传面板时强制关闭预览分屏
 watch(() => store.activeKey, (key) => {
   if (key !== 'bar') store.setUploadPreview(false);
+});
+
+// 监听 activeKey 切换，rotation 模式加载分区三维场景叠加
+watch(() => store.activeKey, async (key) => {
+  if (!viewer) return;
+  if (key === 'rotation') {
+    await switchToDistrictScenes();
+  } else {
+    await switchToDefaultScene();
+  }
 });
 
 // 区域图幅可见性切换
@@ -352,11 +453,17 @@ onMounted(async() => {
   try {
     const layers = await scene.open('http://localhost:8090/iserver/services/3D-global/rest/realspace')
     if (layers?.length > 0) {
+      defaultSceneLayers = layers;
       viewer.flyTo?.(layers[0])
     }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('场景加载失败:', error)
+  }
+
+  // 如果初始激活面板就是 rotation，立即加载分区场景
+  if (store.activeKey === 'rotation') {
+    await switchToDistrictScenes();
   }
 
   // 跟踪主相机变化 → 实时同步预览视图（camera.changed 每帧触发）
