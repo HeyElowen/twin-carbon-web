@@ -385,6 +385,83 @@ export const mockPreviewOverview = {
   }
 }
 
+// ==================== 16. 分层设色 🚧 ====================
+export const mockLayeredColoring = {
+  code: 200,
+  message: "success",
+  data: {
+    thresholds: {
+      "住宅区": { min: 8.25, max: 22.18, levels: [11.04, 13.82, 16.61, 19.39, 22.18] },
+      "商业区": { min: 18.75, max: 45.20, levels: [24.04, 29.33, 34.62, 39.91, 45.20] },
+      "工业区": { min: 45.20, max: 86.50, levels: [53.46, 61.72, 69.98, 78.24, 86.50] },
+      "农业区": { min: 3.90, max: 6.80, levels: [4.48, 5.06, 5.64, 6.22, 6.80] },
+      "教育区": { min: 5.60, max: 15.80, levels: [7.64, 9.68, 11.72, 13.76, 15.80] }
+    },
+    buildings: [
+      { name: "水岸佳苑A区",     category: "住宅区", emission: 8.25,  level: 1, lon: 120.458, lat: 31.572 },
+      { name: "水岸佳苑B区",     category: "住宅区", emission: 12.36, level: 2, lon: 120.461, lat: 31.575 },
+      { name: "山河九里",         category: "住宅区", emission: 18.92, level: 4, lon: 120.468, lat: 31.569 },
+      { name: "恒大翡翠湾",       category: "住宅区", emission: 15.47, level: 3, lon: 120.475, lat: 31.576 },
+      { name: "融创·东方府",      category: "住宅区", emission: 22.18, level: 5, lon: 120.452, lat: 31.582 },
+      { name: "龙湖·九里香醍",    category: "住宅区", emission: 9.63,  level: 1, lon: 120.482, lat: 31.579 },
+      { name: "碧桂园·南光城",    category: "住宅区", emission: 14.50, level: 3, lon: 120.445, lat: 31.585 },
+      { name: "华润·江南府",      category: "住宅区", emission: 11.04, level: 2, lon: 120.478, lat: 31.568 },
+      { name: "锡东八佰伴",        category: "商业区", emission: 45.20, level: 5, lon: 120.476, lat: 31.590 },
+      { name: "红豆万花城",        category: "商业区", emission: 38.65, level: 4, lon: 120.469, lat: 31.587 },
+      { name: "映月天地商业街",    category: "商业区", emission: 22.30, level: 2, lon: 120.483, lat: 31.588 },
+      { name: "创融大厦B座",       category: "商业区", emission: 18.75, level: 1, lon: 120.472, lat: 31.584 },
+      { name: "锡东科技大厦",      category: "商业区", emission: 28.40, level: 3, lon: 120.479, lat: 31.582 },
+      { name: "浙大网新科创园",    category: "商业区", emission: 32.15, level: 3, lon: 120.464, lat: 31.579 },
+      { name: "锡山经济技术开发区A区", category: "工业区", emission: 86.50, level: 5, lon: 120.438, lat: 31.565 },
+      { name: "锡山经济技术开发区B区", category: "工业区", emission: 72.30, level: 4, lon: 120.443, lat: 31.560 },
+      { name: "联东U谷",              category: "工业区", emission: 55.80, level: 3, lon: 120.450, lat: 31.562 },
+      { name: "精密机械产业园",        category: "工业区", emission: 45.20, level: 1, lon: 120.455, lat: 31.558 },
+      { name: "锡山现代农业园",      category: "农业区", emission: 6.80,  level: 5, lon: 120.490, lat: 31.592 },
+      { name: "太湖水稻示范园",      category: "农业区", emission: 5.25,  level: 2, lon: 120.498, lat: 31.588 },
+      { name: "严家桥生态农场",      category: "农业区", emission: 3.90,  level: 1, lon: 120.485, lat: 31.595 },
+      { name: "羊尖镇绿色农业园",    category: "农业区", emission: 4.50,  level: 2, lon: 120.505, lat: 31.590 },
+      { name: "无锡学院-教学楼",          category: "教育区", emission: 12.60, level: 4, lon: 120.468, lat: 31.583 },
+      { name: "无锡学院-图书馆",          category: "教育区", emission: 8.35,  level: 2, lon: 120.472, lat: 31.581 },
+      { name: "无锡学院-实验楼",          category: "教育区", emission: 15.80, level: 5, lon: 120.475, lat: 31.585 },
+      { name: "无锡学院-学生活动中心",     category: "教育区", emission: 5.60,  level: 1, lon: 120.470, lat: 31.586 },
+      { name: "无锡学院-体育馆",          category: "教育区", emission: 10.20, level: 3, lon: 120.465, lat: 31.580 },
+      { name: "无锡学院-学生食堂",         category: "教育区", emission: 6.75,  level: 1, lon: 120.473, lat: 31.588 }
+    ]
+  }
+}
+
+// ==================== 17. 极值分析 🚧 ====================
+export const mockExtremeAnalysis = {
+  code: 200,
+  message: "success",
+  data: {
+    outliers: [
+      {
+        name: "锡山经济技术开发区A区",
+        category: "工业区",
+        emission: 86.50,
+        zScore: 2.29,
+        type: "HIGH",
+        lon: 120.438,
+        lat: 31.565
+      }
+    ],
+    globalStats: {
+      totalBuildings: 28,
+      outlierCount: 1,
+      method: "z-score",
+      threshold: 2.0
+    },
+    categoryStats: {
+      "住宅区": { max: 22.18, min: 8.25, mean: 14.04, median: 13.43, stddev: 4.53, count: 8 },
+      "商业区": { max: 45.20, min: 18.75, mean: 30.91, median: 30.28, stddev: 9.57, count: 6 },
+      "工业区": { max: 86.50, min: 45.20, mean: 64.95, median: 64.05, stddev: 16.63, count: 4 },
+      "农业区": { max: 6.80,  min: 3.90,  mean: 5.11,  median: 4.88,  stddev: 1.10, count: 4 },
+      "教育区": { max: 15.80, min: 5.60,  mean: 9.88,  median: 9.28,  stddev: 3.60, count: 6 }
+    }
+  }
+}
+
 // ==================== 汇总对象（兜底匹配用）====================
 export const mockData = {
   'post:/login': mockLogin,
@@ -400,7 +477,9 @@ export const mockData = {
   'post:/monitoring/import/confirm': mockConfirm,
   'get:/monitoring/import/preview-statistics/category-ratio': mockPreviewCategoryRatio,
   'get:/monitoring/import/preview-statistics/trend': mockPreviewTrend,
-  'get:/monitoring/import/preview-statistics/overview': mockPreviewOverview
+  'get:/monitoring/import/preview-statistics/overview': mockPreviewOverview,
+  'get:/analysis/layered-coloring': mockLayeredColoring,
+  'get:/analysis/extreme': mockExtremeAnalysis
 }
 
 // ==================== 参数化 Mock 辅助函数 ====================
@@ -551,6 +630,73 @@ export function getMockResponse(config) {
           const itemYear = parseInt(item.name.split('-')[0])
           return itemYear <= year
         })
+      }
+    }
+  }
+
+  // 分层设色 — 按 year/quarter 参数化微调
+  if (key === 'get:/analysis/layered-coloring') {
+    const year = parseInt(params?.year) || 2025
+    const quarter = params?.quarter || 'Q3'
+    const yearFactor = 1 + (year - 2025) * 0.05
+    const qf = { 'Q1': 0.9, 'Q2': 0.95, 'Q3': 1.0, 'Q4': 1.05, 'ALL': 1.0 }
+    const quarterFactor = qf[quarter] || 1.0
+    const factor = yearFactor * quarterFactor
+    return {
+      code: 200,
+      message: "success",
+      data: {
+        thresholds: Object.fromEntries(
+          Object.entries(mockLayeredColoring.data.thresholds).map(([cat, t]) => [
+            cat,
+            {
+              min: Math.round(t.min * factor * 100) / 100,
+              max: Math.round(t.max * factor * 100) / 100,
+              levels: t.levels.map(v => Math.round(v * factor * 100) / 100)
+            }
+          ])
+        ),
+        buildings: mockLayeredColoring.data.buildings.map(b => ({
+          ...b,
+          emission: Math.round(b.emission * factor * 100) / 100
+        }))
+      }
+    }
+  }
+
+  // 极值分析 — 按 year/quarter 参数化微调
+  if (key === 'get:/analysis/extreme') {
+    const year = parseInt(params?.year) || 2025
+    const quarter = params?.quarter || 'Q3'
+    const yearFactor = 1 + (year - 2025) * 0.05
+    const qf = { 'Q1': 0.9, 'Q2': 0.95, 'Q3': 1.0, 'Q4': 1.05, 'ALL': 1.0 }
+    const quarterFactor = qf[quarter] || 1.0
+    const factor = yearFactor * quarterFactor
+    return {
+      code: 200,
+      message: "success",
+      data: {
+        outliers: mockExtremeAnalysis.data.outliers.map(o => ({
+          ...o,
+          emission: Math.round(o.emission * factor * 100) / 100,
+          zScore: Math.round(o.zScore * factor * 100) / 100
+        })),
+        globalStats: {
+          ...mockExtremeAnalysis.data.globalStats
+        },
+        categoryStats: Object.fromEntries(
+          Object.entries(mockExtremeAnalysis.data.categoryStats).map(([cat, s]) => [
+            cat,
+            {
+              ...s,
+              max: Math.round(s.max * factor * 100) / 100,
+              min: Math.round(s.min * factor * 100) / 100,
+              mean: Math.round(s.mean * factor * 100) / 100,
+              median: Math.round(s.median * factor * 100) / 100,
+              stddev: Math.round(s.stddev * factor * 100) / 100
+            }
+          ])
+        )
       }
     }
   }
