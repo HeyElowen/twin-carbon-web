@@ -193,10 +193,10 @@ watch(() => store.viewMode, (newMode, oldMode) => {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 3fr 6.5fr 6.5fr 3.5fr;
   grid-template-rows: repeat(6, minmax(0, 1fr));
   gap: 20px;
-  padding: 20px;
+  padding: 20px 0 0 0;
 }
 
 .card {
@@ -210,6 +210,9 @@ watch(() => store.viewMode, (newMode, oldMode) => {
   flex-direction: column;
   pointer-events: auto;
   z-index: 9999;
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
 }
 
 .card::before {
@@ -247,6 +250,7 @@ watch(() => store.viewMode, (newMode, oldMode) => {
 
 .card-title {
   font-size: 18px;
+  font-weight: 700;
   margin-bottom: 10px;
   padding-left: 10px;
   border-left: 4px solid #3b82f6;
@@ -257,9 +261,9 @@ watch(() => store.viewMode, (newMode, oldMode) => {
 }
 
 .card-title span {
-  font-size: 12px;
+  font-size: 18px;
   color: rgba(224, 230, 240, 0.4);
-  font-weight: normal;
+  font-weight: 700;
 }
 
 /* ── 左面板视图切换按钮 ── */
@@ -278,7 +282,7 @@ watch(() => store.viewMode, (newMode, oldMode) => {
   background: rgba(15, 20, 32, 0.85);
   color: #60a5fa;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 600;
   writing-mode: vertical-lr;
   letter-spacing: 2px;

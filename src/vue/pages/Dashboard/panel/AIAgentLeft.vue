@@ -87,8 +87,8 @@ const history = ref([
 }
 
 .section-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: #e0e6f0;
   margin-bottom: 8px;
   padding-left: 8px;
@@ -100,9 +100,9 @@ const history = ref([
 }
 
 .section-title .history-count {
-  font-size: 12px;
+  font-size: 18px;
   color: rgba(224, 230, 240, 0.4);
-  font-weight: 400;
+  font-weight: 700;
 }
 
 /* ── 功能列表 ── */
@@ -148,13 +148,13 @@ const history = ref([
 }
 
 .feature-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: #e0e6f0;
 }
 
 .feature-desc {
-  font-size: 13px;
+  font-size: 18px;
   color: rgba(224, 230, 240, 0.5);
   margin-top: 1px;
   white-space: nowrap;
@@ -204,22 +204,36 @@ const history = ref([
 
 .history-title {
   flex: 1;
-  font-size: 14px;
+  font-size: 18px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .history-time {
-  font-size: 12px;
+  font-size: 18px;
   color: rgba(224, 230, 240, 0.3);
   flex-shrink: 0;
 }
 
 .history-empty {
-  font-size: 14px;
+  font-size: 18px;
   color: rgba(224, 230, 240, 0.3);
   text-align: center;
   padding: 20px 0;
+}
+
+.history-list::-webkit-scrollbar {
+  width: 4px;
+}
+.history-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.history-list::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+}
+.history-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
 }
 </style>

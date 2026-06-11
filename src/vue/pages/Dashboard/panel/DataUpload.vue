@@ -78,16 +78,15 @@
           :key="item.name"
         >
           <div class="download-info">
-            <el-icon :size="20" color="#34d399"><Download /></el-icon>
+            <el-button
+              class="download-btn"
+              size="small"
+              :icon="Download"
+              @click="handleDownload(item)"
+            />
             <span class="template-name">{{ item.name }}</span>
             <span class="template-desc">{{ item.desc }}</span>
           </div>
-          <el-button
-            class="download-btn"
-            size="small"
-            :icon="Download"
-            @click="handleDownload(item)"
-          />
         </div>
       </div>
       <!-- Excel 填写指南 -->
@@ -250,7 +249,7 @@ watch(() => store.activeKey, (key) => {
 }
 
 .section-title {
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 600;
   color: #e0e6f0;
   margin-bottom: 8px;
@@ -295,7 +294,7 @@ watch(() => store.activeKey, (key) => {
 }
 
 .upload-text {
-  font-size: 13px;
+  font-size: 14px;
   color: rgba(224, 230, 240, 0.6);
   margin-top: 10px;
   line-height: 1.5;
@@ -307,7 +306,7 @@ watch(() => store.activeKey, (key) => {
 }
 
 .upload-tip {
-  font-size: 11px;
+  font-size: 14px;
   color: rgba(224, 230, 240, 0.35);
   margin-top: 8px;
   text-align: center;
@@ -402,7 +401,7 @@ watch(() => store.activeKey, (key) => {
   flex: 1;
   height: 38px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   transition: all 0.25s ease;
 }
@@ -445,10 +444,23 @@ watch(() => store.activeKey, (key) => {
   padding-right: 2px;
 }
 
+.download-list::-webkit-scrollbar {
+  width: 4px;
+}
+.download-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.download-list::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+}
+.download-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
+}
+
 .download-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 8px 10px;
   border-radius: 8px;
   background: rgba(15, 20, 32, 0.4);
@@ -469,20 +481,23 @@ watch(() => store.activeKey, (key) => {
 }
 
 .template-name {
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 500;
   color: #e0e6f0;
   white-space: nowrap;
 }
 
 .template-desc {
-  font-size: 11px;
+  font-size: 15px;
   color: rgba(224, 230, 240, 0.45);
   white-space: nowrap;
 }
 
 .download-btn {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.15);
   color: #34d399;
@@ -514,7 +529,7 @@ watch(() => store.activeKey, (key) => {
 
 .guide-link a {
   color: #60a5fa;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 500;
   text-decoration: none;
   transition: color 0.2s ease;

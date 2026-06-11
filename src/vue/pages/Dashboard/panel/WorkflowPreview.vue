@@ -30,13 +30,13 @@
 }
 
 .workflow-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: rgba(224, 230, 240, 0.5);
 }
 
 .workflow-desc {
-  font-size: 14px;
+  font-size: 18px;
   color: rgba(224, 230, 240, 0.3);
   text-align: center;
   max-width: 220px;

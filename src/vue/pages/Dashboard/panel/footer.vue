@@ -168,7 +168,7 @@
                   <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor" opacity="0.2"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12z"/><path d="M7 15h2V9H7v6zm4-4h2v4h-2v-4zm4-2h2v6h-2V9z"/></svg>
                   <div class="extreme-text">极值分析</div>
                   <div class="extreme-hint">分析各用地类型碳排放极值</div>
-                  <div class="extreme-hint" style="font-size:11px;color:rgba(200,208,224,0.25)">（待完善）</div>
+                  <div class="extreme-hint" style="font-size:18px;color:rgba(200,208,224,0.25)">（待完善）</div>
                 </div>
               </template>
             </template>
@@ -342,7 +342,7 @@ function toggleHeatmap(e) {
   padding-bottom: 12px;
   margin-bottom: 12px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: #e0e6f0;
   border-bottom: 1px solid rgba(59, 130, 246, 0.12);
 }
@@ -360,7 +360,7 @@ function toggleHeatmap(e) {
 }
 
 .filter-label {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: rgba(224, 230, 240, 0.6);
   min-width: 40px;
@@ -392,7 +392,7 @@ function toggleHeatmap(e) {
   border: 1px solid rgba(59, 130, 246, 0.15);
   background: rgba(15, 20, 32, 0.5);
   color: rgba(200, 208, 224, 0.4);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -416,12 +416,12 @@ function toggleHeatmap(e) {
   gap: 8px;
 }
 .extreme-text {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: rgba(200, 208, 224, 0.3);
 }
 .extreme-hint {
-  font-size: 12px;
+  font-size: 16px;
   color: rgba(200, 208, 224, 0.2);
 }
 
@@ -431,8 +431,8 @@ function toggleHeatmap(e) {
   margin: 10px 0;
 }
 .heatmap-section-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: #60a5fa;
   margin-bottom: 10px;
 }
@@ -446,13 +446,13 @@ function toggleHeatmap(e) {
   margin-bottom: 0;
 }
 .heat-label {
-  font-size: 12px;
+  font-size: 16px;
   color: rgba(200, 208, 224, 0.85);
   white-space: nowrap;
   min-width: 60px;
 }
 .heat-value {
-  font-size: 12px;
+  font-size: 16px;
   color: #60a5fa;
   min-width: 40px;
   text-align: right;
@@ -553,6 +553,7 @@ function toggleHeatmap(e) {
 
 .control-popover .el-text.el-text--info {
   color: rgba(224, 230, 240, 0.35);
+  font-size: 16px;
 }
 
 /* 暗色主题 tooltip */
@@ -560,7 +561,7 @@ function toggleHeatmap(e) {
   background: #0f1420;
   border: 1px solid rgba(59, 130, 246, 0.25);
   color: #bfdbfe;
-  font-size: 14px;
+  font-size: 18px;
   padding: 6px 12px;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);

@@ -56,7 +56,7 @@ const chartOption = computed(() => {
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
-        fontSize: 13,
+        fontSize: 15,
         margin: 10,
         color: "#e0e6f0",
       },
@@ -98,7 +98,7 @@ const chartOption = computed(() => {
           show: true,
           color: "rgba(224, 230, 240, 0.85)",
           valueAnimation: true,
-          fontSize: 12,
+          fontSize: 15,
           fontWeight: "bold",
           formatter: (p) => `${p.value.toFixed(2)} kg/m²`,
         },

@@ -195,7 +195,7 @@ function handleLogout() {
 }
 
 .user-name {
-  font-size: 14px;
+  font-size: 18px;
   color: #e2e8f0;
   max-width: 100px;
   overflow: hidden;
