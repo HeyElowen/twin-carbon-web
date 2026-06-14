@@ -43,3 +43,6 @@ coverage/
 
 # Agent documentation (auto-generated, do not commit)
 AGENTS.md
+
+# Claude Code local config
+.claude/
