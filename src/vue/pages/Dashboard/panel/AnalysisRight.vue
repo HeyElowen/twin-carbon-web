@@ -80,23 +80,29 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
-import { mockBuildingPoints } from "@/api/mock-data";
+import { getExtremeAnalysis } from "@/api/analysis";
 
 const store = useConfigStore();
 
+// ─── 极值分析数据（API — /analysis/extreme）────────
+const extremeData = ref(null);
+
+watch([() => store.year, () => store.quarter], async () => {
+  try {
+    const res = await getExtremeAnalysis(store.year, store.quarter);
+    extremeData.value = res.data;
+  } catch (e) {
+    console.error("获取极值分析数据失败", e);
+    extremeData.value = null;
+  }
+}, { immediate: true });
+
 // ─── 极值计算（联动左侧选中的区域）────────────────
 const extremeInfo = computed(() => {
-  const features = mockBuildingPoints.data.features;
-  const selected = store.selectedAnalysisDistrict;
-
-  // 按选中区域过滤
-  const filtered = selected
-    ? features.filter((f) => f.properties?.category === selected)
-    : features;
-
-  if (!filtered.length) {
+  const data = extremeData.value;
+  if (!data) {
     return {
       max: { value: 0, name: "--", category: "--" },
       min: { value: 0, name: "--", category: "--" },
@@ -105,56 +111,61 @@ const extremeInfo = computed(() => {
     };
   }
 
-  let maxFeature = filtered[0];
-  let minFeature = filtered[0];
+  const { outliers, globalStats } = data;
+  const selected = store.selectedAnalysisDistrict;
 
-  filtered.forEach((f) => {
-    const e = f.properties?.emission ?? 0;
-    if (e > (maxFeature.properties?.emission ?? 0)) maxFeature = f;
-    if (e < (minFeature.properties?.emission ?? 0)) minFeature = f;
-  });
+  // 按选中区域过滤离群点
+  const filtered = selected
+    ? outliers.filter((o) => o.category === selected)
+    : outliers;
 
-  const maxVal = maxFeature.properties?.emission ?? 0;
-  const threshold = maxVal * 0.7;
-  const extremeCount = filtered.filter(
-    (f) => (f.properties?.emission ?? 0) >= threshold
-  ).length;
+  // 从离群点中找最高/最低排放
+  const sorted = [...filtered].sort((a, b) => b.emission - a.emission);
+  const maxItem = sorted[0] || null;
+  const minItem = sorted.length > 1 ? sorted[sorted.length - 1] : null;
+  // 如果只有一个离群点，最高最低显示同一点
+  const minFallback = sorted.length === 1 ? sorted[0] : minItem;
 
   return {
     max: {
-      value: maxVal,
-      name: maxFeature.properties?.name ?? "--",
-      category: maxFeature.properties?.category ?? "--",
+      value: maxItem?.emission ?? 0,
+      name: maxItem?.name ?? "--",
+      category: maxItem?.category ?? "--",
     },
     min: {
-      value: minFeature.properties?.emission ?? 0,
-      name: minFeature.properties?.name ?? "--",
-      category: minFeature.properties?.category ?? "--",
+      value: minFallback?.emission ?? 0,
+      name: minFallback?.name ?? "--",
+      category: minFallback?.category ?? "--",
     },
-    extremeCount,
-    totalCount: filtered.length,
+    extremeCount: filtered.length,
+    totalCount: globalStats?.totalBuildings ?? 0,
   };
 });
 
 // ─── AI 分析文本 ──────────────────────────────────
 const analysisText = computed(() => {
   const info = extremeInfo.value;
+  const data = extremeData.value;
   const { year, quarter } = store;
-  if (!info.totalCount) return { paragraphs: [], reasons: [] };
+  if (!data || !info.totalCount) return { paragraphs: [], reasons: [] };
 
-  const areaLabel = store.selectedAnalysisDistrict || "全部区域";
+  const { globalStats } = data;
+  const selected = store.selectedAnalysisDistrict;
+  const areaLabel = selected || "全部区域";
   const qName = { Q1: "第一", Q2: "第二", Q3: "第三", Q4: "第四", ALL: "全年" }[quarter] || quarter;
-  const extremeRatio = Math.round((info.extremeCount / info.totalCount) * 100);
+  const extremeRatio = info.totalCount > 0
+    ? Math.round((info.extremeCount / info.totalCount) * 100)
+    : 0;
 
   const paragraphs = [
-    `${year}年${qName}季度 ${areaLabel} 共监测 ${info.totalCount} 个排放源，其中极值（≥峰值70%）出现 ${info.extremeCount} 个，占比 ${extremeRatio}%。`,
+    `${year}年${qName}季度 ${areaLabel} 共监测 ${info.totalCount} 个排放源，其中极值（Z-Score≥2.0）出现 ${info.extremeCount} 个，占比 ${extremeRatio}%。`,
   ];
 
   if (info.max.category !== "--") {
     paragraphs.push(`最高排放点为「${info.max.name}」（${info.max.category}），排放量 ${info.max.value.toFixed(2)} 吨，远超同类平均水平。`);
   }
-  if (info.min.category !== "--") {
-    paragraphs.push(`最低排放点为「${info.min.name}」（${info.min.category}），排放量 ${info.min.value.toFixed(2)} 吨，减排措施成效显著。`);
+  if (info.min.category !== "--" && info.min.name !== info.max.name) {
+    paragraphs.push(`最低排放点为「${info.min.name}」（${info.min.category}），排放量 ${info.min.value.toFixed(2)} 吨。`);
   }
 
   // ── 原因推测 ──
@@ -177,9 +188,9 @@ const analysisText = computed(() => {
     reasons.push("住宅区人口密度高，生活用能需求集中，呈现聚集性排放特征");
   }
 
-  if (extremeRatio > 50) {
-    reasons.push("超过半数排放源处于高排放区间，可能存在系统性减排瓶颈");
-  } else if (info.extremeCount <= 3) {
+  if (extremeRatio > 30) {
+    reasons.push(`离群点占比 ${extremeRatio}%，存在系统性排放异常风险，建议全面排查`);
+  } else if (info.extremeCount <= 3 && info.extremeCount > 0) {
     reasons.push("极值点较为分散，建议对个别高排放源进行精准排查与整治");
   }
 
@@ -193,8 +204,9 @@ const analysisText = computed(() => {
 // ─── 针对性建议 ──────────────────────────────────
 const suggestions = computed(() => {
   const info = extremeInfo.value;
+  const data = extremeData.value;
   const { year, quarter } = store;
-  if (!info.totalCount) return [];
+  if (!data || !info.totalCount) return [];
 
   const reductionTarget = info.max.category === "工业区" ? 25 : info.max.category === "商业区" ? 20 : 15;
   const warnThreshold = Math.round(info.max.value * 0.8 * 10) / 10;

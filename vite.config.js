@@ -18,6 +18,16 @@ export default defineConfig({
         target: "http://localhost:8080",
         changeOrigin: true,
       },
+      // 分析相关接口（分层设色、极值分析等）
+      "/analysis": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+      // AI Agent SSE 流式对话
+      "/agent": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
       // 监测数据相关接口
       "/monitoring": {
         target: "http://localhost:8080",

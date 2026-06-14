@@ -47,45 +47,40 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import Chart from "@/vue/components/Chart.vue";
 import { BarChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, LegendComponent } from "echarts/components";
+import { getLayeredColoring } from "@/api/analysis";
+
 const store = useConfigStore();
 const modules = [BarChart, GridComponent, TooltipComponent, LegendComponent];
 
-// ─── 区域名称（与 mock-data 中 category 字段一致）──
+// ─── 区域名称（与 API 返回的 category 字段一致）──
 const districtNames = ["教育区", "商业区", "工业区", "住宅区", "农业区"];
 
-// ─── 基准阈值（用于 grading 比值计算，单位为 吨）──
-const baseThresholds = {
-  "教育区": 0.50,
-  "商业区": 1.20,
-  "工业区": 1.80,
-  "住宅区": 0.80,
-  "农业区": 0.35,
-};
+// ─── 分层设色数据（API — /analysis/layered-coloring）───
+const layeredData = ref(null);
 
-// ─── 等级定义 ────────────────────────────────────
-const gradeMeta = [
-  { grade: "A", label: "优秀 (≤80%)",  color: "#22c55e", lower: 0,     upper: 0.8 },
-  { grade: "B", label: "良好 (≤90%)",  color: "#84cc16", lower: 0.8,   upper: 0.9 },
-  { grade: "C", label: "达标 (≤100%)", color: "#f59e0b", lower: 0.9,   upper: 1.0 },
-  { grade: "D", label: "较差 (≤120%)", color: "#f97316", lower: 1.0,   upper: 1.2 },
-  { grade: "E", label: "超标 (>120%)", color: "#ef4444", lower: 1.2,   upper: Infinity },
-];
-
-function getGrade(emission, threshold) {
-  const ratio = emission / threshold;
-  for (const g of gradeMeta) {
-    if (ratio >= g.lower && ratio <= g.upper) return g.grade;
+watch([() => store.year, () => store.quarter], async () => {
+  try {
+    const res = await getLayeredColoring(store.year, store.quarter);
+    layeredData.value = res.data;
+  } catch (e) {
+    console.error("获取分层设色数据失败", e);
+    layeredData.value = null;
   }
-  return "E";
-}
+}, { immediate: true });
 
-// ─── 数据来源：从 store 共享（dashboard.vue 负责请求）─
-const rawFeatures = computed(() => store.buildingPointFeatures);
+// ─── 等级定义（与 API 返回的 level 1-5 对应）─────
+const gradeMeta = [
+  { grade: "1", label: "优秀", color: "#22c55e" },
+  { grade: "2", label: "良好", color: "#84cc16" },
+  { grade: "3", label: "达标", color: "#f59e0b" },
+  { grade: "4", label: "较差", color: "#f97316" },
+  { grade: "5", label: "超标", color: "#ef4444" },
+];
 
 // ─── 静态判定标准（显示行业真实标准文本）───────────
 const staticStandards = computed(() => {
@@ -104,11 +99,11 @@ const staticStandards = computed(() => {
 
 // ─── 图表 — 各等级占比 ───────────────────────────
 const chartOption = computed(() => {
-  const features = rawFeatures.value;
+  const buildings = layeredData.value?.buildings ?? [];
 
   // 过滤掉无建筑数据的区域
   const nonEmptyDistricts = districtNames.filter((name) => {
-    return features.some((f) => f.properties?.category === name);
+    return buildings.some((b) => b.category === name);
   });
 
   // 为每个 district 计算 5 个等级的计数
@@ -121,15 +116,11 @@ const chartOption = computed(() => {
       emphasis: { focus: "series" },
       itemStyle: { color: g.color, borderRadius: 0 },
       data: nonEmptyDistricts.map((name) => {
-        const threshold = baseThresholds[name];
-        const districtBuildings = features.filter((f) => f.properties?.category === name);
+        const districtBuildings = buildings.filter((b) => b.category === name);
         const total = districtBuildings.length;
         if (total === 0) return 0;
-        const count = districtBuildings.filter((f) => {
-          const e = f.properties?.emission ?? 0;
-          const ratio = e / threshold;
-          return ratio >= g.lower && ratio <= g.upper;
-        }).length;
+        const level = parseInt(g.grade);
+        const count = districtBuildings.filter((b) => b.level === level).length;
         return Math.round((count / total) * 100);
       }),
       label: {
@@ -350,19 +341,6 @@ const chartOption = computed(() => {
   font-weight: 600;
   color: rgba(224, 230, 240, 0.7);
   margin-right: 6px;
-}
-
-.grade-badge {
-  font-size: 13px;
-  font-weight: 700;
-  font-family: "pmzd", monospace;
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 }
 
 .chart-area {

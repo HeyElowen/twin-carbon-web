@@ -65,13 +65,15 @@
     <!-- 输入区域 -->
     <div class="input-area">
       <div class="input-wrapper">
-        <input
+        <textarea
           ref="inputRef"
           v-model="inputText"
           class="chat-input"
+          rows="1"
           placeholder="输入你的问题，按 Enter 发送..."
           @keydown.enter.prevent="sendMessage"
-        />
+          @input="autoResizeInput"
+        ></textarea>
         <button
           class="send-btn"
           :disabled="!inputText.trim()"
@@ -89,12 +91,19 @@
 <script setup>
 import { ref, nextTick } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
+import { sendAgentMessage } from "@/api/agent";
 
 const store = useConfigStore();
 const messageArea = ref(null);
 const inputRef = ref(null);
 const inputText = ref("");
 const loading = ref(false);
+
+/** 当前对话 ID（后端生成，用于多轮上下文） */
+const currentConversationId = ref("");
+
+/** 当前正在流式接收中的助手消息对象 */
+let currentAssistantMsg = null;
 
 const tips = [
   "分析当前季度碳排放数据",
@@ -112,35 +121,76 @@ function addMessage(role, text) {
   store.aiMessages.push({ role, text, time });
 }
 
-async function simulateReply(userText) {
-  loading.value = true;
-  await new Promise((r) => setTimeout(r, 1200 + Math.random() * 800));
-
-  const replies = [
-    "根据当前数据分析，2025年Q3碳排放总量较去年同期下降4.2%，主要得益于工业区能效提升。其中制造业板块降幅最为显著，达到6.8%。建议继续保持该趋势，重点关注商业区空调能耗。",
-    "经检测，以下区域碳排放超标：\n• 工业区B12点位：超标12.5%\n• 商业区A03点位：超标8.3%\n建议立即排查相关设备运行状态，查看是否有老旧设备未达标。",
-    "基于当前数据，建议以下减排措施：\n1. 将高耗能工序调整至低谷电价时段\n2. 对老旧设备进行变频改造\n3. 建立月度排放预警机制\n4. 推广屋顶光伏项目",
-    "预测模型显示，下季度碳排放趋势预计将呈现先升后稳的走势。受冬季采暖需求影响，住宅区和商业区排放预计上升5-8%，但工业区持续改造将抵消部分增量。综合预计同比降低2-3%。",
-  ];
-  const reply = replies[Math.floor(Math.random() * replies.length)];
-  loading.value = false;
-  addMessage("assistant", reply);
-  scrollToBottom();
-}
-
 function sendTip(tip) {
   inputText.value = tip;
+  autoResizeInput();
   sendMessage();
+}
+
+/** 根据文本内容自动调整输入框高度 */
+function autoResizeInput() {
+  nextTick(() => {
+    const el = inputRef.value;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 120) + "px";
+    }
+  });
 }
 
 async function sendMessage() {
   const text = inputText.value.trim();
   if (!text || loading.value) return;
   inputText.value = "";
+  // 输入框高度复位
+  if (inputRef.value) {
+    inputRef.value.style.height = "auto";
+  }
   addMessage("user", text);
   await nextTick();
   scrollToBottom();
-  await simulateReply(text);
+
+  // 开始 SSE 流式请求
+  loading.value = true;
+  // 确保思考气泡可见
+  await nextTick();
+  scrollToBottom();
+
+  currentAssistantMsg = null;
+
+  sendAgentMessage(text, {
+    conversationId: currentConversationId.value,
+    onProgress(stage, label, intent, confidence, convId) {
+      if (stage === "intent" && convId) {
+        currentConversationId.value = convId;
+      }
+    },
+    onToken(tokenText) {
+      // 第一个 token 到达时创建消息气泡（隐藏 loading 动画）
+      if (!currentAssistantMsg) {
+        loading.value = false;
+        const now = new Date();
+        const time = now.getHours().toString().padStart(2, "0") + ":" +
+                     now.getMinutes().toString().padStart(2, "0");
+        store.aiMessages.push({ role: "assistant", text: "", time });
+        // ★ 关键：从 store 里取回响应式代理对象，后续 text 修改才能触发重新渲染
+        currentAssistantMsg = store.aiMessages[store.aiMessages.length - 1];
+      }
+      currentAssistantMsg.text += tokenText;
+      scrollToBottom();
+    },
+    onDone() {
+      loading.value = false;
+      currentAssistantMsg = null;
+      scrollToBottom();
+    },
+    onError(err) {
+      loading.value = false;
+      currentAssistantMsg = null;
+      addMessage("assistant", `抱歉，请求出错：${err}`);
+      scrollToBottom();
+    },
+  });
 }
 
 function scrollToBottom() {
@@ -365,6 +415,10 @@ function scrollToBottom() {
   font-size: 13px;
   padding: 8px 10px;
   font-family: inherit;
+  resize: none;
+  line-height: 1.5;
+  max-height: 120px;
+  overflow-y: auto;
 }
 
 .chat-input::placeholder {
