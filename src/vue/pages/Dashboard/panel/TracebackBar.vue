@@ -306,8 +306,8 @@ onUnmounted(() => {
   right: 14px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: rgba(147, 197, 253, 0.9);
   font-family: monospace;
   letter-spacing: 0.5px;

@@ -181,8 +181,8 @@ function scrollToBottom() {
 }
 
 .messages-area::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.15);
-  border-radius: 3px;
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
 }
 
 /* ── Tips 中心区域 ── */

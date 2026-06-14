@@ -128,12 +128,12 @@ defineEmits(["update:modelValue"]);
   display: flex;
   flex-direction: column;
   color: #c8d0e0;
-  font-size: 14px;
+  font-size: 12px;
   overflow: auto;
 }
 
 .panel-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: #60a5fa;
   margin-bottom: 12px;
@@ -153,14 +153,14 @@ defineEmits(["update:modelValue"]);
 }
 
 .label-text {
-  font-size: 14px;
+  font-size: 16px;
   color: rgba(200, 208, 224, 0.85);
   white-space: nowrap;
   min-width: 60px;
 }
 
 .value-text {
-  font-size: 14px;
+  font-size: 16px;
   color: #60a5fa;
   min-width: 40px;
   text-align: right;
@@ -247,7 +247,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .legend-title {
-  font-size: 13px;
+  font-size: 14px;
   color: rgba(200, 208, 224, 0.6);
   margin-bottom: 6px;
 }
@@ -274,7 +274,7 @@ input[type="range"]::-moz-range-thumb {
 .legend-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(200, 208, 224, 0.5);
   margin-top: 3px;
 }

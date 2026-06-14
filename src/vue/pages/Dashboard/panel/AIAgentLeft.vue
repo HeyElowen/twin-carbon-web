@@ -54,12 +54,12 @@ import { ref } from "vue";
 const activeHistory = ref(-1);
 
 const features = [
-  { name: "数据智能分析", desc: "分析各类碳排放数据，生成可视化报告", color: "#60a5fa",
-    icon: '<path d="M21 3H3v18h18V3zm-2 16H5V5h14v14zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>' },
-  { name: "减排策略建议", desc: "基于数据提供定制化减排方案", color: "#34d399",
-    icon: '<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>' },
-  { name: "异常数据检测", desc: "自动识别碳排放数据中的异常值", color: "#f59e0b",
-    icon: '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>' },
+  { name: "趋势预测", desc: "新热力图、新极值分析、折线图预测等", color: "#60a5fa",
+    icon: '<path d="M3 17l5-4 4 4 7-7 2 2V5h-7l2 2-4 4-4-4-5 5z"/>' },
+  { name: "报告生成", desc: "智能生成多维度碳排放分析报告", color: "#34d399",
+    icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/>' },
+  { name: "缓冲区分析", desc: "评估排放源周边区域碳浓度分布与影响", color: "#f59e0b",
+    icon: '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6 2.69-6 6-6zm0 2c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/>' },
   { name: "碳排放趋势预测", desc: "预测未来碳排放趋势与峰值", color: "#a855f7",
     icon: '<path d="M16.5 3L13 9h4l-3.5 6H17l-4 6 3-4h-5l3.5-6H10l3.5-6H13l-4 6H5l3-4-1-2H2v14h20V3h-5.5z"/>' },
   { name: "报告自动生成", desc: "一键生成碳排放分析报告", color: "#f472b6",
@@ -87,8 +87,8 @@ const history = ref([
 }
 
 .section-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: #e0e6f0;
   margin-bottom: 8px;
   padding-left: 8px;
@@ -100,9 +100,9 @@ const history = ref([
 }
 
 .section-title .history-count {
-  font-size: 12px;
+  font-size: 18px;
   color: rgba(224, 230, 240, 0.4);
-  font-weight: 400;
+  font-weight: 700;
 }
 
 /* ── 功能列表 ── */
@@ -148,13 +148,13 @@ const history = ref([
 }
 
 .feature-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: #e0e6f0;
 }
 
 .feature-desc {
-  font-size: 13px;
+  font-size: 18px;
   color: rgba(224, 230, 240, 0.5);
   margin-top: 1px;
   white-space: nowrap;
@@ -204,22 +204,36 @@ const history = ref([
 
 .history-title {
   flex: 1;
-  font-size: 14px;
+  font-size: 18px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .history-time {
-  font-size: 12px;
+  font-size: 18px;
   color: rgba(224, 230, 240, 0.3);
   flex-shrink: 0;
 }
 
 .history-empty {
-  font-size: 14px;
+  font-size: 18px;
   color: rgba(224, 230, 240, 0.3);
   text-align: center;
   padding: 20px 0;
+}
+
+.history-list::-webkit-scrollbar {
+  width: 4px;
+}
+.history-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.history-list::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+}
+.history-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
 }
 </style>

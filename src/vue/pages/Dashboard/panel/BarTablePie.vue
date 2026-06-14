@@ -76,7 +76,7 @@ function onHeatmapUpdate(val) {
 }
 
 .item-title {
-  font-size: 14px;
+  font-size: 18px;
   margin-bottom: 6px;
   padding-left: 8px;
   border-left: 3px solid #3b82f6;
@@ -85,12 +85,13 @@ function onHeatmapUpdate(val) {
   align-items: center;
   color: #e0e6f0;
   flex-shrink: 0;
+  font-weight: 700;
 }
 
 .item-title span {
-  font-size: 13px;
+  font-size: 18px;
   color: rgba(224, 230, 240, 0.4);
-  font-weight: normal;
+  font-weight: 700;
 }
 
 .chart-content {
@@ -136,7 +137,8 @@ function onHeatmapUpdate(val) {
 
 .district-check :deep(.el-checkbox__label) {
   padding-left: 14px;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 400;
   color: rgba(224, 230, 240, 0.7);
 }
 
@@ -146,5 +148,19 @@ function onHeatmapUpdate(val) {
 
 .district-label {
   letter-spacing: 2px;
+}
+
+.heatmap-panel-wrapper::-webkit-scrollbar {
+  width: 4px;
+}
+.heatmap-panel-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+.heatmap-panel-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+}
+.heatmap-panel-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
 }
 </style>

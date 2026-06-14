@@ -72,7 +72,7 @@ const lineSubtitle = computed(() => "");
 }
 
 .item-title {
-  font-size: 14px;
+  font-size: 18px;
   margin-bottom: 6px;
   padding-left: 8px;
   border-left: 3px solid #3b82f6;
@@ -81,12 +81,13 @@ const lineSubtitle = computed(() => "");
   align-items: center;
   color: #e0e6f0;
   flex-shrink: 0;
+  font-weight: 700;
 }
 
 .item-title .subtitle {
-  font-size: 13px;
+  font-size: 18px;
   color: rgba(224, 230, 240, 0.4);
-  font-weight: normal;
+  font-weight: 700;
 }
 
 .scale-switch {
@@ -97,7 +98,7 @@ const lineSubtitle = computed(() => "");
 }
 
 .scale-switch span {
-  font-size: 13px;
+  font-size: 14px;
   padding: 2px 8px;
   border-radius: 4px;
   cursor: pointer;

@@ -107,7 +107,7 @@ const chartOption = computed(() => {
       right: 16,
       top: 0,
       data: [cat ? `${cat}碳排放` : "碳排放总量"],
-      textStyle: { color: lineColor.value },
+      textStyle: { color: lineColor.value, fontSize: 14 },
     },
     xAxis: {
       type: "category",
