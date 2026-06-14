@@ -193,10 +193,10 @@ watch(() => store.viewMode, (newMode, oldMode) => {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 3fr 6.5fr 6.5fr 3.5fr;
+  grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(6, minmax(0, 1fr));
   gap: 20px;
-  padding: 20px 0 0 0;
+  padding: 2px;
 }
 
 .card {
@@ -213,6 +213,7 @@ watch(() => store.viewMode, (newMode, oldMode) => {
   overflow: hidden;
   width: 100%;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .card::before {
