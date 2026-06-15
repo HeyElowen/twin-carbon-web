@@ -24,23 +24,34 @@
     <div class="history-section">
       <div class="section-title">
         历史对话
-        <span class="history-count">{{ history.length }}</span>
+        <span class="history-count">{{ store.conversationList.length }}</span>
+      </div>
+      <div class="new-chat-btn" @click="newConversation">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+        </svg>
+        新建对话
       </div>
       <div class="history-list">
         <div
           class="history-item"
-          v-for="(h, i) in history"
-          :key="i"
-          :class="{ active: i === activeHistory }"
-          @click="activeHistory = i"
+          v-for="conv in store.conversationList"
+          :key="conv.id"
+          :class="{ active: conv.id === store.currentConversationId }"
+          @click="selectConversation(conv)"
         >
           <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-.5-13v4l5 3-.5 1-5.5-3.5V7h1z"/>
           </svg>
-          <span class="history-title">{{ h.title }}</span>
-          <span class="history-time">{{ h.time }}</span>
+          <span class="history-title">{{ conv.title }}</span>
+          <span class="history-time">{{ formatTime(conv.updatedAt || conv.createdAt) }}</span>
+          <span class="history-delete" @click.stop="confirmDelete(conv)" title="删除对话">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+            </svg>
+          </span>
         </div>
-        <div v-if="history.length === 0" class="history-empty">
+        <div v-if="store.conversationList.length === 0" class="history-empty">
           暂无对话记录
         </div>
       </div>
@@ -49,9 +60,12 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { onMounted } from "vue";
+import { ElMessageBox, ElMessage } from "element-plus";
+import { useConfigStore } from "@/js/stores/useConfigStore";
+import { getAgentHistory, getAgentMessages, deleteAgentHistory } from "@/api/agent";
 
-const activeHistory = ref(-1);
+const store = useConfigStore();
 
 const features = [
   { name: "趋势预测", desc: "新热力图、新极值分析、折线图预测等", color: "#60a5fa",
@@ -68,13 +82,71 @@ const features = [
     icon: '<path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>' },
 ];
 
-const history = ref([
-  { title: "2025年Q3碳排放分析", time: "10:30" },
-  { title: "工业区减排方案讨论", time: "昨天" },
-  { title: "政策合规问题咨询", time: "3天前" },
-  { title: "异常数据检测报告", time: "5天前" },
-  { title: "年度碳排放趋势预测", time: "2周前" },
-]);
+function formatTime(isoStr) {
+  if (!isoStr) return "";
+  const d = new Date(isoStr);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffDays === 0) {
+    return d.getHours().toString().padStart(2, "0") + ":" +
+           d.getMinutes().toString().padStart(2, "0");
+  }
+  if (diffDays === 1) return "昨天";
+  if (diffDays < 7) return `${diffDays}天前`;
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+async function selectConversation(conv) {
+  if (conv.id === store.currentConversationId) return;
+  try {
+    const messages = await getAgentMessages(conv.id);
+    store.currentConversationId = conv.id;
+    store.aiMessages = messages.map(m => ({
+      role: m.role === "assistant" ? "assistant" : "user",
+      text: m.content,
+      time: formatTime(m.createdAt),
+    }));
+  } catch (e) {
+    console.error("加载历史消息失败", e);
+  }
+}
+
+async function confirmDelete(conv) {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除对话「${conv.title}」吗？删除后不可恢复。`,
+      "删除确认",
+      { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" }
+    );
+    await deleteAgentHistory(conv.id);
+    // 如果删除的是当前对话，清空聊天区
+    if (store.currentConversationId === conv.id) {
+      store.currentConversationId = null;
+      store.aiMessages = [];
+    }
+    // 刷新列表
+    store.conversationList = store.conversationList.filter(c => c.id !== conv.id);
+    ElMessage.success("对话已删除");
+  } catch {
+    // 用户取消或删除失败
+  }
+}
+
+function newConversation() {
+  store.currentConversationId = null;
+  store.aiMessages = [];
+}
+
+onMounted(async () => {
+  try {
+    const list = await getAgentHistory();
+    store.conversationList = list;
+  } catch (e) {
+    console.error("加载历史列表失败", e);
+  }
+});
 </script>
 
 <style scoped>
@@ -162,6 +234,27 @@ const history = ref([
   text-overflow: ellipsis;
 }
 
+/* ── 新建对话按钮 ── */
+.new-chat-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: rgba(224, 230, 240, 0.7);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px dashed rgba(59, 130, 246, 0.2);
+  transition: all 0.2s ease;
+}
+.new-chat-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
 /* ── 历史对话 ── */
 .history-section {
   flex: 1;
@@ -214,6 +307,28 @@ const history = ref([
   font-size: 18px;
   color: rgba(224, 230, 240, 0.3);
   flex-shrink: 0;
+}
+
+.history-delete {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(224, 230, 240, 0.2);
+  opacity: 0;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.history-item:hover .history-delete {
+  opacity: 1;
+  color: rgba(239, 68, 68, 0.5);
+}
+.history-delete:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444 !important;
 }
 
 .history-empty {

@@ -52,6 +52,10 @@ export const useConfigStore = defineStore("dashboard", () => {
   // AI Agent 聊天记录
   const aiMessages = ref([]);
 
+  // AI Agent 对话管理
+  const currentConversationId = ref(null);
+  const conversationList = ref([]);
+
   // 回溯播放控制
   const tracebackPlaying = ref(false);
   const tracebackProgress = ref(0);
@@ -162,6 +166,8 @@ export const useConfigStore = defineStore("dashboard", () => {
       power: 2.0,
     };
     aiMessages.value = [];
+    currentConversationId.value = null;
+    conversationList.value = [];
     buildingPointFeatures.value = [];
   }
 
@@ -175,6 +181,7 @@ export const useConfigStore = defineStore("dashboard", () => {
     previewBatchId, setPreviewBatchId, previewFeatures, setPreviewFeatures,
     mainCamera, setMainCamera,
     aiMessages,
+    currentConversationId, conversationList,
     buildingPointFeatures,
     setActive, toggleControl, toggleDistrict,
     setYear, setQuarter, setViewMode, setTrendYearScale, setSelectedCategory, setSelectedAnalysisDistrict,

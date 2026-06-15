@@ -64,6 +64,45 @@ export function sendAgentMessage(message, { conversationId, onToken, onProgress,
   });
 }
 
+/**
+ * 获取当前用户的会话历史列表
+ * GET /agent/history
+ */
+export async function getAgentHistory() {
+  const authStore = useAuthStore();
+  const res = await fetch(`${API_BASE}/agent/history`, {
+    headers: { Authorization: `Bearer ${authStore.token || ""}` },
+  });
+  if (!res.ok) throw new Error(`获取历史失败: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * 获取某个会话的全部消息
+ * GET /agent/history/{convId}
+ */
+export async function getAgentMessages(conversationId) {
+  const authStore = useAuthStore();
+  const res = await fetch(`${API_BASE}/agent/history/${conversationId}`, {
+    headers: { Authorization: `Bearer ${authStore.token || ""}` },
+  });
+  if (!res.ok) throw new Error(`获取消息失败: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * 删除会话
+ * DELETE /agent/history/{convId}
+ */
+export async function deleteAgentHistory(conversationId) {
+  const authStore = useAuthStore();
+  const res = await fetch(`${API_BASE}/agent/history/${conversationId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${authStore.token || ""}` },
+  });
+  if (!res.ok) throw new Error(`删除失败: ${res.status}`);
+}
+
 function handleEvent(event, dataStr, handlers) {
   try {
     const data = JSON.parse(dataStr);
