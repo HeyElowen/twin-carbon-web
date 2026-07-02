@@ -642,24 +642,26 @@ export function getMockResponse(config) {
     const qf = { 'Q1': 0.9, 'Q2': 0.95, 'Q3': 1.0, 'Q4': 1.05, 'ALL': 1.0 }
     const quarterFactor = qf[quarter] || 1.0
     const factor = yearFactor * quarterFactor
+    // 阈值固定不变（排放标准），仅排放量随年/季度浮动
+    const thresholds = mockLayeredColoring.data.thresholds;
     return {
       code: 200,
       message: "success",
       data: {
-        thresholds: Object.fromEntries(
-          Object.entries(mockLayeredColoring.data.thresholds).map(([cat, t]) => [
-            cat,
-            {
-              min: Math.round(t.min * factor * 100) / 100,
-              max: Math.round(t.max * factor * 100) / 100,
-              levels: t.levels.map(v => Math.round(v * factor * 100) / 100)
+        thresholds,
+        buildings: mockLayeredColoring.data.buildings.map(b => {
+          const newEmission = Math.round(b.emission * factor * 100) / 100;
+          const catT = thresholds[b.category];
+          // 用原始阈值（不变）重新计算等级
+          let newLevel = 1;
+          if (catT) {
+            for (let i = 0; i < catT.levels.length; i++) {
+              if (newEmission > catT.levels[i]) newLevel = i + 2;
             }
-          ])
-        ),
-        buildings: mockLayeredColoring.data.buildings.map(b => ({
-          ...b,
-          emission: Math.round(b.emission * factor * 100) / 100
-        }))
+            newLevel = Math.min(newLevel, 5);
+          }
+          return { ...b, emission: newEmission, level: newLevel };
+        })
       }
     }
   }

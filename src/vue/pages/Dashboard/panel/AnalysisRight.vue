@@ -32,6 +32,25 @@
         </div>
       </div>
 
+      <!-- 严重异常建筑列表 -->
+      <div class="severe-list" v-if="severeBuildings.length">
+        <div class="severe-title">严重异常</div>
+        <div
+          class="severe-item"
+          v-for="b in severeBuildings"
+          :key="b.name"
+          :title="b.anomalyLevel === 'severe_high' ? '严重超标' : '严重偏低'"
+        >
+          <span
+            class="severe-symbol"
+            :class="b.anomalyLevel === 'severe_high' ? 'high' : 'low'"
+          >{{ b.anomalyLevel === 'severe_high' ? '▲' : '▼' }}</span>
+          <span class="severe-name">{{ b.name }}</span>
+          <span class="severe-cat">{{ b.category }}</span>
+          <span class="severe-val">{{ (b.emission ?? 0).toFixed(2) }}吨</span>
+        </div>
+      </div>
+
       <div class="analysis-text" v-if="rawFeatures.length">
         <p v-for="(p, i) in analysisText.paragraphs" :key="i">{{ p }}</p>
         <p>结合当前时间段经济活动及政策事件分析，极值出现原因推测为：</p>
@@ -70,9 +89,36 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
+import { getExtremeAnalysis } from "@/api/monitoring";
 const store = useConfigStore();
+
+// ─── 极值分析接口数据 ────────────────────────────
+const extremeData = ref({ outliers: [], globalStats: {}, categoryStats: {} });
+const extremeLoading = ref(false);
+
+async function fetchExtremeAnalysis() {
+  extremeLoading.value = true;
+  try {
+    const res = await getExtremeAnalysis(store.year, store.quarter);
+    extremeData.value = res.data || { outliers: [], globalStats: {}, categoryStats: {} };
+  } catch (e) {
+    console.warn("[AnalysisRight] 极值分析接口异常:", e);
+  } finally {
+    extremeLoading.value = false;
+  }
+}
+
+// 年/季度变化时重新请求
+watch(() => [store.year, store.quarter], fetchExtremeAnalysis, { immediate: true });
+
+// ─── 严重异常建筑（severe_high / severe_low）────
+const severeBuildings = computed(() => {
+  return (extremeData.value.outliers || []).filter(
+    o => o.anomalyLevel === 'severe_high' || o.anomalyLevel === 'severe_low'
+  );
+});
 
 // ─── 数据来源：从 store 共享（dashboard.vue 负责请求）─
 const rawFeatures = computed(() => store.buildingPointFeatures);
@@ -415,5 +461,73 @@ const suggestions = computed(() => {
   color: rgba(224, 230, 240, 0.3);
   font-size: 14px;
   pointer-events: none;
+}
+
+/* ── 严重异常列表 ── */
+.severe-list {
+  flex-shrink: 0;
+  background: rgba(15, 20, 32, 0.4);
+  border: 1px solid rgba(59, 130, 246, 0.12);
+  border-radius: 6px;
+  padding: 8px 10px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.severe-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e0e6f0;
+  margin-bottom: 6px;
+  padding-left: 8px;
+  border-left: 3px solid #3b82f6;
+}
+
+.severe-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: rgba(224, 230, 240, 0.85);
+  cursor: default;
+  transition: background 0.2s;
+}
+
+.severe-item:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.severe-symbol {
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.severe-symbol.high { color: #ef4444; }
+.severe-symbol.low  { color: #22c55e; }
+
+.severe-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.severe-cat {
+  font-size: 12px;
+  color: rgba(224, 230, 240, 0.4);
+  flex-shrink: 0;
+}
+
+.severe-val {
+  font-family: "pmzd", monospace;
+  font-size: 12px;
+  color: rgba(224, 230, 240, 0.5);
+  flex-shrink: 0;
 }
 </style>
