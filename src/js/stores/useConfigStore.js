@@ -56,6 +56,7 @@ export const useConfigStore = defineStore("dashboard", () => {
   const currentConversationId = ref(null);
   const conversationList = ref([]);
 
+
   // 回溯播放控制
   const tracebackPlaying = ref(false);
   const tracebackProgress = ref(0);

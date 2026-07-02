@@ -12,12 +12,18 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
  * @param {(stage: string, label: string, intent: string, confidence: number, conversationId: string) => void} options.onProgress - 进度事件
  * @param {() => void} options.onDone - 流结束
  * @param {(err: string) => void} options.onError - 出错
+ * @param {(step: number, text: string) => void} options.onThought - ReAct 思考步骤
+ * @param {(step: number, tool: string, params: object) => void} options.onToolCall - ReAct 工具调用
+ * @param {(step: number, summary: string) => void} options.onToolResult - ReAct 工具结果
+ * @param {(round: number, thought: string, tool: string, result: string) => void} options.onStepDone - ReAct 单步完成（前端据此渲染一张卡片）
+ * @param {AbortSignal} options.signal - 用于取消请求的 AbortSignal
  */
-export function sendAgentMessage(message, { conversationId, onToken, onProgress, onDone, onError }) {
+export function sendAgentMessage(message, { conversationId, onToken, onProgress, onDone, onError, onThought, onToolCall, onToolResult, onStepDone, signal }) {
   const authStore = useAuthStore();
 
   fetch(`${API_BASE}/agent/stream`, {
     method: "POST",
+    signal, // <-- 支持取消
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${authStore.token || ""}`,
@@ -55,7 +61,7 @@ export function sendAgentMessage(message, { conversationId, onToken, onProgress,
           // Spring 的 SseEmitter 可能输出 data:{"key":"val"}（无空格）
           // 也可能输出 data: {"key":"val"}（有空格），两种都兼容
           const dataStr = line.slice(5).trim();
-          handleEvent(currentEvent, dataStr, { onToken, onProgress, onDone, onError });
+          handleEvent(currentEvent, dataStr, { onToken, onProgress, onDone, onError, onStepDone });
         }
       }
     }
@@ -119,6 +125,19 @@ function handleEvent(event, dataStr, handlers) {
         break;
       case "error":
         handlers.onError?.(data.errorMessage || "未知错误");
+        break;
+      // ReAct 事件
+      case "thought":
+        handlers.onThought?.(data.step, data.text);
+        break;
+      case "tool_call":
+        handlers.onToolCall?.(data.step, data.tool, data.params);
+        break;
+      case "tool_result":
+        handlers.onToolResult?.(data.step, data.summary);
+        break;
+      case "step_done":
+        handlers.onStepDone?.(data.round, data.thought, data.tool, data.result);
         break;
     }
   } catch {

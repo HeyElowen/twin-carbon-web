@@ -35,25 +35,39 @@
         class="message"
         :class="msg.role"
       >
-        <div class="message-avatar">
-          <svg v-if="msg.role === 'assistant'" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-          </svg>
-          <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-          </svg>
-        </div>
-        <div class="message-bubble">
-          <div class="message-text" v-html="renderMarkdown(msg.text)"></div>
+        <!-- 步骤卡片（每轮一张，包含思考+工具+结果） -->
+        <div v-if="msg.role === 'step'" class="step-card">
+          <div class="card-header">
+            <span class="card-step-num">步骤 {{ msg.round + 1 }}</span>
+          </div>
+          <div class="card-body">
+            <div class="card-line thought-line">💭 {{ msg.thought }}</div>
+            <div class="card-line tool-line">🔧 {{ msg.tool === 'api_browser' ? '数据查询' : msg.tool }}</div>
+            <div class="card-line result-line">📊 {{ msg.result }}</div>
+          </div>
           <div class="message-time">{{ msg.time }}</div>
         </div>
+
+        <!-- 普通消息气泡 -->
+        <template v-else>
+          <div class="message-avatar">
+            <svg v-if="msg.role === 'assistant'" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+          <div class="message-bubble">
+            <div class="message-text" v-html="renderMarkdown(msg.text)"></div>
+            <div class="message-time">{{ msg.time }}</div>
+          </div>
+        </template>
       </div>
 
-      <!-- 进度指示器：展示当前 AI 正在做什么 -->
-      <div v-if="loading" class="progress-bar" :class="progressClass">
-        <span class="progress-icon">{{ progressIcon }}</span>
-        <span class="progress-label">{{ currentStageLabel }}</span>
-        <span class="progress-dots"><span class="dot-pulse"></span></span>
+      <!-- 分析中可随时停止 -->
+      <div v-if="loading" class="stop-bar" @click="stopAnalysis">
+        ⏹ 点击停止分析
       </div>
     </div>
 
@@ -84,7 +98,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from "vue";
+import { ref, nextTick } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import { sendAgentMessage } from "@/api/agent";
 import { marked } from "marked";
@@ -108,28 +122,11 @@ const messageArea = ref(null);
 const inputRef = ref(null);
 const inputText = ref("");
 const loading = ref(false);
-
+/** AbortController 用于停止 SSE 请求 */
+let stopController = null;
 
 /** 当前正在流式接收中的助手消息对象 */
 let currentAssistantMsg = null;
-
-/* ── 进度指示器状态 ── */
-const currentStage = ref("");          // "intent" | "tool" | "reasoning" | ""
-const currentToolName = ref("");       // "web_search" | "chat" | ""
-const currentStageLabel = ref("");     // 展示给用户的文字
-
-/** 根据当前状态返回图标 */
-const progressIcon = computed(() => {
-  if (currentToolName.value === "web_search") return "🔍";
-  if (currentStage.value === "reasoning") return "🤔";
-  return "💭";
-});
-
-/** 根据当前状态返回 CSS class */
-const progressClass = computed(() => {
-  if (currentToolName.value === "web_search") return "is-searching";
-  return "is-thinking";
-});
 
 const tips = [
   "分析当前季度碳排放数据",
@@ -145,6 +142,13 @@ function addMessage(role, text) {
   const time = now.getHours().toString().padStart(2, "0") + ":" +
                now.getMinutes().toString().padStart(2, "0");
   store.aiMessages.push({ role, text, time });
+}
+
+function addStep(round, thought, tool, result) {
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2, "0") + ":" +
+               now.getMinutes().toString().padStart(2, "0");
+  store.aiMessages.push({ role: "step", round, thought, tool, result, time });
 }
 
 function sendTip(tip) {
@@ -178,15 +182,16 @@ async function sendMessage() {
 
   // 开始 SSE 流式请求
   loading.value = true;
-  currentStage.value = "";
-  currentToolName.value = "";
-  currentStageLabel.value = "";
   await nextTick();
   scrollToBottom();
 
   currentAssistantMsg = null;
+  stopController = new AbortController();
+  await nextTick();
+  scrollToBottom();
 
   sendAgentMessage(text, {
+    signal: stopController.signal,
     conversationId: store.currentConversationId,
     onProgress(stage, label, intent, confidence, convId) {
       if (stage === "intent" && convId) {
@@ -201,16 +206,11 @@ async function sendMessage() {
         const card = store.conversationList.find(c => c.id === convId);
         if (card) card.title = label;
       }
-      // 更新进度指示器状态
-      if (stage === "tool" && label) {
-        currentStage.value = stage;
-        currentToolName.value = intent || "";
-        currentStageLabel.value = label;
-      }
-      if (stage === "reasoning") {
-        currentStage.value = stage;
-        currentStageLabel.value = label || "正在思考…";
-      }
+    },
+    // ReAct 步骤完成事件 —— 每轮渲染一张卡片
+    onStepDone(round, thought, tool, result) {
+      addStep(round, thought, tool, result);
+      scrollToBottom();
     },
     onToken(tokenText) {
       // 第一个 token 到达时创建消息气泡，隐藏进度指示器
@@ -238,6 +238,17 @@ async function sendMessage() {
       scrollToBottom();
     },
   });
+}
+
+/** 用户主动停止分析：中止 SSE 请求，后端的 SseEmitter 抛异常 → ReAct 引擎停止循环 */
+function stopAnalysis() {
+  if (stopController) {
+    stopController.abort();
+    stopController = null;
+  }
+  loading.value = false;
+  addStep(999, "用户手动停止", "—", "⏹ 已停止分析");
+  scrollToBottom();
 }
 
 /** 判断用户是否在底部附近（60px 阈值），自动滚动用 */
@@ -488,13 +499,14 @@ function scrollToBottom() {
 }
 
 .message-text a {
-  color: #60a5fa;
+  color: #fbbf24;
   text-decoration: none;
-  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
-  transition: border-color 0.2s;
+  border-bottom: 1px solid rgba(251, 191, 36, 0.35);
+  transition: all 0.2s;
 }
 .message-text a:hover {
-  border-bottom-color: #60a5fa;
+  color: #fcd34d;
+  border-bottom-color: rgba(251, 191, 36, 0.7);
 }
 
 .message-text strong {
@@ -542,60 +554,88 @@ function scrollToBottom() {
   text-align: right;
 }
 
-/* ── 进度指示器 ── */
-.progress-bar {
+/* ── ReAct 步骤卡片（每轮一张综合卡片） ── */
+.step-card {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  margin: 0 4px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  margin: 3px 0;
   border-radius: 10px;
-  font-size: 13px;
-  transition: all 0.3s ease;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  background: rgba(15, 20, 32, 0.3);
+  width: 100%;
+  border-left: 3px solid rgba(59, 130, 246, 0.35);
 }
 
-.progress-bar.is-searching {
-  background: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.15);
-  color: rgba(147, 197, 253, 0.9);
-}
-
-.progress-bar.is-thinking {
-  background: rgba(52, 211, 153, 0.06);
-  border: 1px solid rgba(52, 211, 153, 0.12);
-  color: rgba(52, 211, 153, 0.8);
-}
-
-.progress-icon {
-  flex-shrink: 0;
-  font-size: 15px;
-}
-
-.progress-label {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.progress-dots {
-  flex-shrink: 0;
+.step-card .card-header {
   display: flex;
   align-items: center;
+  gap: 6px;
 }
 
-.progress-dots .dot-pulse {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  animation: dotPulse 1.2s ease-in-out infinite;
+.step-card .card-step-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(147, 197, 253, 0.7);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
-@keyframes dotPulse {
-  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-  40% { opacity: 1; transform: scale(1.1); }
+.step-card .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.step-card .card-line {
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+  padding: 2px 0;
+}
+
+.step-card .thought-line {
+  color: rgba(191, 219, 254, 0.85);
+}
+
+.step-card .tool-line {
+  color: rgba(251, 191, 36, 0.75);
+  font-size: 12px;
+}
+
+.step-card .result-line {
+  color: rgba(52, 211, 153, 0.75);
+  font-size: 12px;
+}
+
+.step-card .message-time {
+  font-size: 11px;
+  color: rgba(224, 230, 240, 0.25);
+  margin-top: 2px;
+}
+
+/* ── 停止按钮 ── */
+.stop-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  margin: 4px 0;
+  border-radius: 8px;
+  border: 1px dashed rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.06);
+  color: rgba(239, 68, 68, 0.7);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.stop-bar:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ef4444;
 }
 
 /* ── 输入区域 ── */
