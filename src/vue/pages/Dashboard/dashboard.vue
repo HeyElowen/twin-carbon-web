@@ -30,6 +30,7 @@ import Panel from "./panel/index.vue";
 import PreviewCesium from "./PreviewCesium.vue";
 import { Heatmap3D } from "@/js/utils/heatmap3D";
 import { useDistrictOverlay } from "@/js/composables/useDistrictOverlay";
+import { useBuildingColoring } from "@/js/composables/useBuildingColoring";
 
 let viewer = null;
 let pointDataSource = null;   // 当前加载的 GeoJSON 数据源
@@ -37,16 +38,17 @@ let heatmap3D = null;         // 3D 热力图实例
 
 const store = useConfigStore();
 const districtOverlay = useDistrictOverlay();
-const pointData = ref([]);      // 观测点数据 
+const buildingColoring = useBuildingColoring();
+const pointData = ref([]);      // 观测点数据
 const pointLoading = ref(false);
 
 // ─── 分区三维场景配置（rotation 模式使用）───────────────────
 const DISTRICT_SCENES = [
-  { name: '农业区', serviceName: '3D-agriculture2', sceneName: 'agriculture2' },
-  { name: '教育区', serviceName: '3D-school2',      sceneName: 'school2' },
-  { name: '工业区', serviceName: '3D-industry2',    sceneName: 'industry2' },
-  { name: '商业区', serviceName: '3D-business2',    sceneName: 'business2' },
-  { name: '住宅区', serviceName: '3D-home2',        sceneName: 'home2' },
+  { name: '工业区', serviceName: '3D-industry5',    sceneName: 'industry5' },
+  { name: '教育区', serviceName: '3D-school5',      sceneName: 'school5' },
+  { name: '农业区', serviceName: '3D-agriculture5', sceneName: 'agriculture5' },
+  { name: '商业区', serviceName: '3D-business5',    sceneName: ' business5' },
+  { name: '住宅区', serviceName: '3D-house5',       sceneName: 'house5' },
 ];
 
 let defaultSceneLayers = [];   // 默认 3D-global 场景加载的图层
@@ -243,6 +245,10 @@ async function updateHeatmap() {
 // 监听年份/季度变化，自动重新获取数据并更新场景
 watch([() => store.year, () => store.quarter], () => {
   fetchPoints();
+  // rotation 模式下同步更新建筑分层设色
+  if (store.activeKey === 'rotation' && isDistrictMode) {
+    buildingColoring.applyColoring(viewer, store.year, store.quarter);
+  }
 });
 
 // 监听热力图开关
@@ -301,6 +307,15 @@ async function switchToDistrictScenes() {
     try {
       const layers = await scene.open(url, ds.sceneName);
       if (layers && layers.length > 0) {
+        // 兼容旧版 .s3mb 缓存：强制图层请求 S3MB 格式
+        for (const layer of layers) {
+          if (layer.fileType !== undefined) {
+            layer.fileType = 'S3MB';
+          }
+          // 保存服务名和区域名，供 useBuildingColoring 查询字段用
+          layer._serviceName = ds.serviceName;
+          layer._districtName = ds.name;
+        }
         loaded.push(...layers);
         // eslint-disable-next-line no-console
         console.log(`[DistrictScene] ${ds.name} 场景加载成功:`, layers.length, '个图层');
@@ -318,6 +333,9 @@ async function switchToDistrictScenes() {
   if (store.heatmapConfig.enabled) {
     await updateHeatmap();
   }
+
+  // 应用建筑分层设色
+  await buildingColoring.applyColoring(viewer, store.year, store.quarter);
 }
 
 /** 切出 rotation 模式：移除分区场景，恢复默认 3D-global 场景 */
@@ -355,6 +373,9 @@ async function switchToDefaultScene() {
   if (store.heatmapConfig.enabled) {
     await updateHeatmap();
   }
+
+  // 清除建筑分层设色
+  buildingColoring.clearAllColoring(viewer);
 }
 
 // 离开数据上传面板时强制关闭预览分屏
@@ -397,6 +418,22 @@ onMounted(async() => {
     shouldAnimate: false
   })
   window.cesiumViewer = viewer
+
+  // 拦截 .s3md 网络请求，兼容旧版 .s3mb 缓存数据
+  const originalXHROpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url, ...args) {
+    if (typeof url === 'string' && url.includes('.s3md')) {
+      url = url.replace(/\.s3md/g, '.s3mb');
+    }
+    return originalXHROpen.call(this, method, url, ...args);
+  };
+  const originalFetch = window.fetch;
+  window.fetch = function(url, options) {
+    if (typeof url === 'string' && url.includes('.s3md')) {
+      url = url.replace(/\.s3md/g, '.s3mb');
+    }
+    return originalFetch.call(this, url, options);
+  };
 
   // 阻止 Ctrl+滚轮 触发浏览器页面缩放，避免标签被浏览器缩放影响
   const cesiumContainer = document.getElementById('cesiumContainer');
@@ -494,6 +531,7 @@ onMounted(async() => {
 onUnmounted(() => {
   removePointDataSource();
   districtOverlay.removeOverlay(viewer);
+  buildingColoring.clearAllColoring(viewer);
   if (heatmap3D) {
     heatmap3D.destroy()
     heatmap3D = null
