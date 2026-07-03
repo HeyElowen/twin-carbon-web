@@ -5,7 +5,6 @@
  *   1. Cesium3DTileStyle 条件表达式（始终尝试）
  *   2. setObjsColor（通过 getAttributesById 获取 ID 后）
  *   3. 屏幕拾取设色（经纬度 → 屏幕坐标 → pick → setObjsColor）
- *   4. 点击交互式设色（click → pickPosition → 最近邻匹配 → setObjsColor）
  */
 
 import { getLayeredColoring } from "@/api/monitoring";
@@ -23,7 +22,7 @@ const LEVEL_CSS = {
   5: 'rgba(239,68,68,1)',
 };
 
-const NAME_FIELDS = ["name", "名称", "Name", "NAME", "buildingName", "BuildingName", "SmID"];
+const NAME_FIELDS = ["名称", "name", "Name", "NAME", "buildingName", "BuildingName"];
 
 /** 屏幕拾取偏移量网格（补偿 API 坐标与模型位置偏差） */
 const PICK_OFFSETS = [
@@ -87,7 +86,6 @@ function pickBuildingAt(scene, layer, screenPos) {
 
 export function useBuildingColoring() {
   let abortController = null;
-  let clickHandler = null;
   let currentBuildings = [];
   let viewerRef = null;
 
@@ -285,77 +283,6 @@ export function useBuildingColoring() {
     }
   }
 
-  // ── 点击变色 ─────────────────────────────────────
-  function setupClickHandler(viewer) {
-    removeClickHandler(viewer);
-    if (!viewer || !viewer.scene) return;
-
-    clickHandler = viewer.screenSpaceEventHandler;
-    clickHandler.setInputAction((click) => {
-      const picks = viewer.scene.drillPick(click.position);
-      if (!picks || picks.length === 0) return;
-
-      // 找 S3M 瓦片对象
-      let s3mPick = null;
-      for (const p of picks) {
-        if (p.primitive && typeof p.primitive.setObjsColor === 'function' && p.id != null) {
-          s3mPick = p;
-          break;
-        }
-      }
-      if (!s3mPick) return;
-
-      const layer = s3mPick.primitive;
-      const objId = s3mPick.id;
-
-      // ── 空间位置匹配：点击位置 → lon/lat → 最近邻建筑 ──
-      let entityName = null;
-      try {
-        const cartesian = viewer.scene.pickPosition(click.position);
-        if (cartesian) {
-          const carto = Cesium.Cartographic.fromCartesian(cartesian);
-          const lon = Cesium.Math.toDegrees(carto.longitude);
-          const lat = Cesium.Math.toDegrees(carto.latitude);
-          let minD = Infinity;
-          let nearest = null;
-          for (const b of currentBuildings) {
-            if (b.lon == null || b.lat == null) continue;
-            const d = Math.hypot(b.lon - lon, b.lat - lat);
-            if (d < minD) { minD = d; nearest = b; }
-          }
-          if (nearest && minD < 0.01) entityName = nearest.name;
-        }
-      } catch (e) {}
-
-      // ── 诊断（静默）：getAttributesById 在点击时是否可用 ──
-      getAttrsTO(layer, objId, 300).then(attrs => {
-        if (attrs) {
-          // eslint-disable-next-line no-console
-          console.log(`[BuildingColoring] 点击诊断 attrs(${objId}):`, attrs);
-        }
-      }).catch(() => {});
-
-      // eslint-disable-next-line no-console
-      console.log(`[BuildingColoring] 点击: id=${objId} layer=${layer.name} name=${entityName}`);
-
-      // ── 没有匹配到名称 → 不染色 ──
-      if (!entityName) return;
-
-      const match = currentBuildings.find(b => b.name === entityName);
-      if (!match || !match.level || !LEVEL_COLORS[match.level]) return;
-
-      // eslint-disable-next-line no-console
-      console.log(`[BuildingColoring] → 等级 ${match.level}`);
-      layer.setObjsColor([objId], LEVEL_COLORS[match.level]);
-    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-  }
-
-  function removeClickHandler(viewer) {
-    if (clickHandler && viewer) {
-      try { viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK); } catch (e) {}
-    }
-    clickHandler = null;
-  }
 
   // ── 主入口 ──────────────────────────────────────
   async function applyColoring(viewer, year, quarter) {
@@ -369,9 +296,6 @@ export function useBuildingColoring() {
       for (const L of getS3MLayers(viewer)) {
         if (L.removeAllObjsColor) L.removeAllObjsColor();
       }
-      // 旧的 click handler 也一并清理
-      removeClickHandler(viewer);
-
       const res = await getLayeredColoring(year, quarter);
       const buildings = res.data?.buildings;
       if (!buildings || buildings.length === 0) return;
@@ -382,9 +306,6 @@ export function useBuildingColoring() {
         if (abortController.signal.aborted) return;
         await colorLayer(viewer, L, buildings);
       }
-
-      // 注册点击变色
-      if (!abortController.signal.aborted) setupClickHandler(viewer);
     } catch (error) {
       if (error.name !== "AbortError") console.error("[BuildingColoring] 失败:", error);
     }
@@ -396,7 +317,6 @@ export function useBuildingColoring() {
       if (L.removeAllObjsColor) L.removeAllObjsColor();
       try { L.themeStyle = null; } catch (e) {}
     }
-    removeClickHandler(viewer);
     currentBuildings = [];
     viewerRef = null;
     if (abortController) { abortController.abort(); abortController = null; }

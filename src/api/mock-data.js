@@ -436,19 +436,17 @@ export const mockExtremeAnalysis = {
   message: "success",
   data: {
     outliers: [
-      {
-        name: "锡山经济技术开发区A区",
-        category: "工业区",
-        emission: 86.50,
-        zScore: 2.29,
-        type: "HIGH",
-        lon: 120.438,
-        lat: 31.565
-      }
+      { name: "锡山经济技术开发区A区", category: "工业区", emission: 86.50, zScore: 2.29, type: "HIGH", anomalyLevel: "severe_high", lon: 120.438, lat: 31.565, height: 25 },
+      { name: "锡山经济技术开发区B区", category: "工业区", emission: 72.30, zScore: 2.02, type: "HIGH", anomalyLevel: "severe_high", lon: 120.443, lat: 31.560, height: 20 },
+      { name: "锡东八佰伴",           category: "商业区", emission: 45.20, zScore: 2.15, type: "HIGH", anomalyLevel: "severe_high", lon: 120.476, lat: 31.590, height: 45 },
+      { name: "严家桥生态农场",       category: "农业区", emission: 3.90,  zScore: -2.12, type: "LOW", anomalyLevel: "severe_low",  lon: 120.485, lat: 31.595, height: 8 },
+      { name: "无锡学院-学生活动中心", category: "教育区", emission: 5.60,  zScore: -2.05, type: "LOW", anomalyLevel: "severe_low",  lon: 120.470, lat: 31.586, height: 15 },
+      { name: "华润·江南府",         category: "住宅区", emission: 11.04, zScore: 1.88, type: "HIGH", anomalyLevel: "high",        lon: 120.478, lat: 31.568, height: 54 },
+      { name: "太湖水稻示范园",       category: "农业区", emission: 5.25,  zScore: -1.75, type: "LOW",  anomalyLevel: "low",         lon: 120.498, lat: 31.588, height: 6 },
     ],
     globalStats: {
       totalBuildings: 28,
-      outlierCount: 1,
+      outlierCount: 5,
       method: "z-score",
       threshold: 2.0
     },
@@ -666,7 +664,7 @@ export function getMockResponse(config) {
     }
   }
 
-  // 极值分析 — 按 year/quarter 参数化微调
+  // 极值分析 — 按 year/quarter 参数化微调（保留 height 字段）
   if (key === 'get:/analysis/extreme') {
     const year = parseInt(params?.year) || 2025
     const quarter = params?.quarter || 'Q3'
@@ -683,20 +681,11 @@ export function getMockResponse(config) {
           emission: Math.round(o.emission * factor * 100) / 100,
           zScore: Math.round(o.zScore * factor * 100) / 100
         })),
-        globalStats: {
-          ...mockExtremeAnalysis.data.globalStats
-        },
+        globalStats: { ...mockExtremeAnalysis.data.globalStats },
         categoryStats: Object.fromEntries(
           Object.entries(mockExtremeAnalysis.data.categoryStats).map(([cat, s]) => [
             cat,
-            {
-              ...s,
-              max: Math.round(s.max * factor * 100) / 100,
-              min: Math.round(s.min * factor * 100) / 100,
-              mean: Math.round(s.mean * factor * 100) / 100,
-              median: Math.round(s.median * factor * 100) / 100,
-              stddev: Math.round(s.stddev * factor * 100) / 100
-            }
+            { ...s, max: Math.round(s.max * factor * 100) / 100, min: Math.round(s.min * factor * 100) / 100, mean: Math.round(s.mean * factor * 100) / 100, median: Math.round(s.median * factor * 100) / 100, stddev: Math.round(s.stddev * factor * 100) / 100 }
           ])
         )
       }

@@ -102,7 +102,9 @@ async function fetchExtremeAnalysis() {
   extremeLoading.value = true;
   try {
     const res = await getExtremeAnalysis(store.year, store.quarter);
-    extremeData.value = res.data || { outliers: [], globalStats: {}, categoryStats: {} };
+    const data = res.data || { outliers: [], globalStats: {}, categoryStats: {} };
+    extremeData.value = data;
+    store.extremeAnalysisData = data; // 共享给其他组件
   } catch (e) {
     console.warn("[AnalysisRight] 极值分析接口异常:", e);
   } finally {

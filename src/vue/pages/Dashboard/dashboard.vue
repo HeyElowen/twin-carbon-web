@@ -35,21 +35,13 @@ import { useBuildingColoring } from "@/js/composables/useBuildingColoring";
 let viewer = null;
 let pointDataSource = null;   // 当前加载的 GeoJSON 数据源
 let heatmap3D = null;         // 3D 热力图实例
+let anomalyEntities = [];     // 极值分析 billboard 实体列表
 
 const store = useConfigStore();
 const districtOverlay = useDistrictOverlay();
 const buildingColoring = useBuildingColoring();
 const pointData = ref([]);      // 观测点数据
 const pointLoading = ref(false);
-
-// ─── 分区三维场景配置（rotation 模式使用）───────────────────
-const DISTRICT_SCENES = [
-  { name: '工业区', serviceName: '3D-industry5',    sceneName: 'industry5' },
-  { name: '教育区', serviceName: '3D-school5',      sceneName: 'school5' },
-  { name: '农业区', serviceName: '3D-agriculture5', sceneName: 'agriculture5' },
-  { name: '商业区', serviceName: '3D-business5',    sceneName: ' business5' },
-  { name: '住宅区', serviceName: '3D-house5',       sceneName: 'house5' },
-];
 
 let defaultSceneLayers = [];   // 默认 3D-global 场景加载的图层
 let districtSceneLayers = [];  // 分区场景加载的图层
@@ -248,6 +240,7 @@ watch([() => store.year, () => store.quarter], () => {
   // rotation 模式下同步更新建筑分层设色
   if (store.activeKey === 'rotation' && isDistrictMode) {
     buildingColoring.applyColoring(viewer, store.year, store.quarter);
+    showAnomalyIcons(viewer);
   }
 });
 
@@ -285,6 +278,117 @@ watch(
   }
 );
 
+// ─── 极值分析图标：在三维建筑上方显示 high / low ──────
+
+// ─── 极值分析图标：Canvas 绘制，避免图片加载问题 ──────────
+function createAnomalyIcon(isHigh) {
+  const size = 64;
+  const c = document.createElement('canvas');
+  c.width = size;
+  c.height = size;
+  const ctx = c.getContext('2d');
+  // 圆形背景
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size / 2 - 3, 0, Math.PI * 2);
+  ctx.fillStyle = isHigh ? '#ef4444' : '#22c55e';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  // 文字
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 28px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(isHigh ? '!' : '√', size / 2, size / 2 + 1);
+  return c;
+}
+async function getBuildingPosition(buildingName) {
+  const dataBase = '/iserver/services/3D-global5/rest/data';
+  try {
+    const dsRes = await fetch(dataBase + '/datasources.json');
+    if (!dsRes.ok) return null;
+    const dsJson = await dsRes.json();
+    const dsNames = (dsJson.datasourceNames || dsJson.datasources || [])
+      .map(n => typeof n === 'string' ? n : n.name);
+    for (const ds of dsNames) {
+      const q = `maxFeatures=1&attributeFilter=名称='${encodeURIComponent(buildingName)}'`;
+      const r = await fetch(`${dataBase}/datasources/${ds}/features.json?${q}`);
+      if (!r.ok) continue;
+      const j = await r.json();
+      const f = j.features?.[0];
+      if (!f) continue;
+      const names = f.fieldNames || [];
+      const vals  = f.fieldValues  || [];
+      if (names.indexOf('名称') < 0 || vals[names.indexOf('名称')] !== buildingName) continue;
+      const iLon = names.indexOf('经度') >= 0 ? names.indexOf('经度') : names.indexOf('lon');
+      const iLat = names.indexOf('纬度') >= 0 ? names.indexOf('纬度') : names.indexOf('lat');
+      const iH   = names.indexOf('Height') >= 0 ? names.indexOf('Height') : names.indexOf('高度');
+      if (iLon >= 0 && iLat >= 0) {
+        return { lon: Number(vals[iLon]), lat: Number(vals[iLat]), height: iH >= 0 ? Number(vals[iH]) : 30 };
+      }
+    }
+  } catch (e) { /* 网络异常，返回 null 使用数据自带坐标 */ }
+  return null;
+}
+
+function clearAnomalyIcons(v) {
+  if (!v) return;
+  anomalyEntities.forEach(e => v.entities.remove(e));
+  anomalyEntities = [];
+}
+
+async function showAnomalyIcons(v) {
+  if (!v) return;
+  clearAnomalyIcons(v);
+
+  const outliers = store.extremeAnalysisData.outliers || [];
+  console.log('[AnomalyIcon] 离群建筑:', outliers.filter(o => o.anomalyLevel === 'severe_high' || o.anomalyLevel === 'severe_low').length, '个');
+  for (const o of outliers) {
+    if (o.anomalyLevel !== 'severe_high' && o.anomalyLevel !== 'severe_low') continue;
+
+    // 优先通过"名称"查询三维建筑真实坐标
+    let lon, lat, bldHeight;
+    const pos = await getBuildingPosition(o.name);
+    if (pos) {
+      lon = pos.lon;
+      lat = pos.lat;
+      bldHeight = pos.height;
+    } else if (o.lon != null && o.lat != null) {
+      lon = o.lon;
+      lat = o.lat;
+      bldHeight = o.height || 30;
+    } else {
+      console.warn('[AnomalyIcon] 无法定位:', o.name);
+      continue;
+    }
+
+    const isHigh = o.anomalyLevel === 'severe_high';
+    const iconHeight = bldHeight + 15;
+
+    const entity = v.entities.add({
+      name: o.name,
+      position: Cesium.Cartesian3.fromDegrees(lon, lat, iconHeight),
+      billboard: {
+        image: createAnomalyIcon(isHigh),
+        width: 28,
+        height: 28,
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+    });
+    anomalyEntities.push(entity);
+    console.log('[AnomalyIcon]', o.name, isHigh ? '↑高' : '↓低', lon, lat);
+  }
+}
+
+// 极值分析数据就绪后自动显示图标
+watch(() => store.extremeAnalysisData, () => {
+  if (store.activeKey === 'rotation' && viewer) {
+    showAnomalyIcons(viewer);
+  }
+}, { deep: true });
+
 // ─── 分区三维场景切换 ────────────────────────────────────
 
 /** 切换到 rotation 模式：移除默认场景，加载5个分区场景叠加 */
@@ -300,30 +404,28 @@ async function switchToDistrictScenes() {
   });
   defaultSceneLayers = [];
 
-  // 依次加载5个分区三维场景
+  // 加载统一三维场景
   const loaded = [];
-  for (const ds of DISTRICT_SCENES) {
-    const url = `http://localhost:8090/iserver/services/${ds.serviceName}/rest/realspace`;
-    try {
-      const layers = await scene.open(url, ds.sceneName);
-      if (layers && layers.length > 0) {
-        // 兼容旧版 .s3mb 缓存：强制图层请求 S3MB 格式
-        for (const layer of layers) {
-          if (layer.fileType !== undefined) {
-            layer.fileType = 'S3MB';
-          }
-          // 保存服务名和区域名，供 useBuildingColoring 查询字段用
-          layer._serviceName = ds.serviceName;
-          layer._districtName = ds.name;
+  const url = 'http://localhost:8090/iserver/services/3D-global5/rest/realspace';
+  try {
+    const layers = await scene.open(url);
+    if (layers && layers.length > 0) {
+      // 兼容旧版 .s3mb 缓存：强制图层请求 S3MB 格式
+      for (const layer of layers) {
+        if (layer.fileType !== undefined) {
+          layer.fileType = 'S3MB';
         }
-        loaded.push(...layers);
-        // eslint-disable-next-line no-console
-        console.log(`[DistrictScene] ${ds.name} 场景加载成功:`, layers.length, '个图层');
       }
-    } catch (error) {
+      loaded.push(...layers);
       // eslint-disable-next-line no-console
-      console.error(`[DistrictScene] ${ds.name} 场景加载失败:`, error);
+      console.log('[DistrictScene] 统一场景加载成功:', layers.length, '个图层');
+      // 加载后关闭雾效
+      scene.fog.enabled = false;
+      scene.fog.density = 0.0;
     }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[DistrictScene] 统一场景加载失败:', error);
   }
   districtSceneLayers = loaded;
   isDistrictMode = true;
@@ -336,6 +438,9 @@ async function switchToDistrictScenes() {
 
   // 应用建筑分层设色
   await buildingColoring.applyColoring(viewer, store.year, store.quarter);
+
+  // 自动显示极值分析符号
+  showAnomalyIcons(viewer);
 }
 
 /** 切出 rotation 模式：移除分区场景，恢复默认 3D-global 场景 */
@@ -353,7 +458,7 @@ async function switchToDefaultScene() {
 
   // 恢复默认场景
   try {
-    const url = 'http://localhost:8090/iserver/services/3D-global/rest/realspace';
+    const url = 'http://localhost:8090/iserver/services/3D-global5/rest/realspace';
     const layers = await scene.open(url);
     if (layers && layers.length > 0) {
       defaultSceneLayers = layers;
@@ -361,6 +466,8 @@ async function switchToDefaultScene() {
     }
     // eslint-disable-next-line no-console
     console.log('[DefaultScene] 默认场景恢复成功');
+    scene.fog.enabled = false;
+    scene.fog.density = 0.0;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('[DefaultScene] 默认场景恢复失败:', error);
@@ -376,6 +483,9 @@ async function switchToDefaultScene() {
 
   // 清除建筑分层设色
   buildingColoring.clearAllColoring(viewer);
+
+  // 清除极值分析图标
+  clearAnomalyIcons(viewer);
 }
 
 // 离开数据上传面板时强制关闭预览分屏
@@ -418,6 +528,11 @@ onMounted(async() => {
     shouldAnimate: false
   })
   window.cesiumViewer = viewer
+
+  // 关闭雾效
+  viewer.scene.fog.enabled = false;
+  viewer.scene.fog.density = 0.0;
+  viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#070a0e');
 
   // 拦截 .s3md 网络请求，兼容旧版 .s3mb 缓存数据
   const originalXHROpen = XMLHttpRequest.prototype.open;
@@ -488,11 +603,13 @@ onMounted(async() => {
   // imageryLayers.addImageryProvider(tdtCia)
 
   try {
-    const layers = await scene.open('http://localhost:8090/iserver/services/3D-global/rest/realspace')
+    const layers = await scene.open('http://localhost:8090/iserver/services/3D-global5/rest/realspace')
     if (layers?.length > 0) {
       defaultSceneLayers = layers;
       viewer.flyTo?.(layers[0])
     }
+    scene.fog.enabled = false;
+    scene.fog.density = 0.0;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('场景加载失败:', error)
@@ -503,10 +620,23 @@ onMounted(async() => {
     await switchToDistrictScenes();
   }
 
-  // 跟踪主相机变化 → 实时同步预览视图（camera.changed 每帧触发）
+  // ─── 相机双向同步（主↔预览）───
+  let mainCamSyncing = false;
+  // 主→预览：主相机变化 → 写入 store
   viewer.scene.camera.changed.addEventListener(() => {
+    if (mainCamSyncing) return;
     store.setMainCamera(viewer.scene.camera);
   });
+  // 预览→主：store 变化 → 同步到主视图
+  watch(() => store.mainCamera, (cam) => {
+    if (!viewer || !cam || !cam.destination || mainCamSyncing) return;
+    mainCamSyncing = true;
+    viewer.camera.setView({
+      destination: new Cesium.Cartesian3(cam.destination.x, cam.destination.y, cam.destination.z),
+      orientation: { heading: cam.heading, pitch: cam.pitch, roll: cam.roll },
+    });
+    requestAnimationFrame(() => { mainCamSyncing = false; });
+  }, { deep: true });
   // 首次触发一次，确保预览视图初始同步
   store.setMainCamera(viewer.scene.camera);
 
@@ -532,6 +662,7 @@ onUnmounted(() => {
   removePointDataSource();
   districtOverlay.removeOverlay(viewer);
   buildingColoring.clearAllColoring(viewer);
+  clearAnomalyIcons(viewer);
   if (heatmap3D) {
     heatmap3D.destroy()
     heatmap3D = null
