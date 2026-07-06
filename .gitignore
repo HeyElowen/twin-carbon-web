@@ -46,3 +46,5 @@ AGENTS.md
 
 # Claude Code local config
 .claude/
+Dockerfile
+nginx.conf

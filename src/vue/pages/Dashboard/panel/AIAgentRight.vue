@@ -35,15 +35,20 @@
         class="message"
         :class="msg.role"
       >
-        <!-- 步骤卡片（每轮一张，包含思考+工具+结果） -->
+        <!-- 步骤卡片（含工具名+可折叠结果） -->
         <div v-if="msg.role === 'step'" class="step-card">
           <div class="card-header">
-            <span class="card-step-num">步骤 {{ msg.round + 1 }}</span>
+            <span class="card-step-num">步骤 {{ msg.step }}</span>
+            <span class="card-tool-name">{{ formatToolName(msg.tool) }}</span>
           </div>
           <div class="card-body">
-            <div class="card-line thought-line">💭 {{ msg.thought }}</div>
             <div class="card-line tool-line">🔧 {{ msg.tool === 'api_browser' ? '数据查询' : msg.tool }}</div>
-            <div class="card-line result-line">📊 {{ msg.result }}</div>
+            <!-- 结果可点击折叠 -->
+            <div class="result-toggle" @click="toggleResult(msg)">
+              <span class="toggle-icon">{{ msg.collapsed ? '▶' : '▼' }}</span>
+              <span class="toggle-label">{{ msg.collapsed ? '查看结果' : '收起结果' }}</span>
+            </div>
+            <div v-if="!msg.collapsed" class="card-line result-line">📊 {{ msg.result }}</div>
           </div>
           <div class="message-time">{{ msg.time }}</div>
         </div>
@@ -65,9 +70,20 @@
         </template>
       </div>
 
-      <!-- 分析中可随时停止 -->
-      <div v-if="loading" class="stop-bar" @click="stopAnalysis">
-        ⏹ 点击停止分析
+      <!-- 分析中加载动画 + 停止按钮 -->
+      <div v-if="loading" class="agent-loading">
+        <div class="loading-dots">
+          <span class="dot dot-1"></span>
+          <span class="dot dot-2"></span>
+          <span class="dot dot-3"></span>
+        </div>
+        <span class="loading-label">AI 正在分析...</span>
+        <button class="stop-btn" @click="stopAnalysis" title="停止分析">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <rect x="6" y="6" width="12" height="12" rx="2"/>
+          </svg>
+          停止
+        </button>
       </div>
     </div>
 
@@ -144,11 +160,20 @@ function addMessage(role, text) {
   store.aiMessages.push({ role, text, time });
 }
 
-function addStep(round, thought, tool, result) {
+function addStep(stepSeq, thought, tool, result) {
   const now = new Date();
   const time = now.getHours().toString().padStart(2, "0") + ":" +
                now.getMinutes().toString().padStart(2, "0");
-  store.aiMessages.push({ role: "step", round, thought, tool, result, time });
+  store.aiMessages.push({ role: "step", step: stepSeq, thought, tool, result, collapsed: true, time });
+}
+
+function toggleResult(msg) {
+  msg.collapsed = !msg.collapsed;
+}
+
+function formatToolName(tool) {
+  const map = { api_browser: "数据查询", web_search: "联网搜索", data_workspace: "数据工作区", skill_execute: "技能执行" };
+  return map[tool] || tool;
 }
 
 function sendTip(tip) {
@@ -207,9 +232,9 @@ async function sendMessage() {
         if (card) card.title = label;
       }
     },
-    // ReAct 步骤完成事件 —— 每轮渲染一张卡片
-    onStepDone(round, thought, tool, result) {
-      addStep(round, thought, tool, result);
+    // FC 步骤完成事件 —— 每步渲染一张卡片
+    onStepDone(stepSeq, thought, tool, result) {
+      addStep(stepSeq, thought, tool, result);
       scrollToBottom();
     },
     onToken(tokenText) {
@@ -554,7 +579,7 @@ function scrollToBottom() {
   text-align: right;
 }
 
-/* ── ReAct 步骤卡片（每轮一张综合卡片） ── */
+/* ── 步骤卡片（每步一张） ── */
 .step-card {
   display: flex;
   flex-direction: column;
@@ -582,6 +607,11 @@ function scrollToBottom() {
   text-transform: uppercase;
 }
 
+.step-card .card-tool-name {
+  font-size: 11px;
+  color: rgba(251, 191, 36, 0.6);
+  margin-left: auto;
+}
 .step-card .card-body {
   display: flex;
   flex-direction: column;
@@ -595,18 +625,39 @@ function scrollToBottom() {
   padding: 2px 0;
 }
 
-.step-card .thought-line {
-  color: rgba(191, 219, 254, 0.85);
-}
-
 .step-card .tool-line {
   color: rgba(251, 191, 36, 0.75);
+  font-size: 12px;
+}
+
+.step-card .result-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  cursor: pointer;
+  font-size: 12px;
+  color: rgba(147, 197, 253, 0.5);
+  transition: color 0.2s;
+  user-select: none;
+}
+.step-card .result-toggle:hover {
+  color: rgba(147, 197, 253, 0.8);
+}
+.step-card .toggle-icon {
+  font-size: 10px;
+}
+.step-card .toggle-label {
   font-size: 12px;
 }
 
 .step-card .result-line {
   color: rgba(52, 211, 153, 0.75);
   font-size: 12px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  margin-top: 2px;
 }
 
 .step-card .message-time {
@@ -615,27 +666,68 @@ function scrollToBottom() {
   margin-top: 2px;
 }
 
-/* ── 停止按钮 ── */
-.stop-bar {
+/* ── 加载动画 + 停止按钮 ── */
+.agent-loading {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px;
+  gap: 10px;
+  padding: 10px 14px;
   margin: 4px 0;
-  border-radius: 8px;
-  border: 1px dashed rgba(239, 68, 68, 0.3);
-  background: rgba(239, 68, 68, 0.06);
+  border-radius: 10px;
+  background: rgba(15, 20, 32, 0.4);
+  border: 1px solid rgba(59, 130, 246, 0.08);
+}
+
+.loading-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #60a5fa;
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+.dot-2 { animation-delay: 0.2s; }
+.dot-3 { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1.1); }
+}
+
+.loading-label {
+  font-size: 13px;
+  color: rgba(224, 230, 240, 0.55);
+  flex: 1;
+}
+
+.stop-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.08);
   color: rgba(239, 68, 68, 0.7);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
+  font-family: inherit;
+  white-space: nowrap;
 }
-.stop-bar:hover {
-  background: rgba(239, 68, 68, 0.12);
+.stop-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.5);
   color: #ef4444;
+}
+.stop-btn:active {
+  transform: scale(0.95);
 }
 
 /* ── 输入区域 ── */

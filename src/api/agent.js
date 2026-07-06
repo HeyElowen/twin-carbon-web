@@ -66,6 +66,8 @@ export function sendAgentMessage(message, { conversationId, onToken, onProgress,
       }
     }
   }).catch((err) => {
+    // 用户主动中止不触发 onError（前端已处理停止逻辑）
+    if (err.name === "AbortError") return;
     onError?.(err.message || "网络错误");
   });
 }
@@ -137,7 +139,8 @@ function handleEvent(event, dataStr, handlers) {
         handlers.onToolResult?.(data.step, data.summary);
         break;
       case "step_done":
-        handlers.onStepDone?.(data.round, data.thought, data.tool, data.result);
+        // step 为全局递增序号，向后兼容 round
+        handlers.onStepDone?.(data.step || data.round, data.thought, data.tool, data.result);
         break;
     }
   } catch {
