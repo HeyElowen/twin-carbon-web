@@ -68,6 +68,13 @@ export const useConfigStore = defineStore("dashboard", () => {
   // 建筑观测点缓存（避免 AnalysisLeft / AnalysisRight 重复请求）
   const buildingPointFeatures = ref([]);
 
+  // 极值分析数据（AnalysisRight 请求后共享给其他组件）
+  const extremeAnalysisData = ref({ outliers: [], globalStats: {}, categoryStats: {} });
+
+  // 当前点击的建筑名称（供极值分析符号展示）
+  const clickedBuilding = ref(null);
+  function setClickedBuilding(info) { clickedBuilding.value = info; }
+
   // 3D 热力图配置
   const heatmapConfig = ref({
     enabled: false,
@@ -184,6 +191,7 @@ export const useConfigStore = defineStore("dashboard", () => {
     aiMessages,
     currentConversationId, conversationList,
     buildingPointFeatures,
+    extremeAnalysisData, clickedBuilding, setClickedBuilding,
     setActive, toggleControl, toggleDistrict,
     setYear, setQuarter, setViewMode, setTrendYearScale, setSelectedCategory, setSelectedAnalysisDistrict,
     reset,

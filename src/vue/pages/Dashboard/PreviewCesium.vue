@@ -109,13 +109,14 @@ watch(() => store.uploadPreviewActive, async (active) => {
     districtOverlay.createOverlay(previewViewer, store.districts);
 
     // 等待 3D 场景加载完成后再初始化热力图（与主视图时序一致）
-    const sceneUrl = 'http://localhost:8090/iserver/services/3D-global/rest/realspace';
+    const sceneUrl = 'http://localhost:8090/iserver/services/3D-global5/rest/realspace';
     try {
       await previewViewer.scene.open(sceneUrl);
     } catch (e) {
       // 3D 场景加载失败不阻塞，只显示底图
     }
 
+    setupPreviewCameraSync();
     console.log('[PCH] 场景加载完成, 准备创建热力图引擎');
     // 创建预览热力图实例
     previewHeatmap = new Heatmap3D(previewViewer, {
@@ -221,18 +222,39 @@ watch(
   }
 );
 
-// ==================== 相机同步 ====================
+// ==================== 相机双向同步 ====================
+let previewCamSyncing = false;
+
+// 主→预览：mainCamera 变化 → 同步到预览视图
 watch(
   () => store.mainCamera,
   (cam) => {
     if (!previewViewer || !cam || !cam.destination) return;
+    previewCamSyncing = true;
     previewViewer.camera.setView({
       destination: new Cesium.Cartesian3(cam.destination.x, cam.destination.y, cam.destination.z),
       orientation: { heading: cam.heading, pitch: cam.pitch, roll: cam.roll },
     });
+    // 下一帧清除标志（camera.changed 异步触发）
+    requestAnimationFrame(() => { previewCamSyncing = false; });
   },
   { deep: true }
 );
+
+// 预览→主：预览相机变化 → 回写到 store，由 dashboard 同步到主视图
+function setupPreviewCameraSync() {
+  if (!previewViewer) return;
+  previewViewer.scene.camera.changed.addEventListener(() => {
+    if (previewCamSyncing) return;
+    const c = previewViewer.scene.camera;
+    store.mainCamera = {
+      destination: { x: c.position.x, y: c.position.y, z: c.position.z },
+      heading: c.heading,
+      pitch: c.pitch,
+      roll: c.roll,
+    };
+  });
+}
 
 // ==================== 区域图幅可见性切换 ====================
 watch(

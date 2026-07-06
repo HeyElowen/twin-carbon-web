@@ -3,9 +3,6 @@
     <!-- 极值分析 -->
     <div class="extreme-section">
       <div class="section-title">极值分析</div>
-      <div class="selected-area" v-if="store.selectedAnalysisDistrict">
-        当前筛选区域：<strong>{{ store.selectedAnalysisDistrict }}</strong>
-      </div>
 
       <div class="extreme-cards">
         <div class="extreme-card highest">
@@ -15,7 +12,7 @@
             </svg>
           </div>
           <div class="card-info">
-            <div class="card-label">出现极值点最大值</div>
+            <div class="card-label">最高点</div>
             <div class="card-value">{{ extremeInfo.max.value.toFixed(2) }} <span class="unit">吨</span></div>
             <div class="card-desc">{{ extremeInfo.max.category }} · {{ extremeInfo.max.name }}</div>
           </div>
@@ -28,21 +25,33 @@
             </svg>
           </div>
           <div class="card-info">
-            <div class="card-label">出现极值点最小值</div>
+            <div class="card-label">最低点</div>
             <div class="card-value">{{ extremeInfo.min.value.toFixed(2) }} <span class="unit">吨</span></div>
             <div class="card-desc">{{ extremeInfo.min.category }} · {{ extremeInfo.min.name }}</div>
           </div>
         </div>
       </div>
 
-      <!-- 出现的个数总数 -->
-      <div class="extreme-count-row">
-        出现的个数总数：<strong>{{ extremeInfo.extremeCount }}</strong> 个
-        <span class="extreme-sep">|</span>
-        总监测数：<strong>{{ extremeInfo.totalCount }}</strong> 个
+      <!-- 严重异常建筑列表 -->
+      <div class="severe-list" v-if="severeBuildings.length">
+        <div class="severe-title">严重异常</div>
+        <div
+          class="severe-item"
+          v-for="b in severeBuildings"
+          :key="b.name"
+          :title="b.anomalyLevel === 'severe_high' ? '严重超标' : '严重偏低'"
+        >
+          <span
+            class="severe-symbol"
+            :class="b.anomalyLevel === 'severe_high' ? 'high' : 'low'"
+          >{{ b.anomalyLevel === 'severe_high' ? '▲' : '▼' }}</span>
+          <span class="severe-name">{{ b.name }}</span>
+          <span class="severe-cat">{{ b.category }}</span>
+          <span class="severe-val">{{ (b.emission ?? 0).toFixed(2) }}吨</span>
+        </div>
       </div>
 
-      <div class="analysis-text" v-if="extremeInfo.totalCount">
+      <div class="analysis-text" v-if="rawFeatures.length">
         <p v-for="(p, i) in analysisText.paragraphs" :key="i">{{ p }}</p>
         <p>结合当前时间段经济活动及政策事件分析，极值出现原因推测为：</p>
         <ul>
@@ -73,36 +82,53 @@
     </div>
 
     <!-- 无数据时占位 -->
-    <div v-if="!extremeInfo.totalCount" class="empty-mask">
+    <div v-if="!rawFeatures.length" class="empty-mask">
       <span>暂无数据</span>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
-import { getExtremeAnalysis } from "@/api/analysis";
-
+import { getExtremeAnalysis } from "@/api/monitoring";
 const store = useConfigStore();
 
-// ─── 极值分析数据（API — /analysis/extreme）────────
-const extremeData = ref(null);
+// ─── 极值分析接口数据 ────────────────────────────
+const extremeData = ref({ outliers: [], globalStats: {}, categoryStats: {} });
+const extremeLoading = ref(false);
 
-watch([() => store.year, () => store.quarter], async () => {
+async function fetchExtremeAnalysis() {
+  extremeLoading.value = true;
   try {
     const res = await getExtremeAnalysis(store.year, store.quarter);
-    extremeData.value = res.data;
+    const data = res.data || { outliers: [], globalStats: {}, categoryStats: {} };
+    extremeData.value = data;
+    store.extremeAnalysisData = data; // 共享给其他组件
   } catch (e) {
-    console.error("获取极值分析数据失败", e);
-    extremeData.value = null;
+    console.warn("[AnalysisRight] 极值分析接口异常:", e);
+  } finally {
+    extremeLoading.value = false;
   }
-}, { immediate: true });
+}
 
-// ─── 极值计算（联动左侧选中的区域）────────────────
+// 年/季度变化时重新请求
+watch(() => [store.year, store.quarter], fetchExtremeAnalysis, { immediate: true });
+
+// ─── 严重异常建筑（severe_high / severe_low）────
+const severeBuildings = computed(() => {
+  return (extremeData.value.outliers || []).filter(
+    o => o.anomalyLevel === 'severe_high' || o.anomalyLevel === 'severe_low'
+  );
+});
+
+// ─── 数据来源：从 store 共享（dashboard.vue 负责请求）─
+const rawFeatures = computed(() => store.buildingPointFeatures);
+
+// ─── 极值计算 ──────────────────────────────────────
 const extremeInfo = computed(() => {
-  const data = extremeData.value;
-  if (!data) {
+  const features = rawFeatures.value;
+  if (!features.length) {
     return {
       max: { value: 0, name: "--", category: "--" },
       min: { value: 0, name: "--", category: "--" },
@@ -111,61 +137,53 @@ const extremeInfo = computed(() => {
     };
   }
 
-  const { outliers, globalStats } = data;
-  const selected = store.selectedAnalysisDistrict;
+  let maxFeature = features[0];
+  let minFeature = features[0];
 
-  // 按选中区域过滤离群点
-  const filtered = selected
-    ? outliers.filter((o) => o.category === selected)
-    : outliers;
+  features.forEach((f) => {
+    const e = f.properties?.emission ?? 0;
+    if (e > (maxFeature.properties?.emission ?? 0)) maxFeature = f;
+    if (e < (minFeature.properties?.emission ?? 0)) minFeature = f;
+  });
 
-  // 从离群点中找最高/最低排放
-  const sorted = [...filtered].sort((a, b) => b.emission - a.emission);
-  const maxItem = sorted[0] || null;
-  const minItem = sorted.length > 1 ? sorted[sorted.length - 1] : null;
-  // 如果只有一个离群点，最高最低显示同一点
-  const minFallback = sorted.length === 1 ? sorted[0] : minItem;
+  const maxVal = maxFeature.properties?.emission ?? 0;
+  const threshold = maxVal * 0.7;
+  const extremeCount = features.filter((f) => (f.properties?.emission ?? 0) >= threshold).length;
 
   return {
     max: {
-      value: maxItem?.emission ?? 0,
-      name: maxItem?.name ?? "--",
-      category: maxItem?.category ?? "--",
+      value: maxVal,
+      name: maxFeature.properties?.name ?? "--",
+      category: maxFeature.properties?.category ?? "--",
     },
     min: {
-      value: minFallback?.emission ?? 0,
-      name: minFallback?.name ?? "--",
-      category: minFallback?.category ?? "--",
+      value: minFeature.properties?.emission ?? 0,
+      name: minFeature.properties?.name ?? "--",
+      category: minFeature.properties?.category ?? "--",
     },
-    extremeCount: filtered.length,
-    totalCount: globalStats?.totalBuildings ?? 0,
+    extremeCount,
+    totalCount: features.length,
   };
 });
 
 // ─── AI 分析文本 ──────────────────────────────────
 const analysisText = computed(() => {
   const info = extremeInfo.value;
-  const data = extremeData.value;
   const { year, quarter } = store;
-  if (!data || !info.totalCount) return { paragraphs: [], reasons: [] };
+  if (!info.totalCount) return { paragraphs: [], reasons: [] };
 
-  const { globalStats } = data;
-  const selected = store.selectedAnalysisDistrict;
-  const areaLabel = selected || "全部区域";
   const qName = { Q1: "第一", Q2: "第二", Q3: "第三", Q4: "第四", ALL: "全年" }[quarter] || quarter;
-  const extremeRatio = info.totalCount > 0
-    ? Math.round((info.extremeCount / info.totalCount) * 100)
-    : 0;
+  const extremeRatio = Math.round((info.extremeCount / info.totalCount) * 100);
 
   const paragraphs = [
-    `${year}年${qName}季度 ${areaLabel} 共监测 ${info.totalCount} 个排放源，其中极值（Z-Score≥2.0）出现 ${info.extremeCount} 个，占比 ${extremeRatio}%。`,
+    `${year}年${qName}季度共监测 ${info.totalCount} 个排放源，其中极值（≥峰值70%）出现 ${info.extremeCount} 次，占比 ${extremeRatio}%。`,
   ];
 
   if (info.max.category !== "--") {
     paragraphs.push(`最高排放点为「${info.max.name}」（${info.max.category}），排放量 ${info.max.value.toFixed(2)} 吨，远超同类平均水平。`);
   }
-  if (info.min.category !== "--" && info.min.name !== info.max.name) {
-    paragraphs.push(`最低排放点为「${info.min.name}」（${info.min.category}），排放量 ${info.min.value.toFixed(2)} 吨。`);
+  if (info.min.category !== "--") {
+    paragraphs.push(`最低排放点为「${info.min.name}」（${info.min.category}），排放量 ${info.min.value.toFixed(2)} 吨，减排措施成效显著。`);
   }
 
   // ── 原因推测 ──
@@ -188,9 +206,9 @@ const analysisText = computed(() => {
     reasons.push("住宅区人口密度高，生活用能需求集中，呈现聚集性排放特征");
   }
 
-  if (extremeRatio > 30) {
-    reasons.push(`离群点占比 ${extremeRatio}%，存在系统性排放异常风险，建议全面排查`);
-  } else if (info.extremeCount <= 3 && info.extremeCount > 0) {
+  if (extremeRatio > 50) {
+    reasons.push("超过半数排放源处于高排放区间，可能存在系统性减排瓶颈");
+  } else if (info.extremeCount <= 3) {
     reasons.push("极值点较为分散，建议对个别高排放源进行精准排查与整治");
   }
 
@@ -204,9 +222,8 @@ const analysisText = computed(() => {
 // ─── 针对性建议 ──────────────────────────────────
 const suggestions = computed(() => {
   const info = extremeInfo.value;
-  const data = extremeData.value;
   const { year, quarter } = store;
-  if (!data || !info.totalCount) return [];
+  if (!info.totalCount) return [];
 
   const reductionTarget = info.max.category === "工业区" ? 25 : info.max.category === "商业区" ? 20 : 15;
   const warnThreshold = Math.round(info.max.value * 0.8 * 10) / 10;
@@ -245,7 +262,7 @@ const suggestions = computed(() => {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   overflow: hidden;
 }
 
@@ -256,19 +273,6 @@ const suggestions = computed(() => {
   padding-left: 8px;
   border-left: 3px solid #3b82f6;
   flex-shrink: 0;
-}
-
-.selected-area {
-  font-size: 12px;
-  color: rgba(224, 230, 240, 0.6);
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: rgba(59, 130, 246, 0.08);
-  flex-shrink: 0;
-}
-
-.selected-area strong {
-  color: #60a5fa;
 }
 
 .extreme-cards {
@@ -349,28 +353,6 @@ const suggestions = computed(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* 出现的个数总数 */
-.extreme-count-row {
-  font-size: 13px;
-  color: rgba(224, 230, 240, 0.7);
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: rgba(15, 20, 32, 0.3);
-  border: 1px solid rgba(59, 130, 246, 0.08);
-  flex-shrink: 0;
-}
-
-.extreme-count-row strong {
-  color: #93c5fd;
-  font-weight: 700;
-  font-family: "pmzd", monospace;
-}
-
-.extreme-count-row .extreme-sep {
-  margin: 0 10px;
-  color: rgba(224, 230, 240, 0.2);
 }
 
 .analysis-text {
@@ -481,5 +463,73 @@ const suggestions = computed(() => {
   color: rgba(224, 230, 240, 0.3);
   font-size: 14px;
   pointer-events: none;
+}
+
+/* ── 严重异常列表 ── */
+.severe-list {
+  flex-shrink: 0;
+  background: rgba(15, 20, 32, 0.4);
+  border: 1px solid rgba(59, 130, 246, 0.12);
+  border-radius: 6px;
+  padding: 8px 10px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.severe-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e0e6f0;
+  margin-bottom: 6px;
+  padding-left: 8px;
+  border-left: 3px solid #3b82f6;
+}
+
+.severe-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: rgba(224, 230, 240, 0.85);
+  cursor: default;
+  transition: background 0.2s;
+}
+
+.severe-item:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.severe-symbol {
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.severe-symbol.high { color: #ef4444; }
+.severe-symbol.low  { color: #22c55e; }
+
+.severe-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.severe-cat {
+  font-size: 12px;
+  color: rgba(224, 230, 240, 0.4);
+  flex-shrink: 0;
+}
+
+.severe-val {
+  font-family: "pmzd", monospace;
+  font-size: 12px;
+  color: rgba(224, 230, 240, 0.5);
+  flex-shrink: 0;
 }
 </style>
