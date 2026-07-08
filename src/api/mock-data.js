@@ -398,34 +398,34 @@ export const mockLayeredColoring = {
       "教育区": { min: 5.60, max: 15.80, levels: [7.64, 9.68, 11.72, 13.76, 15.80] }
     },
     buildings: [
-      { name: "水岸佳苑A区",     category: "住宅区", emission: 8.25,  level: 1, lon: 120.458, lat: 31.572 },
-      { name: "水岸佳苑B区",     category: "住宅区", emission: 12.36, level: 2, lon: 120.461, lat: 31.575 },
-      { name: "山河九里",         category: "住宅区", emission: 18.92, level: 4, lon: 120.468, lat: 31.569 },
-      { name: "恒大翡翠湾",       category: "住宅区", emission: 15.47, level: 3, lon: 120.475, lat: 31.576 },
-      { name: "融创·东方府",      category: "住宅区", emission: 22.18, level: 5, lon: 120.452, lat: 31.582 },
-      { name: "龙湖·九里香醍",    category: "住宅区", emission: 9.63,  level: 1, lon: 120.482, lat: 31.579 },
-      { name: "碧桂园·南光城",    category: "住宅区", emission: 14.50, level: 3, lon: 120.445, lat: 31.585 },
-      { name: "华润·江南府",      category: "住宅区", emission: 11.04, level: 2, lon: 120.478, lat: 31.568 },
-      { name: "锡东八佰伴",        category: "商业区", emission: 45.20, level: 5, lon: 120.476, lat: 31.590 },
-      { name: "红豆万花城",        category: "商业区", emission: 38.65, level: 4, lon: 120.469, lat: 31.587 },
-      { name: "映月天地商业街",    category: "商业区", emission: 22.30, level: 2, lon: 120.483, lat: 31.588 },
-      { name: "创融大厦B座",       category: "商业区", emission: 18.75, level: 1, lon: 120.472, lat: 31.584 },
-      { name: "锡东科技大厦",      category: "商业区", emission: 28.40, level: 3, lon: 120.479, lat: 31.582 },
-      { name: "浙大网新科创园",    category: "商业区", emission: 32.15, level: 3, lon: 120.464, lat: 31.579 },
-      { name: "锡山经济技术开发区A区", category: "工业区", emission: 86.50, level: 5, lon: 120.438, lat: 31.565 },
-      { name: "锡山经济技术开发区B区", category: "工业区", emission: 72.30, level: 4, lon: 120.443, lat: 31.560 },
-      { name: "联东U谷",              category: "工业区", emission: 55.80, level: 3, lon: 120.450, lat: 31.562 },
-      { name: "精密机械产业园",        category: "工业区", emission: 45.20, level: 1, lon: 120.455, lat: 31.558 },
-      { name: "锡山现代农业园",      category: "农业区", emission: 6.80,  level: 5, lon: 120.490, lat: 31.592 },
-      { name: "太湖水稻示范园",      category: "农业区", emission: 5.25,  level: 2, lon: 120.498, lat: 31.588 },
-      { name: "严家桥生态农场",      category: "农业区", emission: 3.90,  level: 1, lon: 120.485, lat: 31.595 },
-      { name: "羊尖镇绿色农业园",    category: "农业区", emission: 4.50,  level: 2, lon: 120.505, lat: 31.590 },
-      { name: "无锡学院-教学楼",          category: "教育区", emission: 12.60, level: 4, lon: 120.468, lat: 31.583 },
-      { name: "无锡学院-图书馆",          category: "教育区", emission: 8.35,  level: 2, lon: 120.472, lat: 31.581 },
-      { name: "无锡学院-实验楼",          category: "教育区", emission: 15.80, level: 5, lon: 120.475, lat: 31.585 },
-      { name: "无锡学院-学生活动中心",     category: "教育区", emission: 5.60,  level: 1, lon: 120.470, lat: 31.586 },
-      { name: "无锡学院-体育馆",          category: "教育区", emission: 10.20, level: 3, lon: 120.465, lat: 31.580 },
-      { name: "无锡学院-学生食堂",         category: "教育区", emission: 6.75,  level: 1, lon: 120.473, lat: 31.588 }
+      { name: "水岸佳苑A区",     category: "住宅区", emission: 8.25,  intensity: 16.50, level: 1, lon: 120.458, lat: 31.572 },
+      { name: "水岸佳苑B区",     category: "住宅区", emission: 12.36, intensity: 24.72, level: 2, lon: 120.461, lat: 31.575 },
+      { name: "山河九里",         category: "住宅区", emission: 18.92, intensity: 37.84, level: 4, lon: 120.468, lat: 31.569 },
+      { name: "恒大翡翠湾",       category: "住宅区", emission: 15.47, intensity: 30.94, level: 3, lon: 120.475, lat: 31.576 },
+      { name: "融创·东方府",      category: "住宅区", emission: 22.18, intensity: 44.36, level: 5, lon: 120.452, lat: 31.582 },
+      { name: "龙湖·九里香醍",    category: "住宅区", emission: 9.63,  intensity: 19.26, level: 1, lon: 120.482, lat: 31.579 },
+      { name: "碧桂园·南光城",    category: "住宅区", emission: 14.50, intensity: 29.00, level: 3, lon: 120.445, lat: 31.585 },
+      { name: "华润·江南府",      category: "住宅区", emission: 11.04, intensity: 22.08, level: 2, lon: 120.478, lat: 31.568 },
+      { name: "锡东八佰伴",        category: "商业区", emission: 45.20, intensity: 90.40, level: 5, lon: 120.476, lat: 31.590 },
+      { name: "红豆万花城",        category: "商业区", emission: 38.65, intensity: 77.30, level: 4, lon: 120.469, lat: 31.587 },
+      { name: "映月天地商业街",    category: "商业区", emission: 22.30, intensity: 44.60, level: 2, lon: 120.483, lat: 31.588 },
+      { name: "创融大厦B座",       category: "商业区", emission: 18.75, intensity: 37.50, level: 1, lon: 120.472, lat: 31.584 },
+      { name: "锡东科技大厦",      category: "商业区", emission: 28.40, intensity: 56.80, level: 3, lon: 120.479, lat: 31.582 },
+      { name: "浙大网新科创园",    category: "商业区", emission: 32.15, intensity: 64.30, level: 3, lon: 120.464, lat: 31.579 },
+      { name: "锡山经济技术开发区A区", category: "工业区", emission: 86.50, intensity: 43.25, level: 5, lon: 120.438, lat: 31.565 },
+      { name: "锡山经济技术开发区B区", category: "工业区", emission: 72.30, intensity: 36.15, level: 4, lon: 120.443, lat: 31.560 },
+      { name: "联东U谷",              category: "工业区", emission: 55.80, intensity: 27.90, level: 3, lon: 120.450, lat: 31.562 },
+      { name: "精密机械产业园",        category: "工业区", emission: 45.20, intensity: 22.60, level: 1, lon: 120.455, lat: 31.558 },
+      { name: "锡山现代农业园",      category: "农业区", emission: 6.80,  intensity: 0.68,  level: 5, lon: 120.490, lat: 31.592 },
+      { name: "太湖水稻示范园",      category: "农业区", emission: 5.25,  intensity: 0.53,  level: 2, lon: 120.498, lat: 31.588 },
+      { name: "严家桥生态农场",      category: "农业区", emission: 3.90,  intensity: 0.39,  level: 1, lon: 120.485, lat: 31.595 },
+      { name: "羊尖镇绿色农业园",    category: "农业区", emission: 4.50,  intensity: 0.45,  level: 2, lon: 120.505, lat: 31.590 },
+      { name: "无锡学院-教学楼",          category: "教育区", emission: 12.60, intensity: 42.00, level: 4, lon: 120.468, lat: 31.583 },
+      { name: "无锡学院-图书馆",          category: "教育区", emission: 8.35,  intensity: 27.83, level: 2, lon: 120.472, lat: 31.581 },
+      { name: "无锡学院-实验楼",          category: "教育区", emission: 15.80, intensity: 52.67, level: 5, lon: 120.475, lat: 31.585 },
+      { name: "无锡学院-学生活动中心",     category: "教育区", emission: 5.60,  intensity: 18.67, level: 1, lon: 120.470, lat: 31.586 },
+      { name: "无锡学院-体育馆",          category: "教育区", emission: 10.20, intensity: 34.00, level: 3, lon: 120.465, lat: 31.580 },
+      { name: "无锡学院-学生食堂",         category: "教育区", emission: 6.75,  intensity: 22.50, level: 1, lon: 120.473, lat: 31.588 }
     ]
   }
 }
@@ -436,26 +436,32 @@ export const mockExtremeAnalysis = {
   message: "success",
   data: {
     outliers: [
-      { name: "锡山经济技术开发区A区", category: "工业区", emission: 86.50, zScore: 2.29, type: "HIGH", anomalyLevel: "severe_high", lon: 120.438, lat: 31.565, height: 25 },
-      { name: "锡山经济技术开发区B区", category: "工业区", emission: 72.30, zScore: 2.02, type: "HIGH", anomalyLevel: "severe_high", lon: 120.443, lat: 31.560, height: 20 },
-      { name: "锡东八佰伴",           category: "商业区", emission: 45.20, zScore: 2.15, type: "HIGH", anomalyLevel: "severe_high", lon: 120.476, lat: 31.590, height: 45 },
-      { name: "严家桥生态农场",       category: "农业区", emission: 3.90,  zScore: -2.12, type: "LOW", anomalyLevel: "severe_low",  lon: 120.485, lat: 31.595, height: 8 },
-      { name: "无锡学院-学生活动中心", category: "教育区", emission: 5.60,  zScore: -2.05, type: "LOW", anomalyLevel: "severe_low",  lon: 120.470, lat: 31.586, height: 15 },
-      { name: "华润·江南府",         category: "住宅区", emission: 11.04, zScore: 1.88, type: "HIGH", anomalyLevel: "high",        lon: 120.478, lat: 31.568, height: 54 },
-      { name: "太湖水稻示范园",       category: "农业区", emission: 5.25,  zScore: -1.75, type: "LOW",  anomalyLevel: "low",         lon: 120.498, lat: 31.588, height: 6 },
+      { name: "锡山经济技术开发区A区", category: "工业区", emission: 86.50, intensity: 43.25, type: "SEVERE_HIGH", lon: 120.438, lat: 31.565, height: 25 },
+      { name: "锡山经济技术开发区B区", category: "工业区", emission: 72.30, intensity: 36.15, type: "SEVERE_HIGH", lon: 120.443, lat: 31.560, height: 20 },
+      { name: "锡东八佰伴",           category: "商业区", emission: 45.20, intensity: 90.40, type: "SEVERE_HIGH", lon: 120.476, lat: 31.590, height: 45 },
+      { name: "严家桥生态农场",       category: "农业区", emission: 3.90,  intensity: 0.39,  type: "SEVERE_LOW",  lon: 120.485, lat: 31.595, height: 8 },
+      { name: "无锡学院-学生活动中心", category: "教育区", emission: 5.60,  intensity: 18.67, type: "SEVERE_LOW",  lon: 120.470, lat: 31.586, height: 15 },
+      { name: "华润·江南府",         category: "住宅区", emission: 11.04, intensity: 22.08, type: "MILD_HIGH",   lon: 120.478, lat: 31.568, height: 54 },
+      { name: "太湖水稻示范园",       category: "农业区", emission: 5.25,  intensity: 0.53,  type: "MILD_LOW",    lon: 120.498, lat: 31.588, height: 6 },
     ],
     globalStats: {
       totalBuildings: 28,
       outlierCount: 5,
-      method: "z-score",
-      threshold: 2.0
+      method: "iqr",
+      mildMultiplier: 1.5,
+      severeMultiplier: 3.0
     },
     categoryStats: {
-      "住宅区": { max: 22.18, min: 8.25, mean: 14.04, median: 13.43, stddev: 4.53, count: 8 },
-      "商业区": { max: 45.20, min: 18.75, mean: 30.91, median: 30.28, stddev: 9.57, count: 6 },
-      "工业区": { max: 86.50, min: 45.20, mean: 64.95, median: 64.05, stddev: 16.63, count: 4 },
-      "农业区": { max: 6.80,  min: 3.90,  mean: 5.11,  median: 4.88,  stddev: 1.10, count: 4 },
-      "教育区": { max: 15.80, min: 5.60,  mean: 9.88,  median: 9.28,  stddev: 3.60, count: 6 }
+      "住宅区": { max: 22.18, min: 8.25, mean: 14.04, median: 13.43, stddev: 4.53, count: 8,
+                  q1: 10.50, q3: 18.20, iqr: 7.70, mildLower: -1.05, mildUpper: 29.75, severeLower: -12.60, severeUpper: 41.30 },
+      "商业区": { max: 45.20, min: 18.75, mean: 30.91, median: 30.28, stddev: 9.57, count: 6,
+                  q1: 22.50, q3: 38.00, iqr: 15.50, mildLower: -0.75, mildUpper: 61.25, severeLower: -24.00, severeUpper: 84.50 },
+      "工业区": { max: 86.50, min: 45.20, mean: 64.95, median: 64.05, stddev: 16.63, count: 4,
+                  q1: 52.00, q3: 79.00, iqr: 27.00, mildLower: 11.50, mildUpper: 119.50, severeLower: -29.00, severeUpper: 160.00 },
+      "农业区": { max: 6.80,  min: 3.90,  mean: 5.11,  median: 4.88,  stddev: 1.10, count: 4,
+                  q1: 4.20, q3: 6.10, iqr: 1.90, mildLower: 1.35, mildUpper: 8.95, severeLower: -1.50, severeUpper: 11.80 },
+      "教育区": { max: 15.80, min: 5.60,  mean: 9.88,  median: 9.28,  stddev: 3.60, count: 6,
+                  q1: 7.20, q3: 12.50, iqr: 5.30, mildLower: -0.75, mildUpper: 20.45, severeLower: -8.70, severeUpper: 28.40 }
     }
   }
 }
@@ -658,13 +664,13 @@ export function getMockResponse(config) {
             }
             newLevel = Math.min(newLevel, 5);
           }
-          return { ...b, emission: newEmission, level: newLevel };
+          return { ...b, emission: newEmission, intensity: Math.round((b.intensity ?? 0) * factor * 100) / 100, level: newLevel };
         })
       }
     }
   }
 
-  // 极值分析 — 按 year/quarter 参数化微调（保留 height 字段）
+  // 极值分析 — 按 year/quarter 参数化微调
   if (key === 'get:/analysis/extreme') {
     const year = parseInt(params?.year) || 2025
     const quarter = params?.quarter || 'Q3'
@@ -679,13 +685,27 @@ export function getMockResponse(config) {
         outliers: mockExtremeAnalysis.data.outliers.map(o => ({
           ...o,
           emission: Math.round(o.emission * factor * 100) / 100,
-          zScore: Math.round(o.zScore * factor * 100) / 100
+          intensity: Math.round((o.intensity ?? 0) * factor * 100) / 100
         })),
         globalStats: { ...mockExtremeAnalysis.data.globalStats },
         categoryStats: Object.fromEntries(
           Object.entries(mockExtremeAnalysis.data.categoryStats).map(([cat, s]) => [
             cat,
-            { ...s, max: Math.round(s.max * factor * 100) / 100, min: Math.round(s.min * factor * 100) / 100, mean: Math.round(s.mean * factor * 100) / 100, median: Math.round(s.median * factor * 100) / 100, stddev: Math.round(s.stddev * factor * 100) / 100 }
+            {
+              ...s,
+              max: Math.round(s.max * factor * 100) / 100,
+              min: Math.round(s.min * factor * 100) / 100,
+              mean: Math.round(s.mean * factor * 100) / 100,
+              median: Math.round(s.median * factor * 100) / 100,
+              stddev: Math.round(s.stddev * factor * 100) / 100,
+              q1: Math.round(s.q1 * factor * 100) / 100,
+              q3: Math.round(s.q3 * factor * 100) / 100,
+              iqr: Math.round(s.iqr * factor * 100) / 100,
+              mildLower: Math.round(s.mildLower * factor * 100) / 100,
+              mildUpper: Math.round(s.mildUpper * factor * 100) / 100,
+              severeLower: Math.round(s.severeLower * factor * 100) / 100,
+              severeUpper: Math.round(s.severeUpper * factor * 100) / 100
+            }
           ])
         )
       }

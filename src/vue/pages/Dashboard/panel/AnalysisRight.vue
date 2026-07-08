@@ -39,15 +39,17 @@
           class="severe-item"
           v-for="b in severeBuildings"
           :key="b.name"
-          :title="b.anomalyLevel === 'severe_high' ? '严重超标' : '严重偏低'"
+          :title="b.type === 'SEVERE_HIGH' ? '严重超标' : '严重偏低'"
         >
           <span
             class="severe-symbol"
-            :class="b.anomalyLevel === 'severe_high' ? 'high' : 'low'"
-          >{{ b.anomalyLevel === 'severe_high' ? '▲' : '▼' }}</span>
+            :class="b.type === 'SEVERE_HIGH' ? 'high' : 'low'"
+          >{{ b.type === 'SEVERE_HIGH' ? '▲' : '▼' }}</span>
           <span class="severe-name">{{ b.name }}</span>
           <span class="severe-cat">{{ b.category }}</span>
-          <span class="severe-val">{{ (b.emission ?? 0).toFixed(2) }}吨</span>
+          <span class="severe-val">{{ (b.emission ?? 0).toFixed(2) }}吨
+            <template v-if="b.intensity">· {{ b.intensity }} kg/m²</template>
+          </span>
         </div>
       </div>
 
@@ -115,10 +117,10 @@ async function fetchExtremeAnalysis() {
 // 年/季度变化时重新请求
 watch(() => [store.year, store.quarter], fetchExtremeAnalysis, { immediate: true });
 
-// ─── 严重异常建筑（severe_high / severe_low）────
+// ─── 严重异常建筑（SEVERE_HIGH / SEVERE_LOW）───
 const severeBuildings = computed(() => {
   return (extremeData.value.outliers || []).filter(
-    o => o.anomalyLevel === 'severe_high' || o.anomalyLevel === 'severe_low'
+    o => o.type === 'SEVERE_HIGH' || o.type === 'SEVERE_LOW'
   );
 });
 

@@ -82,19 +82,18 @@ const gradeMeta = [
   { grade: "5", label: "超标", color: "#ef4444" },
 ];
 
-// ─── 静态判定标准（显示行业真实标准文本）───────────
+// ─── 判定标准（从 API 分层设色阈值读取实际数值）─────
 const staticStandards = computed(() => {
-  const textMap = {
-    "教育区": "≤ 35 kgCO₂/m²·年",
-    "商业区": "≤87.75 kgCO₂/m²·年",
-    "工业区": "≤ 2.1 tCO₂/万元",
-    "住宅区": "≤ 21 kgCO₂/m²·年",
-    "农业区": "CH₄≈ 0.46 g/m²·天",
-  };
-  return districtNames.map((name) => ({
-    name,
-    value: textMap[name],
-  }));
+  const th = layeredData.value?.thresholds ?? {};
+  return districtNames.map((name) => {
+    const t = th[name];
+    if (t && t.min != null && t.max != null) {
+      const minStr = Number(t.min).toFixed(1);
+      const maxStr = Number(t.max).toFixed(1);
+      return { name, value: `${minStr} ~ ${maxStr} kg/m²` };
+    }
+    return { name, value: "—" };
+  });
 });
 
 // ─── 图表 — 各等级占比 ───────────────────────────
@@ -338,7 +337,7 @@ const chartOption = computed(() => {
   font-family: "pmzd", monospace;
   font-size: 13px;
   flex-shrink: 0;
-  font-weight: 600;
+  font-weight: 400;
   color: rgba(224, 230, 240, 0.7);
   margin-right: 6px;
 }
