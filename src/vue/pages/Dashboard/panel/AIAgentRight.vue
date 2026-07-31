@@ -1,7 +1,7 @@
 <template>
   <div class="agent-right">
     <!-- 消息区域 -->
-    <div class="messages-area" ref="messageArea">
+    <el-scrollbar class="messages-area" ref="scrollbarRef" @scroll="onScroll">
       <!-- 无消息时显示 tips -->
       <template v-if="store.aiMessages.length === 0">
         <div class="tips-center">
@@ -35,15 +35,39 @@
         class="message"
         :class="msg.role"
       >
-        <!-- 步骤卡片（含工具名+可折叠结果） -->
+        <!-- 步骤合并组（同一轮 LLM 的多个工具调合同一张卡片） -->
+        <div v-if="msg.role === 'step_group'" class="step-card">
+          <div class="card-header">
+            <span class="card-step-num">步骤 {{ msg.round + 1 }}</span>
+            <span class="card-tool-count">{{ msg.steps.length }} 个操作</span>
+          </div>
+          <div class="card-body">
+            <!-- 每个子步骤一行（始终可见） -->
+            <div v-for="(s, si) in msg.steps" :key="si" class="sub-step-line">
+              <span class="sub-step-icon">{{ getToolIcon(s.tool) }}</span>
+              <span class="sub-step-thought">{{ s.thought }}</span>
+            </div>
+            <!-- 详情可点击折叠 -->
+            <div class="result-toggle" @click="msg.collapsed = !msg.collapsed">
+              <span class="toggle-icon">{{ msg.collapsed ? '▶' : '▼' }}</span>
+              <span class="toggle-label">{{ msg.collapsed ? '查看详情' : '收起详情' }}</span>
+            </div>
+            <div v-if="!msg.collapsed" class="result-group">
+              <div v-for="(s, si) in msg.steps" :key="si" class="sub-step-detail">
+                <pre class="sub-step-output">{{ s.result }}</pre>
+              </div>
+            </div>
+          </div>
+          <div class="message-time">{{ msg.time }}</div>
+        </div>
+
+        <!-- 旧版单步骤卡片（兼容历史数据） -->
         <div v-if="msg.role === 'step'" class="step-card">
           <div class="card-header">
             <span class="card-step-num">步骤 {{ msg.step }}</span>
-            <span class="card-tool-name">{{ formatToolName(msg.tool) }}</span>
           </div>
           <div class="card-body">
-            <div class="card-line tool-line">🔧 {{ msg.tool === 'api_browser' ? '数据查询' : msg.tool }}</div>
-            <!-- 结果可点击折叠 -->
+            <div class="card-line tool-line">{{ getToolIcon(msg.tool) }} {{ msg.thought || formatToolName(msg.tool) }}</div>
             <div class="result-toggle" @click="toggleResult(msg)">
               <span class="toggle-icon">{{ msg.collapsed ? '▶' : '▼' }}</span>
               <span class="toggle-label">{{ msg.collapsed ? '查看结果' : '收起结果' }}</span>
@@ -85,7 +109,7 @@
           停止
         </button>
       </div>
-    </div>
+    </el-scrollbar>
 
     <!-- 输入区域 -->
     <div class="input-area">
@@ -95,10 +119,33 @@
           v-model="inputText"
           class="chat-input"
           rows="1"
-          placeholder="输入你的问题，按 Enter 发送..."
+          :placeholder="loading ? '' : '输入你的问题，按 Enter 发送...'"
+          :disabled="loading"
           @keydown.enter.prevent="sendMessage"
           @input="autoResizeInput"
         ></textarea>
+        <!-- 加载计时器：覆盖在输入框上 -->
+        <div v-if="loading" class="input-timer" @click="stopAnalysis">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+          </svg>
+          <span class="timer-text">{{ formatWorkingTime }}</span>
+          <span class="timer-stop">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12" rx="2"/>
+            </svg>
+          </span>
+        </div>
+        <button
+          class="clear-map-btn"
+          title="清空地图上的空间分析图层和高亮"
+          :disabled="loading"
+          @click="clearMap"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+          </svg>
+        </button>
         <button
           class="send-btn"
           :disabled="!inputText.trim()"
@@ -114,9 +161,9 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from "vue";
+import { ref, computed, nextTick, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
-import { sendAgentMessage } from "@/api/agent";
+import { sendAgentMessage, checkPendingRender } from "@/api/agent";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 
@@ -134,12 +181,30 @@ function renderMarkdown(text) {
 }
 
 const store = useConfigStore();
-const messageArea = ref(null);
+const scrollbarRef = ref(null);
 const inputRef = ref(null);
+
+// ★ 打开/切换对话：重置跟随状态 + 强制滚到底部（打开对话默认在最底）
+watch(() => store.currentConversationId, () => {
+  userScrolledUp = false;
+  forceScrollToBottom();
+});
+
+// ★ 消息数量变化（历史加载 / 新增步骤卡）：贴底跟随
+watch(() => store.aiMessages.length, () => scrollToBottom());
 const inputText = ref("");
 const loading = ref(false);
+const workingSeconds = ref(0);
+let workingTimer = null;
 /** AbortController 用于停止 SSE 请求 */
 let stopController = null;
+
+/** 格式化工作秒数为 mm:ss */
+const formatWorkingTime = computed(() => {
+  const m = Math.floor(workingSeconds.value / 60);
+  const s = workingSeconds.value % 60;
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+});
 
 /** 当前正在流式接收中的助手消息对象 */
 let currentAssistantMsg = null;
@@ -160,11 +225,32 @@ function addMessage(role, text) {
   store.aiMessages.push({ role, text, time });
 }
 
-function addStep(stepSeq, thought, tool, result) {
+function addStep(stepSeq, round, thought, tool, result) {
   const now = new Date();
   const time = now.getHours().toString().padStart(2, "0") + ":" +
                now.getMinutes().toString().padStart(2, "0");
-  store.aiMessages.push({ role: "step", step: stepSeq, thought, tool, result, collapsed: true, time });
+  // 同一轮的多个工具合并为一个步骤组。
+  // ★ 不能只检查最后一条消息：同一轮工具之间可能被 interim/assistant 隔开
+  //   （如 iserver_spatial 内部 sendInterim），需从末尾向前找最近一个 step_group。
+  let group = null;
+  for (let i = store.aiMessages.length - 1; i >= 0; i--) {
+    const m = store.aiMessages[i];
+    if (m.role !== "step_group") continue; // 跳过 interim/assistant 等
+    if (m.round === round) group = m;
+    break; // 找到最近的 step_group（无论 round 是否匹配）即停
+  }
+  if (group) {
+    group.steps.push({ step: stepSeq, thought, tool, result });
+    group.time = time;
+  } else {
+    store.aiMessages.push({
+      role: "step_group",
+      round,
+      steps: [{ step: stepSeq, thought, tool, result }],
+      collapsed: true,
+      time
+    });
+  }
 }
 
 function toggleResult(msg) {
@@ -172,8 +258,25 @@ function toggleResult(msg) {
 }
 
 function formatToolName(tool) {
-  const map = { api_browser: "数据查询", web_search: "联网搜索", data_workspace: "数据工作区", skill_execute: "技能执行" };
+  const map = {
+    api_browser: "数据查询",
+    web_search: "联网搜索",
+    data_workspace: "数据工作区",
+    skill_execute: "技能执行",
+    exec_sandbox: "Python 脚本",
+  };
   return map[tool] || tool;
+}
+
+function getToolIcon(tool) {
+  const icons = {
+    api_browser: "📡",
+    web_search: "🌐",
+    data_workspace: "📂",
+    skill_execute: "📋",
+    exec_sandbox: "🐍",
+  };
+  return icons[tool] || "🔧";
 }
 
 function sendTip(tip) {
@@ -207,6 +310,8 @@ async function sendMessage() {
 
   // 开始 SSE 流式请求
   loading.value = true;
+  workingSeconds.value = 0;
+  workingTimer = setInterval(() => { workingSeconds.value++; }, 1000);
   await nextTick();
   scrollToBottom();
 
@@ -233,14 +338,46 @@ async function sendMessage() {
       }
     },
     // FC 步骤完成事件 —— 每步渲染一张卡片
-    onStepDone(stepSeq, thought, tool, result) {
-      addStep(stepSeq, thought, tool, result);
+    // ★ 过渡回复：工具执行完后 LLM 的自然语言反馈，显示在步骤卡片之后
+    onInterim(text) {
+      console.log("[Agent] interim received:", text?.substring(0, 50));
+      // ★ 过渡回复时 agent 还在工作，不停止 loading
+      const now = new Date();
+      const time = now.getHours().toString().padStart(2, "0") + ":" +
+                   now.getMinutes().toString().padStart(2, "0");
+      store.aiMessages.push({ role: "assistant", text, time });
       scrollToBottom();
+    },
+    onStepDone(stepSeq, thought, tool, result, round) {
+      addStep(stepSeq, round, thought, tool, result);
+      scrollToBottom();
+    },
+    // ★ Agent 完成：循环消费 pending 渲染指令队列（解决连续调用互相覆盖的问题）
+    async onDone() {
+      stopLoading();
+      currentAssistantMsg = null;
+      console.log("[Render] onDone 触发, convId=", store.currentConversationId);
+      let cmdCount = 0;
+      while (true) {
+        try {
+          const cmd = await checkPendingRender(store.currentConversationId);
+          if (!cmd) break; // 204 No Content，队列为空
+          cmdCount++;
+          console.log(`[Render] 消费第 ${cmdCount} 个指令:`, cmd.action);
+          store.setRenderCommand(cmd);
+          // 给 watcher 一点时间处理当前指令，再检查下一个
+          await new Promise(r => setTimeout(r, 100));
+        } catch (e) {
+          console.error("[Render] pending-render 失败:", e);
+          break;
+        }
+      }
+      if (cmdCount > 0) console.log(`[Render] 共消费 ${cmdCount} 个渲染指令`);
     },
     onToken(tokenText) {
       // 第一个 token 到达时创建消息气泡，隐藏进度指示器
       if (!currentAssistantMsg) {
-        loading.value = false;
+        stopLoading();
         const now = new Date();
         const time = now.getHours().toString().padStart(2, "0") + ":" +
                      now.getMinutes().toString().padStart(2, "0");
@@ -251,13 +388,8 @@ async function sendMessage() {
       currentAssistantMsg.text += tokenText;
       scrollToBottom();
     },
-    onDone() {
-      loading.value = false;
-      currentAssistantMsg = null;
-      // 刷新左侧历史列表
-    },
     onError(err) {
-      loading.value = false;
+      stopLoading();
       currentAssistantMsg = null;
       addMessage("assistant", `抱歉，请求出错：${err}`);
       scrollToBottom();
@@ -265,30 +397,60 @@ async function sendMessage() {
   });
 }
 
-/** 用户主动停止分析：中止 SSE 请求，后端的 SseEmitter 抛异常 → ReAct 引擎停止循环 */
+/** 停止加载状态 + 计时器 */
+function stopLoading() {
+  if (workingTimer) {
+    clearInterval(workingTimer);
+    workingTimer = null;
+  }
+  loading.value = false;
+}
 function stopAnalysis() {
   if (stopController) {
     stopController.abort();
     stopController = null;
   }
-  loading.value = false;
-  addStep(999, "用户手动停止", "—", "⏹ 已停止分析");
+  stopLoading();
+  addStep(999, 999, "用户手动停止", "—", "⏹ 已停止分析");
   scrollToBottom();
 }
 
-/** 判断用户是否在底部附近（60px 阈值），自动滚动用 */
-function isNearBottom() {
-  if (!messageArea.value) return true;
-  const el = messageArea.value;
-  return el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+/** 手动清空地图上的空间分析图层和建筑高亮 */
+function clearMap() {
+  store.setRenderCommand({ action: "clear_spatial" });
+  console.log("[Map] 手动清空地图");
 }
 
-function scrollToBottom() {
+/** 检测用户主动离开底部的阈值（px）：手动滚上去超过该距离视为"在看历史"，停止跟随 */
+const SCROLL_NEAR_BOTTOM_PX = 40;
+
+/** 用户是否主动滚离了底部（true = 在看历史，新消息到达不打扰） */
+let userScrolledUp = false;
+
+/** wrap 滚动事件：追踪用户是否主动离开底部。
+ *  ★ 不用"scrollHeight 差值"判断贴底——流式追加时 scrollHeight 持续增长，
+ *    scrollTop 追不上导致差值恒大于阈值，永不跟随。改为追踪用户主动滚动。 */
+function onScroll() {
+  const sb = scrollbarRef.value;
+  if (!sb || !sb.wrapRef) return;
+  const el = sb.wrapRef;
+  userScrolledUp = el.scrollHeight - el.scrollTop - el.clientHeight >= SCROLL_NEAR_BOTTOM_PX;
+}
+
+/** 强制滚动到消息列表最底部（打开对话/加载历史时用，不看位置）。
+ *  用超大值让浏览器 clamp 到最大滚动位置，规避 scrollHeight 读取滞后的竞态。 */
+function forceScrollToBottom() {
   nextTick(() => {
-    if (messageArea.value && isNearBottom()) {
-      messageArea.value.scrollTop = messageArea.value.scrollHeight;
-    }
+    const sb = scrollbarRef.value;
+    if (!sb || !sb.wrapRef) return;
+    sb.setScrollTop(Number.MAX_SAFE_INTEGER);
   });
+}
+
+/** 新消息到达时贴底跟随：用户停留在底部则自动滚到底，在看历史则不打扰 */
+function scrollToBottom() {
+  if (userScrolledUp) return;
+  forceScrollToBottom();
 }
 </script>
 
@@ -304,25 +466,27 @@ function scrollToBottom() {
 .messages-area {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  padding: 0 4px 12px 4px;
+}
+
+/* el-scrollbar 内容层：消息纵向排列 */
+.messages-area :deep(.el-scrollbar__view) {
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  scroll-behavior: smooth;
+  padding: 0 4px 12px 4px;
 }
 
-.messages-area::-webkit-scrollbar {
-  width: 3px;
+/* el-scrollbar 滚动条（细蓝条，替代原 webkit 自定义） */
+.messages-area :deep(.el-scrollbar__bar.is-vertical) {
+  width: 4px;
 }
-
-.messages-area::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.messages-area::-webkit-scrollbar-thumb {
+.messages-area :deep(.el-scrollbar__thumb) {
   background: rgba(59, 130, 246, 0.3);
   border-radius: 4px;
+}
+.messages-area :deep(.el-scrollbar__thumb:hover) {
+  background: rgba(59, 130, 246, 0.5);
 }
 
 /* ── Tips 中心区域 ── */
@@ -666,6 +830,58 @@ function scrollToBottom() {
   margin-top: 2px;
 }
 
+/* ── 步骤组特有样式 ── */
+.card-tool-count {
+  font-size: 11px;
+  color: rgba(147, 197, 253, 0.5);
+  margin-left: auto;
+}
+.sub-step-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.06);
+}
+.sub-step-line:last-child {
+  border-bottom: none;
+}
+.sub-step-icon {
+  flex-shrink: 0;
+  font-size: 13px;
+  width: 20px;
+  text-align: center;
+}
+.sub-step-thought {
+  font-size: 13px;
+  color: rgba(224, 230, 240, 0.8);
+  line-height: 1.4;
+  word-break: break-word;
+  flex: 1;
+}
+.result-group {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sub-step-detail {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.sub-step-output {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(52, 211, 153, 0.75);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
 /* ── 加载动画 + 停止按钮 ── */
 .agent-loading {
   display: flex;
@@ -739,6 +955,7 @@ function scrollToBottom() {
 
 .input-wrapper {
   display: flex;
+  position: relative;
   align-items: center;
   gap: 8px;
   background: rgba(15, 20, 32, 0.5);
@@ -771,6 +988,47 @@ function scrollToBottom() {
   color: rgba(224, 230, 240, 0.3);
 }
 
+/* ── 输入框加载计时器 ── */
+.input-timer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  color: rgba(224, 230, 240, 0.45);
+  cursor: pointer;
+  border-radius: 10px;
+  background: rgba(15, 20, 32, 0.6);
+  transition: all 0.2s ease;
+}
+.input-timer:hover {
+  background: rgba(15, 20, 32, 0.75);
+}
+.timer-text {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgba(224, 230, 240, 0.6);
+  letter-spacing: 0.5px;
+}
+.timer-stop {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.06);
+  transition: all 0.2s ease;
+}
+.input-timer:hover .timer-stop {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
 .send-btn {
   flex-shrink: 0;
   width: 34px;
@@ -793,6 +1051,30 @@ function scrollToBottom() {
 
 .send-btn:disabled {
   opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.clear-map-btn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(148, 163, 184, 0.06);
+  color: rgba(148, 163, 184, 0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.clear-map-btn:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #cbd5e1;
+}
+.clear-map-btn:disabled {
+  opacity: 0.25;
   cursor: not-allowed;
 }
 </style>

@@ -93,7 +93,7 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
-import { getExtremeAnalysis } from "@/api/monitoring";
+import { getExtremeAnalysis } from "@/api/analysis";
 const store = useConfigStore();
 
 // ─── 极值分析接口数据 ────────────────────────────

@@ -34,7 +34,7 @@
           <svg v-if="heatView === 'workflow'" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
             <path d="M7.828 11H20v2H7.828l5.364 5.364-1.414 1.414L4 12l7.778-7.778 1.414 1.414z"/>
           </svg>
-          {{ heatView === 'agent' ? '工作流' : '助手' }}
+          {{ heatView === 'agent' ? '工作区' : '助手' }}
           <svg v-if="heatView === 'agent'" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
             <path d="M16.172 11H4v2h12.172l-5.364 5.364 1.414 1.414L20 12l-7.778-7.778-1.414 1.414z"/>
           </svg>
@@ -67,7 +67,7 @@ import AnalysisRight from "./AnalysisRight.vue";
 import DataUpload from "./DataUpload.vue";
 import AIAgentLeft from "./AIAgentLeft.vue";
 import AIAgentRight from "./AIAgentRight.vue";
-import WorkflowPreview from "./WorkflowPreview.vue";
+import DocumentsPanel from "./DocumentsPanel.vue";
 
 // 默认面板（底部第一个按钮 cloud 与无激活状态时均显示此内容）
 const defaultPanels = [
@@ -82,7 +82,7 @@ const panelConfig = {
     { title: "极值分析与建议", subtitle: "", comp: AnalysisRight, props: {} },
   ],
   heat: [
-    { title: "AI Agent 助手", subtitle: "智能分析", comp: AIAgentLeft, props: {} },
+    { title: "AI 助手", subtitle: "智能分析", comp: AIAgentLeft, props: {} },
     { title: "对话", subtitle: "", comp: AIAgentRight, props: {} },
   ],
   bar: [
@@ -102,7 +102,7 @@ const leftPanel = computed(() => {
     return { title: '碳排放全景监测', subtitle: '新数据', comp: LineRevenueBar, props: { preview: true } };
   }
   if (store.activeKey === 'heat' && heatView.value === 'workflow') {
-    return { title: '工作流预览', subtitle: '', comp: WorkflowPreview, props: {} };
+    return { title: '工作区', subtitle: '', comp: DocumentsPanel, props: {} };
   }
   return base;
 });
@@ -210,7 +210,7 @@ watch(() => store.viewMode, (newMode, oldMode) => {
   flex-direction: column;
   pointer-events: auto;
   z-index: 9999;
-  overflow: hidden;
+  /* overflow clipped the view-toggle button */
   width: 100%;
   min-width: 0;
   box-sizing: border-box;

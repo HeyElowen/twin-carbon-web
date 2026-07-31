@@ -56,6 +56,9 @@ export const useConfigStore = defineStore("dashboard", () => {
   const currentConversationId = ref(null);
   const conversationList = ref([]);
 
+  // 前端渲染指令（agent 完成后通过 REST pending-render 获取，供 dashboard 渲染 Cesium 图层）
+  const renderCommand = ref(null);
+
 
   // 回溯播放控制
   const tracebackPlaying = ref(false);
@@ -128,6 +131,7 @@ export const useConfigStore = defineStore("dashboard", () => {
   function setUploadFile(v) { uploadFile.value = v; }
   function setPreviewBatchId(v) { previewBatchId.value = v; }
   function setPreviewFeatures(v) { previewFeatures.value = v; }
+  function setRenderCommand(v) { renderCommand.value = v; }
   function setMainCamera(camera) {
     if (!camera) { mainCamera.value = null; return; }
     mainCamera.value = {
@@ -147,6 +151,7 @@ export const useConfigStore = defineStore("dashboard", () => {
     uploadFile.value = null;
     previewBatchId.value = null;
     previewFeatures.value = null;
+    renderCommand.value = null;
     districts.value = {
       农业区: true,
       工业区: true,
@@ -186,7 +191,7 @@ export const useConfigStore = defineStore("dashboard", () => {
     tracebackPlaying, tracebackProgress,
     tracebackTickCount, tracebackResetTicks, tracebackTick,
     uploadPreviewActive, setUploadPreview, uploadLeftView, setUploadLeftView, uploadFile, setUploadFile,
-    previewBatchId, setPreviewBatchId, previewFeatures, setPreviewFeatures,
+    previewBatchId, setPreviewBatchId, previewFeatures, setPreviewFeatures, renderCommand, setRenderCommand,
     mainCamera, setMainCamera,
     aiMessages,
     currentConversationId, conversationList,

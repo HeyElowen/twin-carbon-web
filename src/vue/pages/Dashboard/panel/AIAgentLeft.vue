@@ -20,6 +20,14 @@
       </div>
     </div>
 
+    <!-- 使用指南 -->
+    <div class="guide-link">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="#60a5fa">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+      </svg>
+      <a href="#" @click.prevent="openAgentGuide">AI 助手使用指南</a>
+    </div>
+
     <!-- 历史对话 -->
     <div class="history-section">
       <div class="section-title">
@@ -67,20 +75,16 @@ import { getAgentHistory, getAgentMessages, deleteAgentHistory } from "@/api/age
 
 const store = useConfigStore();
 
-const features = [
-  { name: "趋势预测", desc: "新热力图、新极值分析、折线图预测等", color: "#60a5fa",
-    icon: '<path d="M3 17l5-4 4 4 7-7 2 2V5h-7l2 2-4 4-4-4-5 5z"/>' },
-  { name: "报告生成", desc: "智能生成多维度碳排放分析报告", color: "#34d399",
-    icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/>' },
-  { name: "缓冲区分析", desc: "评估排放源周边区域碳浓度分布与影响", color: "#f59e0b",
-    icon: '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6 2.69-6 6-6zm0 2c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/>' },
-  { name: "碳排放趋势预测", desc: "预测未来碳排放趋势与峰值", color: "#a855f7",
-    icon: '<path d="M16.5 3L13 9h4l-3.5 6H17l-4 6 3-4h-5l3.5-6H10l3.5-6H13l-4 6H5l3-4-1-2H2v14h20V3h-5.5z"/>' },
-  { name: "报告自动生成", desc: "一键生成碳排放分析报告", color: "#f472b6",
-    icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6zm2-6h8v2H8v-2zm0-4h5v2H8v-2zm0 8h8v2H8v-2z"/>' },
-  { name: "政策合规咨询", desc: "碳达峰碳中和政策解读与合规建议", color: "#2dd4bf",
-    icon: '<path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>' },
-];
+  const features = [
+    { name: "数据分析", desc: "碳排放数据多维分析与洞察", color: "#60a5fa",
+      icon: '<path d="M3 17l5-4 4 4 7-7 2 2V5h-7l2 2-4 4-4-4-5 5z"/>' },
+    { name: "报告生成", desc: "智能生成碳排放分析报告", color: "#34d399",
+      icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/>' },
+    { name: "空间分析", desc: "缓冲区与叠加等空间分析", color: "#f59e0b",
+      icon: '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6 2.69-6 6-6zm0 2c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/>' },
+    { name: "政策咨询", desc: "碳达峰碳中和政策解读", color: "#2dd4bf",
+      icon: '<path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>' },
+  ];
 
 function formatTime(isoStr) {
   if (!isoStr) return "";
@@ -103,11 +107,25 @@ async function selectConversation(conv) {
   try {
     const messages = await getAgentMessages(conv.id);
     store.currentConversationId = conv.id;
-    store.aiMessages = messages.map(m => ({
-      role: m.role === "assistant" ? "assistant" : "user",
-      text: m.content,
-      time: formatTime(m.createdAt),
-    }));
+    store.aiMessages = messages.map(m => {
+      // tool 角色 → 渲染为步骤卡片
+      if (m.role === "tool" && m.metadata?.tool) {
+        return {
+          role: "step",
+          step: m.metadata.step,
+          tool: m.metadata.tool,
+          thought: "调用 " + m.metadata.tool + " 工具",
+          result: m.content,
+          collapsed: true,
+          time: formatTime(m.createdAt),
+        };
+      }
+      return {
+        role: m.role === "assistant" ? "assistant" : "user",
+        text: m.content,
+        time: formatTime(m.createdAt),
+      };
+    });
   } catch (e) {
     console.error("加载历史消息失败", e);
   }
@@ -137,6 +155,10 @@ async function confirmDelete(conv) {
 function newConversation() {
   store.currentConversationId = null;
   store.aiMessages = [];
+}
+
+function openAgentGuide() {
+  window.open(`${import.meta.env.BASE_URL}docs/doc-viewer.html?file=AGENT_GUIDE.md`, "_blank");
 }
 
 onMounted(async () => {
@@ -254,6 +276,38 @@ onMounted(async () => {
   color: #93c5fd;
   border-color: rgba(59, 130, 246, 0.35);
 }
+
+/* ── 使用指南 ── */
+.guide-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  transition: all 0.2s ease;
+}
+
+.guide-link:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.guide-link a {
+  color: #60a5fa;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.guide-link a:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
 
 /* ── 历史对话 ── */
 .history-section {

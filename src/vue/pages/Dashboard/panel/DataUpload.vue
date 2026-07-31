@@ -112,11 +112,9 @@ const uploadRef = ref(null);
 const uploading = ref(false);
 const confirming = ref(false);
 
-const downloadTemplates = [
-  { name: "碳排放数据模板.xlsx", desc: "按区域填报碳排放量", url: "#" },
-  { name: "能耗数据模板.xlsx", desc: "按月填报各类能耗", url: "#" },
-  { name: "排放因子模板.xlsx", desc: "填写各品类排放因子系数", url: "#" },
-];
+  const downloadTemplates = [
+    { name: "碳排放导入模板.xlsx", desc: "含 5 类用地 Sheet 的标准导入模板", url: "#" },
+  ];
 
 function exitPreview() {
   store.setUploadPreview(false);
@@ -211,7 +209,8 @@ async function handleConfirm() {
  */
 async function handleDownload(item) {
   try {
-    const blob = await downloadTemplate();
+    const _resp = await downloadTemplate();
+	    const blob = _resp.data;
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

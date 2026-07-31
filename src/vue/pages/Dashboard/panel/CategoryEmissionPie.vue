@@ -1,5 +1,5 @@
 <template>
-  <Chart ref="chartRef" :use="chartModules" :option="chartOptionRef" />
+  <Chart ref="chartRef" :use="chartModules" :option="chartOptionRef" :loading="loading" />
 </template>
 
 <script setup>
@@ -19,6 +19,7 @@ const props = defineProps({
 
 // 从后端获取的原始数据
 const rawData = ref([]);
+const loading = ref(true);
 
 const colorMap = {
   工业区: "#3b82f6",
@@ -37,6 +38,7 @@ function usePreviewApi() {
 
 // 请求饼图数据
 async function fetchData() {
+  loading.value = true;
   try {
     let res;
     if (usePreviewApi()) {
@@ -47,6 +49,8 @@ async function fetchData() {
     rawData.value = res.data || [];
   } catch {
     rawData.value = [];
+  } finally {
+    loading.value = false;
   }
   if (store.tracebackPlaying) store.tracebackTick();
 }

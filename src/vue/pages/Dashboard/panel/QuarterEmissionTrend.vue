@@ -1,5 +1,5 @@
 <template>
-  <Chart :use="chartModules" :option="chartOption" />
+  <Chart :use="chartModules" :option="chartOption" :loading="loading" />
 </template>
 
 <script setup>
@@ -18,6 +18,7 @@ const props = defineProps({
 
 // 从后端获取的原始数据
 const rawData = ref([]);
+const loading = ref(true);
 
 const categoryColors = {
   工业区: "#3b82f6",
@@ -37,6 +38,7 @@ function usePreviewApi() {
 // 3年: year-2 ~ year
 // 5年: year-4 ~ year
 async function fetchData() {
+  loading.value = true;
   try {
     const category = store.selectedCategory || "";
     const yearStart = store.year - (store.trendYearScale - 1);
@@ -49,6 +51,8 @@ async function fetchData() {
     rawData.value = res.data || [];
   } catch {
     rawData.value = [];
+  } finally {
+    loading.value = false;
   }
 }
 

@@ -1,5 +1,5 @@
 <template>
-  <Chart :use="chartModules" :option="chartOption" />
+  <Chart :use="chartModules" :option="chartOption" :loading="loading" />
 </template>
 
 <script setup>
@@ -13,13 +13,17 @@ import { getCategoryIntensity } from "@/api/monitoring";
 
 const store = useConfigStore();
 const rawData = ref([]);
+const loading = ref(true);
 
 async function fetchData() {
+  loading.value = true;
   try {
     const res = await getCategoryIntensity(store.year, store.quarter);
     rawData.value = res.data || [];
   } catch {
     rawData.value = [];
+  } finally {
+    loading.value = false;
   }
   if (store.tracebackPlaying) store.tracebackTick();
 }

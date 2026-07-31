@@ -16,7 +16,7 @@ let previewHeatmap = null;
 
 function setupBaseImagery(v) {
   const subdomains = ["0", "1", "2", "3", "4", "5", "6", "7"];
-  const tk = "cec53f834be34c955bae0afecd4caa3e";
+  const tk = import.meta.env.VITE_TIANDITU_TOKEN || "cec53f834be34c955bae0afecd4caa3e";
   const layers = v.imageryLayers;
   layers.remove(layers.get(0), true);
   layers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({

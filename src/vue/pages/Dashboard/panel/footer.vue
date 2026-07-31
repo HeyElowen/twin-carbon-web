@@ -33,7 +33,7 @@
     </svg>
 
     <div class="buttons">
-      <el-tooltip content="碳排放统计数据" placement="top" :show-after="300">
+      <el-tooltip content="数据总览" placement="top" :show-after="300">
         <el-button
           :class="['footer-btn', { active: store.activeKey === 'cloud' }]"
           @click="store.setActive('cloud')"
@@ -43,7 +43,7 @@
           </svg>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="碳排放总体/单体合格评判与建议" placement="top" :show-after="300">
+      <el-tooltip content="达标分析" placement="top" :show-after="300">
         <el-button
           :class="['footer-btn', { active: store.activeKey === 'rotation' }]"
           @click="store.setActive('rotation')"
@@ -87,7 +87,7 @@
             <div class="filter-section">
               <span class="filter-label">季度</span>
               <el-radio-group v-model="filters.quarter" size="small">
-                <el-radio-button v-for="q in quarters" :key="q.value" :label="q.label" :value="q.value" />
+                <el-radio-button v-for="q in quarters" :key="q.value" :label="q.label" :value="q.value" :disabled="q.disabled" />
               </el-radio-group>
             </div>
             <div class="filter-section">
@@ -97,22 +97,9 @@
               </el-radio-group>
             </div>
 
-            <!-- ── 预览模式下的工具切换 ── -->
+            <!-- ── 预览模式热力图控制 ── -->
             <template v-if="store.uploadPreviewActive">
               <div class="heatmap-divider" />
-              <div class="mode-tabs">
-                <button class="mode-tab" :class="{ active: previewToolMode === 'heatmap' }" @click="previewToolMode = 'heatmap'">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                  热力图
-                </button>
-                <button class="mode-tab" :class="{ active: previewToolMode === 'extreme' }" @click="previewToolMode = 'extreme'">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12z"/><path d="M7 15h2V9H7v6zm4-4h2v4h-2v-4zm4-2h2v6h-2V9z"/></svg>
-                  极值分析
-                </button>
-              </div>
-
-              <!-- 热力图工具 -->
-              <template v-if="previewToolMode === 'heatmap'">
                 <div class="heat-row">
                   <label class="heat-switch">
                     <input type="checkbox" :checked="store.heatmapConfig.enabled" @change="toggleHeatmap" />
@@ -160,17 +147,6 @@
                     @input="store.updateHeatmapConfig({ power: parseFloat($event.target.value) })" />
                   <span class="heat-value">{{ store.heatmapConfig.power.toFixed(1) }}</span>
                 </div>
-              </template>
-
-              <!-- 极值分析占位 -->
-              <template v-if="previewToolMode === 'extreme'">
-                <div class="extreme-placeholder">
-                  <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor" opacity="0.2"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12z"/><path d="M7 15h2V9H7v6zm4-4h2v4h-2v-4zm4-2h2v6h-2V9z"/></svg>
-                  <div class="extreme-text">极值分析</div>
-                  <div class="extreme-hint">分析各用地类型碳排放极值</div>
-                  <div class="extreme-hint" style="font-size:18px;color:rgba(200,208,224,0.25)">（待完善）</div>
-                </div>
-              </template>
             </template>
           </div>
 
@@ -180,7 +156,7 @@
         </el-popover>
       </el-tooltip>
 
-      <el-tooltip content="AI Agent助手" placement="top" :show-after="300">
+      <el-tooltip content="AI 助手" placement="top" :show-after="300">
         <el-button
           :class="['footer-btn', { active: store.activeKey === 'heat' }]"
           @click="store.setActive('heat')"
@@ -190,7 +166,7 @@
           </svg>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="数据上传与预览" placement="top" :show-after="300">
+      <el-tooltip content="数据管理" placement="top" :show-after="300">
         <el-button
           :class="['footer-btn', { active: store.activeKey === 'bar' }]"
           @click="store.setActive('bar')"
@@ -212,17 +188,14 @@ import TracebackBar from "./TracebackBar.vue";
 
 const store = useConfigStore();
 const controlVisible = ref(false);
-// 预览工具模式：'heatmap' | 'extreme'
-const previewToolMode = ref('heatmap');
-
 const years = [2023, 2024, 2025];
-const quarters = [
-  { label: "Q1", value: "Q1" },
-  { label: "Q2", value: "Q2" },
-  { label: "Q3", value: "Q3" },
-  { label: "Q4", value: "Q4" },
-  { label: "全年", value: "ALL" },
-];
+const quarters = computed(() => [
+  { label: "Q1", value: "Q1", disabled: false },
+  { label: "Q2", value: "Q2", disabled: false },
+  { label: "Q3", value: "Q3", disabled: false },
+  { label: "Q4", value: "Q4", disabled: false },
+  { label: "全年", value: "ALL", disabled: store.activeKey === 'rotation' },
+]);
 const viewModes = computed(() => [
   { label: "标准", value: "standard", disabled: false },
   { label: "纯净", value: "clean", disabled: false },
@@ -243,12 +216,6 @@ watch(() => filters.value.viewMode, (v) => store.setViewMode(v));
 // 反向同步：外部修改 viewMode 时更新筛选面板（如纯净模式下激活按钮自动切回标准）
 watch(() => store.viewMode, (v) => { filters.value.viewMode = v; });
 
-// 切到极值分析时自动关闭热力图
-watch(previewToolMode, (mode) => {
-  if (mode === 'extreme' && store.heatmapConfig.enabled) {
-    store.updateHeatmapConfig({ enabled: false });
-  }
-});
 
 function toggleHeatmap(e) {
   store.updateHeatmapConfig({ enabled: e.target.checked });
@@ -375,56 +342,6 @@ function toggleHeatmap(e) {
 </style>
 
 <style>
-/* ── 模式切换标签 ── */
-.mode-tabs {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-.mode-tab {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.15);
-  background: rgba(15, 20, 32, 0.5);
-  color: rgba(200, 208, 224, 0.4);
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.mode-tab:hover {
-  border-color: rgba(59, 130, 246, 0.3);
-  color: rgba(200, 208, 224, 0.7);
-}
-.mode-tab.active {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.3), rgba(59, 130, 246, 0.15));
-  border-color: rgba(59, 130, 246, 0.4);
-  color: #60a5fa;
-}
-
-/* ── 极值分析占位 ── */
-.extreme-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 0;
-  gap: 8px;
-}
-.extreme-text {
-  font-size: 16px;
-  font-weight: 700;
-  color: rgba(200, 208, 224, 0.3);
-}
-.extreme-hint {
-  font-size: 16px;
-  color: rgba(200, 208, 224, 0.2);
-}
-
 /* ── 热力图控制（预览模式） ── */
 .heatmap-divider {
   border-top: 1px solid rgba(59, 130, 246, 0.12);

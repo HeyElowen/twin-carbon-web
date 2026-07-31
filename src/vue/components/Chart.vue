@@ -1,5 +1,5 @@
 <template>
-  <div ref="chartBox" class="chart-wrapper" :style="style"></div>
+  <div ref="chartBox" class="chart-wrapper" :style="style" v-loading="loading" element-loading-background="rgba(7,10,14,0.6)"></div>
 </template>
 
 <script setup>
@@ -14,6 +14,7 @@ const props = defineProps({
   use: { type: Array, required: true },
   style: { type: Object, default: () => ({}) },
   theme: { type: [String, Object], default: undefined },
+  loading: { type: Boolean, default: false },
 });
 
 const chartBox = ref(null);

@@ -19,13 +19,29 @@
     </div>
 
     <Panel />
+
+    <!-- 建筑属性卡片（点击三维建筑时弹出） -->
+    <div v-if="buildingInfo" class="building-info-card">
+      <button class="bi-close" @click="buildingInfo = null">✕</button>
+      <div class="bi-title">{{ buildingInfo.name || '建筑属性' }}</div>
+      <table class="bi-table">
+        <tr><td class="bi-label">SMID</td><td class="bi-value">{{ buildingInfo.smid }}</td></tr>
+        <tr v-if="buildingInfo.year"><td class="bi-label">年份</td><td class="bi-value">{{ buildingInfo.year }}</td></tr>
+        <tr v-if="buildingInfo.quarter"><td class="bi-label">季度</td><td class="bi-value">{{ buildingInfo.quarter }}</td></tr>
+        <tr v-if="buildingInfo.category"><td class="bi-label">用地类型</td><td class="bi-value">{{ buildingInfo.category }}</td></tr>
+        <tr v-if="buildingInfo.emission != null"><td class="bi-label">碳排放</td><td class="bi-value">{{ buildingInfo.emission }} tCO₂</td></tr>
+      </table>
+      <div v-if="!buildingInfo.year" class="bi-nodata">当前时段未加载该建筑的碳数据</div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { onMounted, onUnmounted, ref, computed, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
-import { getBuildingObservationPoint, getLayeredColoring } from "@/api/monitoring";
+import { getBuildingObservationPoint } from "@/api/monitoring";
+import { getLayeredColoring } from "@/api/analysis";
+import { fetchSpatialData } from "@/api/agent";
 import Panel from "./panel/index.vue";
 import PreviewCesium from "./PreviewCesium.vue";
 import { Heatmap3D } from "@/js/utils/heatmap3D";
@@ -34,6 +50,7 @@ import { useDistrictOverlay } from "@/js/composables/useDistrictOverlay";
 
 let viewer = null;
 let pointDataSource = null;   // 当前加载的 GeoJSON 数据源
+let spatialDataSource = null; // 空间分析结果（缓冲区多边形）数据源
 let heatmap3D = null;         // 3D 热力图实例
 // anomalyEntities（已删除，改用 setObjsColor）
 
@@ -41,6 +58,7 @@ const store = useConfigStore();
 const districtOverlay = useDistrictOverlay();
 const pointData = ref([]);      // 观测点数据
 const pointLoading = ref(false);
+const buildingInfo = ref(null); // 点击建筑后弹出的属性表
 
 let defaultSceneLayers = [];   // 默认 3D-global 场景加载的图层
 let districtSceneLayers = [];  // 分区场景加载的图层
@@ -53,6 +71,14 @@ const LEVEL_COLORS = {
   3: new Cesium.Color(0.961, 0.620, 0.043, 1),
   4: new Cesium.Color(0.976, 0.451, 0.086, 1),
   5: new Cesium.Color(0.937, 0.267, 0.267, 1),
+};
+
+// ── 叠加分析高亮颜色（默认 blue）──
+const HIGHLIGHT_COLORS = {
+  blue: new Cesium.Color(0.133, 0.518, 0.773, 1),
+  red: new Cesium.Color(0.937, 0.267, 0.267, 1),
+  orange: new Cesium.Color(0.976, 0.451, 0.086, 1),
+  green: new Cesium.Color(0.133, 0.773, 0.369, 1),
 };
 
 /** 找到当前 S3M 图层 */
@@ -95,6 +121,37 @@ async function applyLevelColoring(v) {
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('[LevelColoring] 失败:', e);
+  }
+}
+
+/** 高亮指定 SMID 的三维建筑（叠加染色，不影响分层设色） */
+async function loadHighlightToCesium(smids, color = 'blue') {
+  if (!viewer) { console.warn('[Highlight] viewer is null'); return; }
+  if (!smids || smids.length === 0) { console.warn('[Highlight] smids 为空'); return; }
+
+  const layer = getS3MLayer(viewer);
+  if (!layer) { console.warn('[Highlight] 找不到 S3M 图层'); return; }
+
+  const cesiumColor = HIGHLIGHT_COLORS[color] || HIGHLIGHT_COLORS.blue;
+  try {
+    layer.setObjsColor(smids, cesiumColor);
+    console.log('[Highlight] 已高亮', smids.length, '栋建筑，颜色:', color);
+  } catch (e) {
+    console.error('[Highlight] setObjsColor 失败:', e);
+  }
+}
+
+/** 清除建筑高亮（保留缓冲区图层和分层设色） */
+function clearHighlight() {
+  if (!viewer) { console.warn('[Highlight] viewer is null'); return; }
+  const layer = getS3MLayer(viewer);
+  if (layer && typeof layer.removeAllObjsColor === 'function') {
+    try {
+      layer.removeAllObjsColor();
+      console.log('[Highlight] 已清除所有建筑高亮');
+    } catch (e) {
+      console.error('[Highlight] removeAllObjsColor 失败:', e);
+    }
   }
 }
 
@@ -199,6 +256,123 @@ function toggleTraceback() {
 }
 watch(() => store.previewFeatures, () => { tbReset(); });
 watch(() => store.uploadPreviewActive, (v) => { if (!v) tbStop(); });
+
+/**
+ * 加载空间分析结果（缓冲区多边形等）到 Cesium 场景。
+ * 使用三维立体效果：多边形向上拉伸 + 超图扫描边样式。
+ * 自动移除上一次的空间结果图层，可选飞行定位。
+ */
+async function loadSpatialToCesium(geoJson, shouldFlyTo = true) {
+  if (!viewer) { console.warn('[Spatial] viewer is null'); return; }
+  if (!geoJson) { console.warn('[Spatial] geoJson is null/undefined'); return; }
+
+  const featureCount = geoJson.features?.length ?? 0;
+  console.log('[Spatial] loadSpatialToCesium: features=', featureCount, 'flyTo=', shouldFlyTo);
+  console.log('[Spatial] geoJson sample:', JSON.stringify(geoJson).substring(0, 200));
+
+  // 移除旧的空间数据源
+  if (spatialDataSource) {
+    console.log('[Spatial] 移除旧 spatialDataSource');
+    viewer.dataSources.remove(spatialDataSource, true);
+    spatialDataSource = null;
+  }
+
+  try {
+    // ★ 三维立体：不用 clampToGround，用 extrudedHeight 做垂直拉伸
+    spatialDataSource = await Cesium.GeoJsonDataSource.load(geoJson, {
+      clampToGround: false,
+    });
+    await viewer.dataSources.add(spatialDataSource);
+
+    console.log('[Spatial] GeoJsonDataSource.load 成功');
+
+    // 计算多边形中心点坐标
+    let centerLng = 0, centerLat = 0;
+    const firstCoords = geoJson.features?.[0]?.geometry?.coordinates?.[0];
+    if (firstCoords && firstCoords.length > 0) {
+      let sumLng = 0, sumLat = 0, count = 0;
+      for (const c of firstCoords) { sumLng += c[0]; sumLat += c[1]; count++; }
+      centerLng = sumLng / count;
+      centerLat = sumLat / count;
+      console.log('[Spatial] 多边形中心:', centerLng, centerLat);
+    }
+
+    // 应用三维立体样式（拉伸 + 超图扫描边）
+    const EXTRUDE_HEIGHT = 150; // 拉伸高度
+    const FILL_COLOR = 'rgba(59, 130, 246, 0.30)';
+
+    const entities = spatialDataSource.entities.values;
+    let styledCount = 0;
+    for (const entity of entities) {
+      if (entity.polygon) {
+        // ★ 三维拉伸
+        entity.polygon.height = 0;
+        entity.polygon.extrudedHeight = EXTRUDE_HEIGHT;
+        entity.polygon.closeTop = true;
+        entity.polygon.closeBottom = true;
+        entity.polygon.material = Cesium.Color.fromCssColorString(FILL_COLOR);
+        entity.polygon.outline = true;
+        entity.polygon.outlineColor = Cesium.Color.fromCssColorString('rgba(59, 130, 246, 0.9)');
+        entity.polygon.outlineWidth = 1;
+        styledCount++;
+      }
+    }
+    console.log('[Spatial] 已应用三维样式:', styledCount, '个 polygon, extrudedHeight=', EXTRUDE_HEIGHT);
+
+    // ★ 超图扫描边效果（在缓冲区中心创建一个扩散扫描环）
+    try {
+      let scanEffect = viewer.scene.ScanEffect;
+      if (!scanEffect && Cesium.ScanEffect) {
+        scanEffect = new Cesium.ScanEffect();
+        scanEffect._scene = viewer.scene;
+        viewer.scene.ScanEffect = scanEffect;
+        console.log('[Spatial] 已创建 ScanEffect 实例');
+      }
+      if (scanEffect) {
+        // 关闭之前的扫描
+        scanEffect.show = false;
+
+        // 设置新的扫描参数
+        const centerCartesian = Cesium.Cartesian3.fromDegrees(centerLng, centerLat, 0);
+        scanEffect.centerPostion = centerCartesian;
+        scanEffect.mode = Cesium.ScanEffectMode.CIRCLE;
+        scanEffect.color = new Cesium.Color(0.3, 0.6, 1.0, 0.8); // 蓝色
+        scanEffect.speed = 800;   // 扩散速度
+        scanEffect.period = 3.0;  // 周期（秒）
+        scanEffect.lineWidth = 100; // 扫描线宽度
+        scanEffect.show = true;
+        console.log('[Spatial] 超图扫描边已启动');
+      } else {
+        console.warn('[Spatial] ScanEffect 不可用（当前 Cesium 版本不支持）');
+      }
+    } catch (e) {
+      console.warn('[Spatial] 扫描边初始化失败:', e);
+    }
+
+    // 可选：飞行定位到多边形
+    if (shouldFlyTo && firstCoords && firstCoords.length > 0) {
+      try {
+        console.log('[Spatial] flyTo 到中心:', centerLng, centerLat);
+        viewer.camera.flyTo({
+          destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, 3000),
+          orientation: {
+            heading: Cesium.Math.toRadians(30),
+            pitch: Cesium.Math.toRadians(-35),
+            roll: 0,
+          },
+          duration: 1.5,
+        });
+      } catch (e) {
+        console.warn('[Spatial] 飞行定位失败:', e);
+      }
+    }
+
+    console.log('[Spatial] ✅ 三维缓冲区加载完成, extrude=', EXTRUDE_HEIGHT, 'm, scan=ON');
+  } catch (error) {
+    console.error('[Spatial] 空间结果加载失败:', error);
+    spatialDataSource = null;
+  }
+}
 
 // 移除旧的数据源
 function removePointDataSource() {
@@ -328,6 +502,7 @@ async function updateHeatmap() {
 
 // 监听年份/季度变化，自动重新获取数据并更新场景
 watch([() => store.year, () => store.quarter], () => {
+  buildingInfo.value = null;
   fetchPoints();
   if (isDistrictMode && viewer) {
     applyLevelColoring(viewer);
@@ -437,6 +612,47 @@ watch(() => store.extremeAnalysisData, () => {
   if (isDistrictMode && viewer) updateExtremeIcons(viewer);
 }, { deep: true });
 
+// 前端渲染指令 → 通过 REST 获取 GeoJSON → 渲染到 Cesium
+watch(
+  () => store.renderCommand,
+  async (cmd) => {
+    if (!cmd) return;
+    // 清除操作优先处理（不需要 dataRef）
+    if (cmd.action === "clear_spatial") {
+      // 清除缓冲区多边形
+      if (spatialDataSource) {
+        viewer?.dataSources.remove(spatialDataSource, true);
+        spatialDataSource = null;
+        console.log('[Spatial] 已清除缓冲区图层');
+      }
+      // 同步清除建筑高亮
+      clearHighlight();
+      return;
+    }
+    // 仅清除高亮
+    if (cmd.action === "clear_highlight") {
+      clearHighlight();
+      return;
+    }
+    // 高亮操作（不需要 dataRef）
+    if (cmd.action === "highlight") {
+      await loadHighlightToCesium(cmd.smids, cmd.highlightColor);
+      return;
+    }
+    // 渲染操作需要 dataRef
+    if (!cmd.dataRef) return;
+    if (cmd.action === "render_spatial") {
+      try {
+        const geoJson = await fetchSpatialData(cmd.dataRef, store.currentConversationId);
+        await loadSpatialToCesium(geoJson, cmd.flyTo !== false);
+      } catch (e) {
+        console.error("[Cesium] 获取空间数据失败:", e);
+      }
+    }
+  },
+  { deep: true }
+);
+
 // 区域图幅可见性切换
 watch(
   () => store.districts,
@@ -460,7 +676,9 @@ onMounted(async() => {
     baseLayerPicker: false,
     skyBox: false,
     skyAtmosphere: false,
-    shouldAnimate: false
+    shouldAnimate: false,
+    infoBox: false,
+    selectionIndicator: false,
   })
   window.cesiumViewer = viewer
 
@@ -492,7 +710,7 @@ onMounted(async() => {
   imageryLayers.remove(imageryLayers.get(0), true)
 
   const subdomains = ['0', '1', '2', '3', '4', '5', '6', '7']
-  const tk = 'cec53f834be34c955bae0afecd4caa3e'
+  const tk = import.meta.env.VITE_TIANDITU_TOKEN || 'cec53f834be34c955bae0afecd4caa3e'
 
   // 添加天地图影像底图（使用 DataServer 轻量接口，避免 WMTS 参数重复）
   const tdtImg = new Cesium.UrlTemplateImageryProvider({
@@ -524,7 +742,8 @@ onMounted(async() => {
   // imageryLayers.addImageryProvider(tdtCia)
 
   try {
-    const layers = await scene.open('http://localhost:8090/iserver/services/3D-twin-carbon-city/rest/realspace')
+    const sceneUrl = import.meta.env.VITE_ISERVER_URL || 'http://localhost:8090/iserver/services/3D-twin-carbon-city/rest/realspace'
+    const layers = await scene.open(sceneUrl)
     if (layers?.length > 0) {
       defaultSceneLayers = layers;
       viewer.flyTo?.(layers[0]);
@@ -541,12 +760,29 @@ onMounted(async() => {
   (function() {
     var handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
-    /** 统一输出属性到控制台并写入 store */
+    /** 按 SMID 从 buildingPointFeatures 中查属性，写入 buildingInfo（本地查找，零延迟） */
     function applyProps(smid, props) {
-      var name = props['NAME'] || props['name'] || props['Name'] || '';
-      console.log('  建筑名称: ' + (name || '(未知)'));
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━');
-      store.setClickedBuilding({ smid: smid, name: name });
+      if (smid == null) { buildingInfo.value = null; return; }
+
+      var name = '', year = null, quarter = null, emission = null, category = null;
+
+      // GeoJSON features 属性中已有 smid 字段（后端 SQL JOIN building_3d）
+      var features = store.buildingPointFeatures;
+      if (features) {
+        for (var i = 0; i < features.length; i++) {
+          var p = features[i].properties || {};
+          if (Number(p.smid) === Number(smid)) {
+            name = p.name || '';
+            year = p.year;
+            quarter = p.quarter;
+            emission = p.emission;
+            category = p.category || '';
+            break;
+          }
+        }
+      }
+
+      buildingInfo.value = { smid: smid, name: name, year: year, quarter: quarter, emission: emission, category: category };
     }
 
     /** 将 getAttributesById 返回的原始属性转成统一 {key: val} 格式 */
@@ -585,70 +821,43 @@ onMounted(async() => {
         var smid = Number(p.id);
         console.log('━━━ 建筑点击 SmID = ' + smid + ' ━━━');
 
-        // 方案 1：S3MD 模式（同步，需 .s3md 文件 + getPropertyNames() 支持）
+        // ★ 立即展示属性卡片（本地查 buildingPointFeatures，不依赖 S3MD/getAttributesById）
+        applyProps(smid);
+
+        // 以下仅为控制台日志，不影响卡片显示
+        // S3MD 模式
         if (typeof p.getPropertyNames === 'function') {
           var names = p.getPropertyNames();
-          var props = {};
           for (var i = 0; i < names.length; i++) {
-            var val = p.getProperty(names[i]);
-            props[names[i]] = val;
-            console.log('  [S3MD] ' + names[i] + ': ' + val);
+            console.log('  [S3MD] ' + names[i] + ': ' + p.getProperty(names[i]));
           }
-          applyProps(smid, props);
           return;
         }
-
-        // 方案 2：S3MTilesLayer.getAttributesById（官方 API，读 indexedDB 缓存的 SCVD）
+        // getAttributesById（仅日志，不等待）
         if (p.primitive && typeof p.primitive.getAttributesById === 'function') {
-          var attrs;
-          try { attrs = p.primitive.getAttributesById(smid); } catch (e) { attrs = null; }
-
-          // 2a：同步返回
-          if (attrs && typeof attrs.then !== 'function') {
-            var props = normalizeAttrs(attrs);
-            for (var key in props) {
-              console.log('  [Attr] ' + key + ': ' + props[key]);
+          try {
+            var attrs = p.primitive.getAttributesById(smid);
+            if (attrs && typeof attrs.then === 'function') {
+              Promise.resolve(attrs).then(function(resolved) {
+                if (resolved) {
+                  var props = normalizeAttrs(resolved);
+                  for (var key in props) console.log('  [Attr] ' + key + ': ' + props[key]);
+                }
+              }).catch(function() {});
+            } else if (attrs) {
+              var props = normalizeAttrs(attrs);
+              for (var key in props) console.log('  [Attr] ' + key + ': ' + props[key]);
             }
-            applyProps(smid, props);
-            return;
-          }
-
-          // 2b：异步返回 thenable（indexedDB 数据未就绪），先存 smid 即时反馈
-          if (attrs && typeof attrs.then === 'function') {
-            store.setClickedBuilding({ smid: smid, name: '' });
-            console.log('  (getAttributesById 异步加载中，5s 超时…)');
-            // Promise.race 防挂起：SuperMap thenable 可能永不 resolve
-            Promise.race([
-              Promise.resolve(attrs),
-              new Promise(function(r) { setTimeout(r, 5000); })
-            ]).then(function(resolved) {
-              if (!resolved) {
-                console.log('  (getAttributesById 超时，仅存 SmID)');
-                applyProps(smid, {});
-                return;
-              }
-              var props = normalizeAttrs(resolved);
-              for (var key in props) {
-                console.log('  [Attr] ' + key + ': ' + props[key]);
-              }
-              applyProps(smid, props);
-              console.log('  √ 异步属性加载完成');
-            });
-            return;
-          }
+          } catch (e) {}
         }
-
-        // 兜底：至少存 smid
-        console.log('  (S3MD 与 getAttributesById 均不可用，仅存 SmID)');
-        applyProps(smid, {});
       } else {
         store.setClickedBuilding(null);
+        buildingInfo.value = null;
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
   })();
   // ────────────────────────────────────────────
-  // 如果初始激活面板就是 rotation// 如果初始激活面板就是 rotation，立即加载分区场景
-  // 如果初始激活面板就是 rotation，立即加载分区场景
+  // 初始激活面板为 rotation，立即加载分区场景
   if (store.activeKey === 'rotation') {
     await switchToDistrictScenes();
   }
@@ -693,6 +902,17 @@ onMounted(async() => {
 });
 onUnmounted(() => {
   removePointDataSource();
+  if (spatialDataSource && viewer) {
+    viewer.dataSources.remove(spatialDataSource, true);
+    spatialDataSource = null;
+  }
+  // 关闭超图扫描边
+  if (viewer?.scene?.ScanEffect) {
+    viewer.scene.ScanEffect.show = false;
+    viewer.scene.ScanEffect.destroy?.();
+    viewer.scene.ScanEffect = null;
+    console.log('[Spatial] 扫描边已关闭并销毁');
+  }
   districtOverlay.removeOverlay(viewer);
   clearExtremeIcons(viewer);
   const layer = getS3MLayer(viewer);
@@ -796,6 +1016,79 @@ onUnmounted(() => {
   color: rgba(200, 208, 224, 0.6);
   white-space: nowrap;
   min-width: 60px;
+  text-align: center;
+}
+
+/* ── 建筑属性卡片 ── */
+.building-info-card {
+  position: fixed;
+  bottom: 160px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: rgba(15, 20, 32, 0.92);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
+  padding: 14px 18px;
+  min-width: 240px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+.bi-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: rgba(200, 208, 224, 0.35);
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+.bi-close:hover {
+  color: rgba(200, 208, 224, 0.7);
+  background: rgba(200, 208, 224, 0.08);
+}
+.bi-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e0e6f0;
+  margin-bottom: 10px;
+  padding-right: 20px;
+}
+.bi-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.bi-table tr {
+  border-bottom: 1px solid rgba(59, 130, 246, 0.06);
+}
+.bi-table tr:last-child {
+  border-bottom: none;
+}
+.bi-label {
+  padding: 5px 8px 5px 0;
+  color: rgba(200, 208, 224, 0.5);
+  white-space: nowrap;
+  width: 70px;
+}
+.bi-value {
+  padding: 5px 0;
+  color: #e0e6f0;
+  font-weight: 500;
+}
+.bi-nodata {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(200, 208, 224, 0.35);
   text-align: center;
 }
 </style>

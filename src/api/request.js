@@ -50,6 +50,10 @@ request.interceptors.request.use(
 // 响应拦截器：统一错误处理
 request.interceptors.response.use(
   (response) => {
+    // Blob 响应：返回完整 response（含 headers），由调用方自行处理
+    if (response.config.responseType === "blob") {
+      return response;
+    }
     const res = response.data;
     // 如果后端返回的 code 不是 200，当作错误处理
     if (res.code !== undefined && res.code !== 200) {

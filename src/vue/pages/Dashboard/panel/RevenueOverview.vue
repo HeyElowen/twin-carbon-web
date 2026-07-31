@@ -1,5 +1,5 @@
 <template>
-  <div class="chart4-wrapper">
+  <div class="chart4-wrapper" v-loading="loading" element-loading-background="rgba(7,10,14,0.6)">
     <div class="trend-chart">
       <Chart :use="chartModules" :option="chartOption" />
     </div>
@@ -63,7 +63,10 @@ function usePreviewApi() {
   return props.preview === true;
 }
 
+const loading = ref(true);
+
 async function fetchData() {
+  loading.value = true;
   try {
     let res;
     if (usePreviewApi()) {
@@ -84,6 +87,8 @@ async function fetchData() {
     }
   } catch {
     overview.value = { totalEmission: 0, buildingCount: 0, avgIntensity: 0, yoyChange: 0, trend: [] };
+  } finally {
+    loading.value = false;
   }
   // 回溯模式下通知进度管理器
   if (store.tracebackPlaying) store.tracebackTick();

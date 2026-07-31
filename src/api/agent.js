@@ -12,13 +12,14 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
  * @param {(stage: string, label: string, intent: string, confidence: number, conversationId: string) => void} options.onProgress - 进度事件
  * @param {() => void} options.onDone - 流结束
  * @param {(err: string) => void} options.onError - 出错
+ * @param {function} options.onInterim - 过渡回复（工具步骤之间的 LLM 自然语言过渡）
  * @param {(step: number, text: string) => void} options.onThought - ReAct 思考步骤
  * @param {(step: number, tool: string, params: object) => void} options.onToolCall - ReAct 工具调用
  * @param {(step: number, summary: string) => void} options.onToolResult - ReAct 工具结果
  * @param {(round: number, thought: string, tool: string, result: string) => void} options.onStepDone - ReAct 单步完成（前端据此渲染一张卡片）
  * @param {AbortSignal} options.signal - 用于取消请求的 AbortSignal
  */
-export function sendAgentMessage(message, { conversationId, onToken, onProgress, onDone, onError, onThought, onToolCall, onToolResult, onStepDone, signal }) {
+export function sendAgentMessage(message, { conversationId, onToken, onProgress, onDone, onError, onInterim, onThought, onToolCall, onToolResult, onStepDone, signal }) {
   const authStore = useAuthStore();
 
   fetch(`${API_BASE}/agent/stream`, {
@@ -61,7 +62,7 @@ export function sendAgentMessage(message, { conversationId, onToken, onProgress,
           // Spring 的 SseEmitter 可能输出 data:{"key":"val"}（无空格）
           // 也可能输出 data: {"key":"val"}（有空格），两种都兼容
           const dataStr = line.slice(5).trim();
-          handleEvent(currentEvent, dataStr, { onToken, onProgress, onDone, onError, onStepDone });
+          handleEvent(currentEvent, dataStr, { onToken, onProgress, onDone, onError, onInterim, onStepDone });
         }
       }
     }
@@ -111,6 +112,40 @@ export async function deleteAgentHistory(conversationId) {
   if (!res.ok) throw new Error(`删除失败: ${res.status}`);
 }
 
+/**
+ * 通过 REST 接口获取空间分析 GeoJSON 数据（供前端 Cesium 渲染）。
+ * 前端在 agent 完成后通过 pending-render 获取 dataRef，再调此接口。
+ * GET /agent/data/{dataRef}?convId=xxx
+ */
+export async function fetchSpatialData(dataRef, convId) {
+  const authStore = useAuthStore();
+  const params = new URLSearchParams();
+  if (convId) params.set("convId", convId);
+  const url = `${API_BASE}/agent/data/${encodeURIComponent(dataRef)}?${params.toString()}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${authStore.token || ""}` },
+  });
+  if (!res.ok) throw new Error(`获取空间数据失败: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * 查询是否有待处理的渲染请求（agent 完成后调用）。
+ * GET /agent/pending-render?convId=xxx
+ * 返回 {dataRef, flyTo, action} 或 null
+ */
+export async function checkPendingRender(convId) {
+  const authStore = useAuthStore();
+  const params = new URLSearchParams();
+  if (convId) params.set("convId", convId);
+  const url = `${API_BASE}/agent/pending-render?${params.toString()}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${authStore.token || ""}` },
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
 function handleEvent(event, dataStr, handlers) {
   try {
     const data = JSON.parse(dataStr);
@@ -139,9 +174,14 @@ function handleEvent(event, dataStr, handlers) {
         handlers.onToolResult?.(data.step, data.summary);
         break;
       case "step_done":
-        // step 为全局递增序号，向后兼容 round
-        handlers.onStepDone?.(data.step || data.round, data.thought, data.tool, data.result);
+        // step 为全局递增序号，round 为 LLM 轮次（用于前端合并同轮工具）
+        handlers.onStepDone?.(data.step, data.thought, data.tool, data.result, data.round);
         break;
+      case "interim":
+        // 工具步骤之间的过渡回复（LLM 在工具结果上的自然语言反馈）
+        handlers.onInterim?.(data.text);
+        break;
+      // render_command 已迁移为 REST 轮询模式，不再走 SSE
     }
   } catch {
     // JSON 解析失败则忽略该行
