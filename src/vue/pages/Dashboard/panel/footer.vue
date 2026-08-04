@@ -194,7 +194,7 @@ const quarters = computed(() => [
   { label: "Q2", value: "Q2", disabled: false },
   { label: "Q3", value: "Q3", disabled: false },
   { label: "Q4", value: "Q4", disabled: false },
-  { label: "全年", value: "ALL", disabled: store.activeKey === 'rotation' },
+  { label: "全年", value: "ALL", disabled: false },
 ]);
 const viewModes = computed(() => [
   { label: "标准", value: "standard", disabled: false },

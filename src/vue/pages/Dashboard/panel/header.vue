@@ -83,6 +83,11 @@
 
     <!-- 用户信息区域 -->
     <div class="user-info">
+      <button class="guide-btn" title="项目指南" @click="openGuide">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="#60a5fa">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+        </svg>
+      </button>
       <el-dropdown trigger="click">
         <div class="user-trigger">
           <el-avatar :size="28" :icon="UserFilled" class="user-avatar" />
@@ -110,6 +115,11 @@ import { useAuthStore } from "@/js/stores/useAuthStore";
 
 const router = useRouter();
 const authStore = useAuthStore();
+
+// 打开项目指南（doc-viewer 查看 PROJECT_GUIDE.md）
+function openGuide() {
+  window.open(`${import.meta.env.BASE_URL}docs/doc-viewer.html?file=PROJECT_GUIDE.md`, "_blank");
+}
 
 function handleLogout() {
   ElMessageBox.confirm("确定要退出登录吗？", "提示", {
@@ -146,7 +156,7 @@ function handleLogout() {
 }
 
 .title {
-  font-size: 36px;
+  font-size: 30px;
   letter-spacing: 8px;
   color: #fff;
   text-shadow: 0 8px 10px rgba(59, 130, 246, 0.5);
@@ -169,6 +179,28 @@ function handleLogout() {
   top: 12px;
   z-index: 10;
   pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 项目指南按钮 */
+.guide-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.guide-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.5);
 }
 
 .user-trigger {

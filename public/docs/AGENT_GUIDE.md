@@ -1,6 +1,6 @@
 # AI Agent 使用指南
 
-> 🤖 Carbon AI 智能助手 — 基于 DeepSeek Function Calling + 6 个专业工具
+> 🤖 碳语智图 AI 智能助手 — 基于 DeepSeek Function Calling + 8 个专业工具
 
 ---
 

@@ -6,20 +6,19 @@
         <CityPopulationRank />
       </div>
     </div>
-    <div class="chart-item">
+    <div class="chart-item district-item">
       <div class="item-title">区域显示控制</div>
-      <div class="district-content">
-
-        <el-checkbox
+      <div class="district-row">
+        <button
           v-for="name in districtNames"
           :key="name"
-          v-model="store.districts[name]"
-          :label="name"
-        
-          class="district-check"
+          class="district-tag"
+          :class="{ off: !store.districts[name] }"
+          @click="store.toggleDistrict(name)"
         >
-          <span class="district-label">{{ name }}</span>
-        </el-checkbox>
+          <span class="dot" :style="{ background: CATEGORY_COLORS[name] }"></span>
+          <span class="name">{{ name }}</span>
+        </button>
       </div>
     </div>
     <div class="chart-item heatmap-item">
@@ -35,6 +34,7 @@
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import CityPopulationRank from "./CityPopulationRank.vue";
 import HeatmapPanel from "@/vue/pages/Dashboard/components/HeatmapPanel.vue";
+import { CATEGORY_COLORS } from "@/js/constants/categoryColors";
 
 const store = useConfigStore();
 const districtNames = ["农业区", "工业区", "住宅区", "商业区", "教育区"];
@@ -65,7 +65,7 @@ function onHeatmapUpdate(val) {
 }
 
 .chart-item.heatmap-item {
-  flex: 1.6;
+  flex: 1.2; /* 与强度排名图弹性分摊剩余空间，避免单块被过度拉伸造成行距稀疏 */
 }
 
 .heatmap-panel-wrapper {
@@ -76,7 +76,7 @@ function onHeatmapUpdate(val) {
 }
 
 .item-title {
-  font-size: 18px;
+  font-size: 16px;
   margin-bottom: 6px;
   padding-left: 8px;
   border-left: 3px solid #3b82f6;
@@ -89,7 +89,7 @@ function onHeatmapUpdate(val) {
 }
 
 .item-title span {
-  font-size: 18px;
+  font-size: 16px;
   color: rgba(224, 230, 240, 0.4);
   font-weight: 700;
 }
@@ -99,55 +99,47 @@ function onHeatmapUpdate(val) {
   min-height: 0;
 }
 
-.district-content {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 12px;
-  padding: 8px 12px;
+/* 区域显示控制：一行色块标签（带用地色圆点，点击切换） */
+.district-item {
+  flex: 0 0 auto; /* 不参与等高分配，按内容高度收窄，省出空间给强度排名图 */
 }
 
-.district-check {
-  height: 40px;
+.district-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 2px 8px 10px;
+}
+
+.district-tag {
   display: flex;
   align-items: center;
-  pointer-events: auto;
-}
-
-.district-check :deep(.el-checkbox__inner) {
-  width: 18px;
-  height: 18px;
-  background: rgba(15, 20, 32, 0.8);
-  border-color: rgba(96, 165, 250, 0.5);
-  border-radius: 4px;
-}
-
-.district-check :deep(.el-checkbox__inner::after) {
-  
-  width: 4px;
-  height: 9px;
-}
-
-.district-check :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
-  background: #3b82f6;
-  border-color: #3b82f6;
-}
-
-.district-check :deep(.el-checkbox__label) {
-  padding-left: 14px;
-  font-size: 16px;
-  font-weight: 400;
-  color: rgba(224, 230, 240, 0.7);
-}
-
-.district-check :deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(15, 20, 32, 0.5);
+  border: 1px solid rgba(96, 165, 250, 0.25);
   color: #e0e6f0;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  letter-spacing: 1px;
 }
 
-.district-label {
-  letter-spacing: 2px;
+.district-tag:hover {
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
+.district-tag.off {
+  opacity: 0.45; /* 关闭的区域整体降透明 */
+}
+
+.district-tag .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .heatmap-panel-wrapper::-webkit-scrollbar {

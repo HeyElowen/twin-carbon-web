@@ -10,6 +10,7 @@ import { GridComponent, TooltipComponent } from "echarts/components";
 import { LabelLayout } from "echarts/features";
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import { getCategoryIntensity } from "@/api/monitoring";
+import { CATEGORY_COLORS } from "@/js/constants/categoryColors";
 
 const store = useConfigStore();
 const rawData = ref([]);
@@ -30,14 +31,6 @@ async function fetchData() {
 
 fetchData();
 watch([() => store.year, () => store.quarter], fetchData);
-
-const categoryColors = {
-  工业区: "#ef4444",
-  商业区: "#f59e0b",
-  住宅区: "#3b82f6",
-  教育区: "#a855f7",
-  农业区: "#22c55e",
-};
 
 const chartData = computed(() => {
   const order = ["工业区", "商业区", "教育区", "住宅区", "农业区"];
@@ -92,7 +85,7 @@ const chartOption = computed(() => {
           value: item.value,
           itemStyle: {
             borderRadius: 4,
-            color: categoryColors[item.name] || "#3b82f6",
+            color: CATEGORY_COLORS[item.name] || "#3b82f6",
           },
         })),
         barWidth: 10,
@@ -120,8 +113,8 @@ const chartOption = computed(() => {
         symbolSize: 14,
         z: 12,
         itemStyle: {
-          color: (p) => categoryColors[p.name] || "#3b82f6",
-          shadowColor: (p) => categoryColors[p.name] || "#3b82f6",
+          color: (p) => CATEGORY_COLORS[p.name] || "#3b82f6",
+          shadowColor: (p) => CATEGORY_COLORS[p.name] || "#3b82f6",
           shadowBlur: 10,
         },
         data: data.map((item) => ({ value: item.value, symbolPosition: "end" })),

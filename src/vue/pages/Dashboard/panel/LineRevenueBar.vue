@@ -72,7 +72,7 @@ const lineSubtitle = computed(() => "");
 }
 
 .item-title {
-  font-size: 18px;
+  font-size: 16px;
   margin-bottom: 6px;
   padding-left: 8px;
   border-left: 3px solid #3b82f6;
@@ -85,7 +85,7 @@ const lineSubtitle = computed(() => "");
 }
 
 .item-title .subtitle {
-  font-size: 18px;
+  font-size: 16px;
   color: rgba(224, 230, 240, 0.4);
   font-weight: 700;
 }

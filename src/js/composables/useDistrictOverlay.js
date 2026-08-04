@@ -14,16 +14,14 @@
  */
 
 import districtZones from "@/api/district-zones.json";
+import { CATEGORY_COLORS as CATEGORY_COLORS_HEX } from "@/js/constants/categoryColors";
 
 // ─── 设计常量（与 JSON 数据分离）───────────────────
 
-const CATEGORY_COLORS = {
-  '工业区': Cesium.Color.fromCssColorString('#ef4444'),
-  '农业区': Cesium.Color.fromCssColorString('#22c55e'),
-  '住宅区': Cesium.Color.fromCssColorString('#3b82f6'),
-  '商业区': Cesium.Color.fromCssColorString('#f59e0b'),
-  '教育区': Cesium.Color.fromCssColorString('#a855f7'),
-};
+// 统一用地色板 → 转 Cesium.Color（hex 定义见 constants/categoryColors.js）
+const CATEGORY_COLORS = Object.fromEntries(
+  Object.entries(CATEGORY_COLORS_HEX).map(([name, hex]) => [name, Cesium.Color.fromCssColorString(hex)])
+);
 
 const DISTRICT_FONT_SIZE = {
   '农业区': 48,

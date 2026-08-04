@@ -9,6 +9,7 @@ import { LineChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import { getTrend, previewTrend } from "@/api/monitoring";
+import { CATEGORY_COLORS } from "@/js/constants/categoryColors";
 
 const store = useConfigStore();
 
@@ -19,14 +20,6 @@ const props = defineProps({
 // 从后端获取的原始数据
 const rawData = ref([]);
 const loading = ref(true);
-
-const categoryColors = {
-  工业区: "#3b82f6",
-  商业区: "#60a5fa",
-  住宅区: "#8b5cf6",
-  农业区: "#fbbf24",
-  教育区: "#34d399",
-};
 
 // 是否使用预览统计接口 — 仅由 prop 控制，不依赖全局 store 状态
 function usePreviewApi() {
@@ -81,7 +74,7 @@ function formatAxisLabel(name) {
 
 const lineColor = computed(() => {
   return store.selectedCategory
-    ? categoryColors[store.selectedCategory]
+    ? CATEGORY_COLORS[store.selectedCategory]
     : "#60a5fa";
 });
 

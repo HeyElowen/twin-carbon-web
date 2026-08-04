@@ -9,6 +9,7 @@ import { PieChart } from "echarts/charts";
 import { LegendComponent, TooltipComponent } from "echarts/components";
 import { useConfigStore } from "@/js/stores/useConfigStore";
 import { getCategoryRatio, previewCategoryRatio } from "@/api/monitoring";
+import { CATEGORY_COLORS } from "@/js/constants/categoryColors";
 
 const store = useConfigStore();
 const chartRef = ref(null);
@@ -20,14 +21,6 @@ const props = defineProps({
 // 从后端获取的原始数据
 const rawData = ref([]);
 const loading = ref(true);
-
-const colorMap = {
-  工业区: "#3b82f6",
-  商业区: "#60a5fa",
-  住宅区: "#8b5cf6",
-  农业区: "#fbbf24",
-  教育区: "#34d399",
-};
 
 const order = ["工业区", "商业区", "住宅区", "农业区", "教育区"];
 
@@ -68,7 +61,7 @@ const pieDataBase = computed(() => {
   order.forEach((name) => {
     const item = raw.find((r) => r.name === name);
     if (item) {
-      const c = colorMap[name];
+      const c = CATEGORY_COLORS[name];
       result.push({
         value: item.value,
         name: item.name,
@@ -179,7 +172,7 @@ const chartModules = [PieChart, TooltipComponent, LegendComponent];
 function bindClick(inst) {
   inst.off("click");
   inst.on("click", (params) => {
-    if (params.name && colorMap[params.name]) {
+    if (params.name && CATEGORY_COLORS[params.name]) {
       store.setSelectedCategory(params.name);
     }
   });

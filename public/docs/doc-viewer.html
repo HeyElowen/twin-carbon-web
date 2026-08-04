@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>加载中... — 碳语智图 文档</title>
+<link rel="icon" type="image/svg+xml" href="../logo.svg" />
 <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js" integrity="sha384-H+hy9ULve6xfxRkWIh/YOtvDdpXgV2fmAGQkIDTxIgZwNoaoBal14Di2YTMR6MzR" crossorigin="anonymous"></script>
 <style>
   :root {
@@ -216,11 +217,12 @@
 <body>
 
 <header class="header">
-  <a class="header-logo" href="doc-viewer.html?file=EXCEL_FILLING_GUIDE.md">
+  <a class="header-logo" href="doc-viewer.html?file=PROJECT_GUIDE.md">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
     碳语智图
   </a>
   <nav class="header-nav">
+    <a href="doc-viewer.html?file=PROJECT_GUIDE.md"><span class="tab-icon">📖</span> 项目指南</a>
     <a href="doc-viewer.html?file=EXCEL_FILLING_GUIDE.md"><span class="tab-icon">📘</span> 填写指南</a>
     <a href="doc-viewer.html?file=AGENT_GUIDE.md"><span class="tab-icon">🤖</span> Agent 指导</a>
     <a href="doc-viewer.html?file=API_REFERENCE.md"><span class="tab-icon">📊</span> API 参考</a>
@@ -245,6 +247,23 @@
 // 配置：每个文档的左侧导航结构
 // ══════════════════════════════════════════════════════════════
 const SIDEBAR = {
+  'PROJECT_GUIDE.md': [
+    { group: '概览', items: [
+      { label: '系统简介', href: '#系统简介' },
+      { label: '快速开始', href: '#快速开始' },
+      { label: '界面导航', href: '#界面导航' },
+    ]},
+    { group: '功能模块', items: [
+      { label: '数据总览', href: '#数据总览' },
+      { label: '达标分析', href: '#达标分析' },
+      { label: 'AI 助手', href: '#AI-助手' },
+      { label: '数据管理', href: '#数据管理' },
+    ]},
+    { group: '进阶', items: [
+      { label: '时间回溯', href: '#时间回溯' },
+      { label: '常见问题', href: '#常见问题' },
+    ]},
+  ],
   'EXCEL_FILLING_GUIDE.md': [
     { group: '开始', icon: '', items: [
       { label: '快速开始', href: '#快速开始' },
@@ -265,7 +284,11 @@ const SIDEBAR = {
   'AGENT_GUIDE.md': [
     { group: '概览', items: [
       { label: '快速开始', href: '#快速开始' },
-      { label: '功能规划', href: '#功能规划' },
+      { label: '支持的功能', href: '#支持的功能' },
+      { label: 'AI 的工作方式', href: '#AI-的工作方式' },
+      { label: '空间分析示例', href: '#空间分析示例' },
+      { label: '对话管理', href: '#对话管理' },
+      { label: '提示建议', href: '#提示建议' },
     ]},
   ],
   'API_REFERENCE.md': [
@@ -292,6 +315,7 @@ const file = params.get('file') || 'EXCEL_FILLING_GUIDE.md';
 
 // 更新标题
 const titles = {
+  'PROJECT_GUIDE.md': '项目指南',
   'EXCEL_FILLING_GUIDE.md': '填写指南',
   'AGENT_GUIDE.md': 'Agent 指导',
   'API_REFERENCE.md': 'API 参考',
@@ -331,19 +355,29 @@ function buildSidebar(file) {
   });
 }
 
-// 渲染内容后监听滚动，自动高亮当前章节
+// 生成稳定锚点 id：去编号前缀 / 去全角括号 / 去反引号，其余特殊字符转 -
+function slugify(text) {
+  return String(text)
+    .replace(/^\d+[.、]\s*/, '')
+    .replace(/（[^）]*）/g, '')
+    .replace(/`/g, '')
+    .replace(/[^\w一-鿿]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+// 渲染内容后监听滚动，自动高亮当前章节（支持 h2 / h3 两级锚点）
 function setupScrollSpy() {
-  const headings = document.querySelectorAll('#content h2');
+  const headings = document.querySelectorAll('#content h2, #content h3');
   if (headings.length === 0) return;
 
   const navItems = document.querySelectorAll('.nav-item');
   if (navItems.length === 0) return;
 
-  // 为每个 h2 生成 id（如果 marked 没生成的话）
+  // 为每个 heading 生成 id（如果 marked 没生成的话）
   headings.forEach(h => {
     if (!h.id) {
-      const text = h.textContent.replace(/[^\w一-鿿]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-      h.id = text;
+      h.id = slugify(h.textContent);
     }
   });
 

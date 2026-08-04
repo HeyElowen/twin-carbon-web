@@ -1,7 +1,6 @@
 <template>
   <div class="heatmap-panel">
-    <div class="panel-title">3D 碳排放热力图</div>
-
+    <!-- 标题由外层容器 BarTablePie 的 item-title 提供，内层不再重复 -->
     <!-- 显示开关 -->
     <div class="control-row">
       <label class="switch-label">
@@ -130,15 +129,6 @@ defineEmits(["update:modelValue"]);
   color: #c8d0e0;
   font-size: 12px;
   overflow: auto;
-}
-
-.panel-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #60a5fa;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
 }
 
 .control-row {
