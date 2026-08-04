@@ -14,8 +14,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
  * @param {(err: string) => void} options.onError - 出错
  * @param {function} options.onInterim - 过渡回复（工具步骤之间的 LLM 自然语言过渡）
  * @param {(step: number, text: string) => void} options.onThought - ReAct 思考步骤
- * @param {(step: number, tool: string, params: object) => void} options.onToolCall - ReAct 工具调用
- * @param {(step: number, summary: string) => void} options.onToolResult - ReAct 工具结果
+ * @param {(step: number, tool: string, params: object) => void} options.onToolCall - 工具调用（step 为 LLM 轮次）
+ * @param {(step: number, tool: string, summary: string, elapsedMs: number) => void} options.onToolResult - 工具执行结果（含耗时）
  * @param {(round: number, thought: string, tool: string, result: string) => void} options.onStepDone - ReAct 单步完成（前端据此渲染一张卡片）
  * @param {AbortSignal} options.signal - 用于取消请求的 AbortSignal
  */
@@ -171,7 +171,7 @@ function handleEvent(event, dataStr, handlers) {
         handlers.onToolCall?.(data.step, data.tool, data.params);
         break;
       case "tool_result":
-        handlers.onToolResult?.(data.step, data.summary);
+        handlers.onToolResult?.(data.step, data.tool, data.summary, data.elapsedMs);
         break;
       case "step_done":
         // step 为全局递增序号，round 为 LLM 轮次（用于前端合并同轮工具）

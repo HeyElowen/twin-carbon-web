@@ -35,17 +35,27 @@
         class="message"
         :class="msg.role"
       >
+        <!-- 工具进度提示（interim：非正式回复，仅展示当前正在做什么） -->
+        <div v-if="msg.role === 'progress'" class="progress-line">
+          <span class="progress-icon">⏳</span>
+          <span class="progress-text">{{ msg.text }}</span>
+          <span class="progress-time">{{ msg.time }}</span>
+        </div>
+
         <!-- 步骤合并组（同一轮 LLM 的多个工具调合同一张卡片） -->
-        <div v-if="msg.role === 'step_group'" class="step-card">
+        <div v-else-if="msg.role === 'step_group'" class="step-card">
           <div class="card-header">
             <span class="card-step-num">步骤 {{ msg.round + 1 }}</span>
             <span class="card-tool-count">{{ msg.steps.length }} 个操作</span>
           </div>
           <div class="card-body">
-            <!-- 每个子步骤一行（始终可见） -->
+            <!-- 每个子步骤一行（始终可见）：图标 + 工具名 + 动作描述 -->
             <div v-for="(s, si) in msg.steps" :key="si" class="sub-step-line">
               <span class="sub-step-icon">{{ getToolIcon(s.tool) }}</span>
-              <span class="sub-step-thought">{{ s.thought }}</span>
+              <span class="sub-step-thought">
+                <span class="sub-step-tool">{{ s.toolName }}</span>
+                <span class="sub-step-text">{{ s.thought }}</span>
+              </span>
             </div>
             <!-- 详情可点击折叠 -->
             <div class="result-toggle" @click="msg.collapsed = !msg.collapsed">
@@ -54,6 +64,10 @@
             </div>
             <div v-if="!msg.collapsed" class="result-group">
               <div v-for="(s, si) in msg.steps" :key="si" class="sub-step-detail">
+                <div v-if="s.paramsSummary || s.elapsedMs != null" class="sub-step-meta">
+                  <span v-if="s.paramsSummary" class="sub-step-params">参数 {{ s.paramsSummary }}</span>
+                  <span v-if="s.elapsedMs != null" class="sub-step-elapsed">⏱ {{ s.elapsedMs }}ms</span>
+                </div>
                 <pre class="sub-step-output">{{ s.result }}</pre>
               </div>
             </div>
@@ -62,7 +76,7 @@
         </div>
 
         <!-- 旧版单步骤卡片（兼容历史数据） -->
-        <div v-if="msg.role === 'step'" class="step-card">
+        <div v-else-if="msg.role === 'step'" class="step-card">
           <div class="card-header">
             <span class="card-step-num">步骤 {{ msg.step }}</span>
           </div>
@@ -209,6 +223,9 @@ const formatWorkingTime = computed(() => {
 /** 当前正在流式接收中的助手消息对象 */
 let currentAssistantMsg = null;
 
+/** 当前正在执行中的工具调用状态（tool_call → tool_result → step_done 按序配对） */
+let pendingTool = null;
+
 const tips = [
   "分析当前季度碳排放数据",
   "哪些区域碳排放超标？",
@@ -225,28 +242,37 @@ function addMessage(role, text) {
   store.aiMessages.push({ role, text, time });
 }
 
-function addStep(stepSeq, round, thought, tool, result) {
+function addStep(stepSeq, round, thought, tool, result, meta) {
   const now = new Date();
   const time = now.getHours().toString().padStart(2, "0") + ":" +
                now.getMinutes().toString().padStart(2, "0");
   // 同一轮的多个工具合并为一个步骤组。
-  // ★ 不能只检查最后一条消息：同一轮工具之间可能被 interim/assistant 隔开
+  // ★ 不能只检查最后一条消息：同一轮工具之间可能被 progress/assistant 隔开
   //   （如 iserver_spatial 内部 sendInterim），需从末尾向前找最近一个 step_group。
   let group = null;
   for (let i = store.aiMessages.length - 1; i >= 0; i--) {
     const m = store.aiMessages[i];
-    if (m.role !== "step_group") continue; // 跳过 interim/assistant 等
+    if (m.role !== "step_group") continue; // 跳过 progress/assistant 等
     if (m.round === round) group = m;
     break; // 找到最近的 step_group（无论 round 是否匹配）即停
   }
+  const stepItem = {
+    step: stepSeq,
+    thought,
+    tool,
+    result,
+    toolName: formatToolName(tool),           // 卡片行显示的中文工具名
+    paramsSummary: meta?.paramsSummary || "", // 工具参数摘要（来自 tool_call 事件）
+    elapsedMs: meta?.elapsedMs ?? null,       // 工具执行耗时（来自 tool_result 事件）
+  };
   if (group) {
-    group.steps.push({ step: stepSeq, thought, tool, result });
+    group.steps.push(stepItem);
     group.time = time;
   } else {
     store.aiMessages.push({
       role: "step_group",
       round,
-      steps: [{ step: stepSeq, thought, tool, result }],
+      steps: [stepItem],
       collapsed: true,
       time
     });
@@ -264,6 +290,9 @@ function formatToolName(tool) {
     data_workspace: "数据工作区",
     skill_execute: "技能执行",
     exec_sandbox: "Python 脚本",
+    iserver_spatial: "空间分析",
+    frontend_cmd: "地图渲染",
+    document: "文档",
   };
   return map[tool] || tool;
 }
@@ -275,8 +304,35 @@ function getToolIcon(tool) {
     data_workspace: "📂",
     skill_execute: "📋",
     exec_sandbox: "🐍",
+    iserver_spatial: "🗺️",
+    frontend_cmd: "🎯",
+    document: "📄",
   };
   return icons[tool] || "🔧";
+}
+
+/**
+ * 将 LLM 传入的工具参数 JSON 压缩成一行摘要（用于步骤详情展示）。
+ * 过滤 _ 开头的内部字段（_conversationId 等），超长截断。
+ */
+function summarizeParams(tool, paramsStr) {
+  try {
+    const obj = paramsStr ? JSON.parse(paramsStr) : {};
+    if (!obj || typeof obj !== "object") return paramsStr || "";
+    const visible = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (k.startsWith("_")) continue; // 内部字段不展示
+      visible[k] = v && typeof v === "object"
+        ? JSON.stringify(v).substring(0, 60)
+        : String(v);
+    }
+    const keys = Object.keys(visible);
+    if (keys.length === 0) return "";
+    const text = JSON.stringify(visible);
+    return text.length > 100 ? text.substring(0, 100) + "…" : text;
+  } catch {
+    return paramsStr ? String(paramsStr).substring(0, 100) : "";
+  }
 }
 
 function sendTip(tip) {
@@ -345,11 +401,24 @@ async function sendMessage() {
       const now = new Date();
       const time = now.getHours().toString().padStart(2, "0") + ":" +
                    now.getMinutes().toString().padStart(2, "0");
-      store.aiMessages.push({ role: "assistant", text, time });
+      // ★ 工具进度提示用独立 role="progress"，渲染成细灰条，不冒充正式回复气泡
+      store.aiMessages.push({ role: "progress", text, time });
       scrollToBottom();
     },
+    // ★ 工具开始调用：记录参数摘要，等待 step_done 时合并进卡片
+    onToolCall(step, tool, params) {
+      pendingTool = { tool, paramsSummary: summarizeParams(tool, params) };
+    },
+    // ★ 工具执行结果：补充耗时（step_done 到达前按顺序配对）
+    onToolResult(step, tool, summary, elapsedMs) {
+      if (pendingTool) pendingTool.elapsedMs = elapsedMs;
+    },
     onStepDone(stepSeq, thought, tool, result, round) {
-      addStep(stepSeq, round, thought, tool, result);
+      const meta = pendingTool
+        ? { paramsSummary: pendingTool.paramsSummary, elapsedMs: pendingTool.elapsedMs }
+        : null;
+      addStep(stepSeq, round, thought, tool, result, meta);
+      pendingTool = null; // 该工具已渲染完成，清空等待下一个 tool_call
       scrollToBottom();
     },
     // ★ Agent 完成：循环消费 pending 渲染指令队列（解决连续调用互相覆盖的问题）
@@ -743,6 +812,35 @@ function scrollToBottom() {
   text-align: right;
 }
 
+/* ── 工具进度提示（interim：非正式回复，细灰条） ── */
+.progress-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  margin: 2px 0;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px dashed rgba(59, 130, 246, 0.16);
+  max-width: 100%;
+}
+.progress-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.progress-text {
+  font-size: 12px;
+  color: rgba(147, 197, 253, 0.65);
+  line-height: 1.4;
+  word-break: break-word;
+  flex: 1;
+}
+.progress-time {
+  font-size: 11px;
+  color: rgba(224, 230, 240, 0.25);
+  flex-shrink: 0;
+}
+
 /* ── 步骤卡片（每步一张） ── */
 .step-card {
   display: flex;
@@ -853,11 +951,28 @@ function scrollToBottom() {
   text-align: center;
 }
 .sub-step-thought {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  /* 浅色文字放在父层：即使子元素样式缺失，也不会回落到黑色 */
   font-size: 13px;
   color: rgba(224, 230, 240, 0.8);
   line-height: 1.4;
+}
+.sub-step-tool {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(251, 191, 36, 0.85);
+  background: rgba(251, 191, 36, 0.1);
+}
+.sub-step-text {
+  color: inherit; /* 继承 .sub-step-thought 的浅色 */
   word-break: break-word;
-  flex: 1;
 }
 .result-group {
   margin-top: 6px;
@@ -869,6 +984,24 @@ function scrollToBottom() {
   background: rgba(0, 0, 0, 0.15);
   border-radius: 6px;
   overflow: hidden;
+}
+.sub-step-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.08);
+  font-size: 11px;
+  color: rgba(147, 197, 253, 0.6);
+}
+.sub-step-params {
+  word-break: break-word;
+  flex: 1;
+  min-width: 0;
+}
+.sub-step-elapsed {
+  flex-shrink: 0;
+  color: rgba(224, 230, 240, 0.4);
 }
 .sub-step-output {
   margin: 0;

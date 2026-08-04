@@ -1,8 +1,8 @@
 <template>
   <div class="login-page">
     <div class="login-box">
-      <h1 class="login-title">碳知未来</h1>
-      <p class="login-subtitle">双碳监测预警平台</p>
+      <h1 class="login-title">碳语智图</h1>
+      <p class="login-subtitle">基于AI Agent的城市碳排放三维可视分析系统</p>
 
       <el-form
         ref="formRef"
