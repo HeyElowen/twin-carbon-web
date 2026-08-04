@@ -17,9 +17,10 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
  * @param {(step: number, tool: string, params: object) => void} options.onToolCall - 工具调用（step 为 LLM 轮次）
  * @param {(step: number, tool: string, summary: string, elapsedMs: number) => void} options.onToolResult - 工具执行结果（含耗时）
  * @param {(round: number, thought: string, tool: string, result: string) => void} options.onStepDone - ReAct 单步完成（前端据此渲染一张卡片）
+ * @param {(cmd: object) => void} options.onRenderCommand - 实时渲染指令（frontend_cmd 工具执行时异步推送，不等对话结束）
  * @param {AbortSignal} options.signal - 用于取消请求的 AbortSignal
  */
-export function sendAgentMessage(message, { conversationId, onToken, onProgress, onDone, onError, onInterim, onThought, onToolCall, onToolResult, onStepDone, signal }) {
+export function sendAgentMessage(message, { conversationId, onToken, onProgress, onDone, onError, onInterim, onThought, onToolCall, onToolResult, onStepDone, onRenderCommand, signal }) {
   const authStore = useAuthStore();
 
   fetch(`${API_BASE}/agent/stream`, {
@@ -62,7 +63,7 @@ export function sendAgentMessage(message, { conversationId, onToken, onProgress,
           // Spring 的 SseEmitter 可能输出 data:{"key":"val"}（无空格）
           // 也可能输出 data: {"key":"val"}（有空格），两种都兼容
           const dataStr = line.slice(5).trim();
-          handleEvent(currentEvent, dataStr, { onToken, onProgress, onDone, onError, onInterim, onStepDone });
+          handleEvent(currentEvent, dataStr, { onToken, onProgress, onDone, onError, onInterim, onStepDone, onRenderCommand });
         }
       }
     }
@@ -130,7 +131,8 @@ export async function fetchSpatialData(dataRef, convId) {
 }
 
 /**
- * 查询是否有待处理的渲染请求（agent 完成后调用）。
+ * @deprecated 渲染指令已改为 SSE render_command 实时推送（见 onRenderCommand），
+ * 此 REST 轮询接口保留为兼容兜底，当前无调用方。
  * GET /agent/pending-render?convId=xxx
  * 返回 {dataRef, flyTo, action} 或 null
  */
@@ -181,7 +183,10 @@ function handleEvent(event, dataStr, handlers) {
         // 工具步骤之间的过渡回复（LLM 在工具结果上的自然语言反馈）
         handlers.onInterim?.(data.text);
         break;
-      // render_command 已迁移为 REST 轮询模式，不再走 SSE
+      case "render_command":
+        // 实时渲染指令（frontend_cmd 工具执行时异步推送，含 {action, dataRef, flyTo} 或 {action, smids, highlightColor}）
+        handlers.onRenderCommand?.(data);
+        break;
     }
   } catch {
     // JSON 解析失败则忽略该行

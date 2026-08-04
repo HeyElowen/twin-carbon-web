@@ -349,18 +349,20 @@ async function loadSpatialToCesium(geoJson, shouldFlyTo = true) {
       console.warn('[Spatial] 扫描边初始化失败:', e);
     }
 
-    // 可选：飞行定位到多边形
-    if (shouldFlyTo && firstCoords && firstCoords.length > 0) {
+    // 飞行定位到渲染出来的空间分析图层（自适应 BoundingSphere，而非固定坐标）。
+    // viewer.flyTo 对 DataSource 自动计算整个数据源实体的 BoundingSphere；
+    // 因位于实体应用 extrudedHeight 之后，包围球包含三维拉伸顶面，相机距离自动适配内容大小。
+    // guard 用 featureCount（整个数据源有无内容），而非 firstCoords（只看第一个多边形）。
+    if (shouldFlyTo && featureCount > 0) {
       try {
-        console.log('[Spatial] flyTo 到中心:', centerLng, centerLat);
-        viewer.camera.flyTo({
-          destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, 3000),
-          orientation: {
-            heading: Cesium.Math.toRadians(30),
-            pitch: Cesium.Math.toRadians(-35),
-            roll: 0,
-          },
+        console.log('[Spatial] flyTo 到图层 (BoundingSphere 自适应)');
+        viewer.flyTo(spatialDataSource, {
           duration: 1.5,
+          offset: new Cesium.HeadingPitchRange(
+            Cesium.Math.toRadians(30),
+            Cesium.Math.toRadians(-35),
+            0 // range=0 → 距离由 Cesium 根据内容自动计算
+          ),
         });
       } catch (e) {
         console.warn('[Spatial] 飞行定位失败:', e);
@@ -612,44 +614,56 @@ watch(() => store.extremeAnalysisData, () => {
   if (isDistrictMode && viewer) updateExtremeIcons(viewer);
 }, { deep: true });
 
-// 前端渲染指令 → 通过 REST 获取 GeoJSON → 渲染到 Cesium
+// 前端渲染指令 → 实时渲染到 Cesium。
+// ★ 串行执行：SSE 实时推送后命令可能背靠背到达（如链式 Pattern A 的 render → highlight），
+//   用 Promise 链保证按到达顺序执行，避免并行渲染互相覆盖/竞态。
+let renderChain = Promise.resolve();
+
+function queueRender(cmd) {
+  if (!cmd) return;
+  renderChain = renderChain
+    .then(() => executeRender(cmd))
+    .catch((e) => console.error("[Render] 串行链执行异常:", e));
+}
+
+async function executeRender(cmd) {
+  // 清除操作优先处理（不需要 dataRef）
+  if (cmd.action === "clear_spatial") {
+    // 清除缓冲区多边形
+    if (spatialDataSource) {
+      viewer?.dataSources.remove(spatialDataSource, true);
+      spatialDataSource = null;
+      console.log('[Spatial] 已清除缓冲区图层');
+    }
+    // 同步清除建筑高亮
+    clearHighlight();
+    return;
+  }
+  // 仅清除高亮
+  if (cmd.action === "clear_highlight") {
+    clearHighlight();
+    return;
+  }
+  // 高亮操作（不需要 dataRef）
+  if (cmd.action === "highlight") {
+    await loadHighlightToCesium(cmd.smids, cmd.highlightColor);
+    return;
+  }
+  // 渲染操作需要 dataRef
+  if (!cmd.dataRef) return;
+  if (cmd.action === "render_spatial") {
+    try {
+      const geoJson = await fetchSpatialData(cmd.dataRef, store.currentConversationId);
+      await loadSpatialToCesium(geoJson, cmd.flyTo !== false);
+    } catch (e) {
+      console.error("[Cesium] 获取空间数据失败:", e);
+    }
+  }
+}
+
 watch(
   () => store.renderCommand,
-  async (cmd) => {
-    if (!cmd) return;
-    // 清除操作优先处理（不需要 dataRef）
-    if (cmd.action === "clear_spatial") {
-      // 清除缓冲区多边形
-      if (spatialDataSource) {
-        viewer?.dataSources.remove(spatialDataSource, true);
-        spatialDataSource = null;
-        console.log('[Spatial] 已清除缓冲区图层');
-      }
-      // 同步清除建筑高亮
-      clearHighlight();
-      return;
-    }
-    // 仅清除高亮
-    if (cmd.action === "clear_highlight") {
-      clearHighlight();
-      return;
-    }
-    // 高亮操作（不需要 dataRef）
-    if (cmd.action === "highlight") {
-      await loadHighlightToCesium(cmd.smids, cmd.highlightColor);
-      return;
-    }
-    // 渲染操作需要 dataRef
-    if (!cmd.dataRef) return;
-    if (cmd.action === "render_spatial") {
-      try {
-        const geoJson = await fetchSpatialData(cmd.dataRef, store.currentConversationId);
-        await loadSpatialToCesium(geoJson, cmd.flyTo !== false);
-      } catch (e) {
-        console.error("[Cesium] 获取空间数据失败:", e);
-      }
-    }
-  },
+  (cmd) => queueRender(cmd),
   { deep: true }
 );
 

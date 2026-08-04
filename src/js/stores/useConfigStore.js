@@ -56,7 +56,7 @@ export const useConfigStore = defineStore("dashboard", () => {
   const currentConversationId = ref(null);
   const conversationList = ref([]);
 
-  // 前端渲染指令（agent 完成后通过 REST pending-render 获取，供 dashboard 渲染 Cesium 图层）
+  // 前端渲染指令（frontend_cmd 工具执行时由 SSE render_command 实时推送，供 dashboard 渲染 Cesium 图层）
   const renderCommand = ref(null);
 
 

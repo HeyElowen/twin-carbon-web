@@ -177,7 +177,7 @@
 <script setup>
 import { ref, computed, nextTick, watch } from "vue";
 import { useConfigStore } from "@/js/stores/useConfigStore";
-import { sendAgentMessage, checkPendingRender } from "@/api/agent";
+import { sendAgentMessage } from "@/api/agent";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 
@@ -421,27 +421,15 @@ async function sendMessage() {
       pendingTool = null; // 该工具已渲染完成，清空等待下一个 tool_call
       scrollToBottom();
     },
-    // ★ Agent 完成：循环消费 pending 渲染指令队列（解决连续调用互相覆盖的问题）
-    async onDone() {
+    // ★ 实时渲染指令：frontend_cmd 工具执行时由后端 SSE 异步推送，不等对话结束
+    onRenderCommand(cmd) {
+      console.log("[Render] 实时收到渲染指令:", cmd.action);
+      store.setRenderCommand(cmd);
+    },
+    // ★ Agent 完成：渲染指令已改为 SSE 实时推送，无需再轮询 pending-render
+    onDone() {
       stopLoading();
       currentAssistantMsg = null;
-      console.log("[Render] onDone 触发, convId=", store.currentConversationId);
-      let cmdCount = 0;
-      while (true) {
-        try {
-          const cmd = await checkPendingRender(store.currentConversationId);
-          if (!cmd) break; // 204 No Content，队列为空
-          cmdCount++;
-          console.log(`[Render] 消费第 ${cmdCount} 个指令:`, cmd.action);
-          store.setRenderCommand(cmd);
-          // 给 watcher 一点时间处理当前指令，再检查下一个
-          await new Promise(r => setTimeout(r, 100));
-        } catch (e) {
-          console.error("[Render] pending-render 失败:", e);
-          break;
-        }
-      }
-      if (cmdCount > 0) console.log(`[Render] 共消费 ${cmdCount} 个渲染指令`);
     },
     onToken(tokenText) {
       // 第一个 token 到达时创建消息气泡，隐藏进度指示器
